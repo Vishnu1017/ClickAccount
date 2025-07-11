@@ -109,36 +109,55 @@ class _CustomersPageState extends State<CustomersPage> {
   }
 
   void _openWhatsApp(String phone, String name, {String? purpose}) async {
-    final cleanedPhone = phone.replaceAll(' ', '');
-    final customerName = name.isNotEmpty ? name : "there";
-
-    // Default simple message
-    String message =
-        "Hi $customerName! This is Shutter Life Photography. How can we help you today?";
-
-    // Optional message variations
-    if (purpose != null) {
-      switch (purpose) {
-        case 'followup':
-          message =
-              "Hi $customerName! Just following up from Shutter Life Photography. Do you need any assistance?";
-          break;
-        case 'feedback':
-          message =
-              "Hi $customerName! We'd love your feedback about your recent Shutter Life Photography experience.";
-          break;
-        case 'promo':
-          message =
-              "Hi $customerName! Shutter Life Photography here with an exclusive offer for you!";
-          break;
-      }
-    }
-
-    final encodedMsg = Uri.encodeComponent(message);
-    final url = "https://wa.me/$cleanedPhone?text=$encodedMsg";
-
     try {
-      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+      // Original phone cleaning (only removes spaces)
+      final cleanedPhone = phone.replaceAll(' ', '');
+
+      // Added validation (10 digits only)
+      if (cleanedPhone.length < 10 ||
+          !RegExp(r'^[0-9]+$').hasMatch(cleanedPhone)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Please enter a valid 10-digit phone number")),
+        );
+        return;
+      }
+
+      // Keep all original message logic
+      final customerName = name.isNotEmpty ? name : "there";
+      String message =
+          "Hi $customerName! This is Shutter Life Photography. How can we help you today?";
+
+      if (purpose != null) {
+        switch (purpose) {
+          case 'followup':
+            message =
+                "Hi $customerName! Just following up from Shutter Life Photography. Do you need any assistance?";
+            break;
+          case 'feedback':
+            message =
+                "Hi $customerName! We'd love your feedback about your recent Shutter Life Photography experience.";
+            break;
+          case 'promo':
+            message =
+                "Hi $customerName! Shutter Life Photography here with an exclusive offer for you!";
+            break;
+        }
+      }
+
+      // Exactly the URL pattern you requested
+      final url1 =
+          "https://wa.me/$cleanedPhone?text=${Uri.encodeComponent(message)}";
+      final url2 =
+          "https://wa.me/91$cleanedPhone?text=${Uri.encodeComponent(message)}";
+
+      // Try both URLs exactly as you specified
+      canLaunchUrl(Uri.parse(url1)).then((canLaunch) {
+        if (canLaunch) {
+          launchUrl(Uri.parse(url1), mode: LaunchMode.externalApplication);
+        } else {
+          launchUrl(Uri.parse(url2), mode: LaunchMode.externalApplication);
+        }
+      });
     } catch (e) {
       ScaffoldMessenger.of(
         context,

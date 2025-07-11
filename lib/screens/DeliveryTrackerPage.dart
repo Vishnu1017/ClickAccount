@@ -51,6 +51,15 @@ class _DeliveryTrackerPageState extends State<DeliveryTrackerPage> {
             ? _linkController.text
             : 'Link not available';
     final phone = widget.sale.phoneNumber.replaceAll(' ', '');
+
+    // ONLY ADDITION: Phone number validation (10 digits minimum)
+    if (phone.length < 10 || !RegExp(r'^[0-9]+$').hasMatch(phone)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Please enter a valid 10-digit phone number")),
+      );
+      return;
+    }
+
     String message;
     if (_selectedStatus == 'All Non Editing Images') {
       message =
@@ -69,8 +78,19 @@ class _DeliveryTrackerPageState extends State<DeliveryTrackerPage> {
           "Thanks,\n"
           "Shutter Life Photography";
     }
-    final url = "https://wa.me/$phone?text=$message";
-    launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+
+    // BOTH URL FORMATS (original + new with country code)
+    final url1 = "https://wa.me/$phone?text=${Uri.encodeComponent(message)}";
+    final url2 = "https://wa.me/91$phone?text=${Uri.encodeComponent(message)}";
+
+    // Try both URLs
+    canLaunchUrl(Uri.parse(url1)).then((canLaunch) {
+      if (canLaunch) {
+        launchUrl(Uri.parse(url1), mode: LaunchMode.externalApplication);
+      } else {
+        launchUrl(Uri.parse(url2), mode: LaunchMode.externalApplication);
+      }
+    });
   }
 
   int getCurrentStepIndex() {
