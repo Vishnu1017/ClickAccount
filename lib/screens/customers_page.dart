@@ -108,9 +108,42 @@ class _CustomersPageState extends State<CustomersPage> {
     if (await canLaunchUrl(uri)) await launchUrl(uri);
   }
 
-  void _openWhatsApp(String phone, String name) async {
-    final url = Uri.parse("https://wa.me/91$phone?text=Hello $name");
-    if (await canLaunchUrl(url)) await launchUrl(url);
+  void _openWhatsApp(String phone, String name, {String? purpose}) async {
+    final cleanedPhone = phone.replaceAll(' ', '');
+    final customerName = name.isNotEmpty ? name : "there";
+
+    // Default simple message
+    String message =
+        "Hi $customerName! This is Shutter Life Photography. How can we help you today?";
+
+    // Optional message variations
+    if (purpose != null) {
+      switch (purpose) {
+        case 'followup':
+          message =
+              "Hi $customerName! Just following up from Shutter Life Photography. Do you need any assistance?";
+          break;
+        case 'feedback':
+          message =
+              "Hi $customerName! We'd love your feedback about your recent Shutter Life Photography experience.";
+          break;
+        case 'promo':
+          message =
+              "Hi $customerName! Shutter Life Photography here with an exclusive offer for you!";
+          break;
+      }
+    }
+
+    final encodedMsg = Uri.encodeComponent(message);
+    final url = "https://wa.me/$cleanedPhone?text=$encodedMsg";
+
+    try {
+      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Couldn't open WhatsApp")));
+    }
   }
 
   @override
@@ -216,12 +249,37 @@ class _CustomersPageState extends State<CustomersPage> {
                               icon: Icon(Icons.phone, color: Colors.white),
                               onPressed: () => _makePhoneCall(phone),
                             ),
-                            IconButton(
-                              icon: FaIcon(
+                            PopupMenuButton<String>(
+                              icon: Icon(
                                 FontAwesomeIcons.whatsapp,
                                 color: Colors.white,
                               ),
-                              onPressed: () => _openWhatsApp(phone, name),
+                              itemBuilder:
+                                  (context) => [
+                                    PopupMenuItem(
+                                      value: 'default',
+                                      child: Text("General Inquiry"),
+                                    ),
+                                    PopupMenuItem(
+                                      value: 'followup',
+                                      child: Text("Follow Up"),
+                                    ),
+                                    PopupMenuItem(
+                                      value: 'feedback',
+                                      child: Text("Feedback Request"),
+                                    ),
+                                    PopupMenuItem(
+                                      value: 'promo',
+                                      child: Text("Special Offer"),
+                                    ),
+                                  ],
+                              onSelected: (purpose) {
+                                if (purpose == 'default') {
+                                  _openWhatsApp(phone, name);
+                                } else {
+                                  _openWhatsApp(phone, name, purpose: purpose);
+                                }
+                              },
                             ),
                           ],
                         ),

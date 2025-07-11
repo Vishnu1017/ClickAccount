@@ -51,10 +51,25 @@ class _DeliveryTrackerPageState extends State<DeliveryTrackerPage> {
             ? _linkController.text
             : 'Link not available';
     final phone = widget.sale.phoneNumber.replaceAll(' ', '');
-    final encodedMsg = Uri.encodeComponent(
-      "Hi $customerName,\n\nYour photos are now *$deliveryStatus*.\nDownload here: $deliveryLink\n\nThanks,\nShutter Life Photography",
-    );
-    final url = "https://wa.me/$phone?text=$encodedMsg";
+    String message;
+    if (_selectedStatus == 'All Non Editing Images') {
+      message =
+          "Hi $customerName,\n\n"
+          "Your non-edited photos are now ready for download!\n\n"
+          "You can access them here: $deliveryLink\n\n"
+          "Note: These are the raw, unedited images from your session. "
+          "The final edited versions will be shared separately once completed.\n\n"
+          "Thanks,\n"
+          "Shutter Life Photography";
+    } else {
+      message =
+          "Hi $customerName,\n\n"
+          "Your photos are now *$deliveryStatus*.\n"
+          "Download here: $deliveryLink\n\n"
+          "Thanks,\n"
+          "Shutter Life Photography";
+    }
+    final url = "https://wa.me/$phone?text=$message";
     launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
   }
 
