@@ -189,12 +189,20 @@ class _SelectItemsScreenState extends State<SelectItemsScreen> {
                   itemController,
                   "e.g. Premium Photography",
                   onTap: showItemPicker,
+                  keyboardType: TextInputType.text, // Full keyboard
                 ),
+
                 SizedBox(height: 16),
                 Row(
                   children: [
                     Expanded(
-                      child: _buildTextField(quantityController, "Quantity"),
+                      child: _buildTextField(
+                        quantityController,
+                        "Quantity",
+                        keyboardType: TextInputType.numberWithOptions(
+                          decimal: false,
+                        ),
+                      ),
                     ),
                     SizedBox(width: 12),
                     Expanded(
@@ -214,6 +222,9 @@ class _SelectItemsScreenState extends State<SelectItemsScreen> {
                       child: _buildTextField(
                         rateController,
                         "Rate (Price/Unit)",
+                        keyboardType: TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
                       ),
                     ),
                     SizedBox(width: 12),
@@ -528,6 +539,7 @@ class _SelectItemsScreenState extends State<SelectItemsScreen> {
     String? prefixText,
     Color? fillColor,
     VoidCallback? onTap,
+    TextInputType keyboardType = TextInputType.text, // Default to text keyboard
   }) {
     return TextFormField(
       controller: controller,
@@ -541,7 +553,7 @@ class _SelectItemsScreenState extends State<SelectItemsScreen> {
         fillColor: fillColor,
         filled: fillColor != null,
       ),
-      keyboardType: TextInputType.text,
+      keyboardType: keyboardType, // Use the provided keyboard type
       onChanged: (value) => setState(() {}),
     );
   }
