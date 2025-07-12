@@ -188,7 +188,7 @@ class _SelectItemsScreenState extends State<SelectItemsScreen> {
                 _buildTextField(
                   itemController,
                   "e.g. Premium Photography",
-                  textOnly: true, // This will disable the picker
+                  onTap: showItemPicker,
                 ),
                 SizedBox(height: 16),
                 Row(
@@ -528,11 +528,10 @@ class _SelectItemsScreenState extends State<SelectItemsScreen> {
     String? prefixText,
     Color? fillColor,
     VoidCallback? onTap,
-    bool textOnly = true, // Add this new parameter
   }) {
     return TextFormField(
       controller: controller,
-      onTap: textOnly ? null : onTap, // Only use onTap if not textOnly
+      onTap: onTap,
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
