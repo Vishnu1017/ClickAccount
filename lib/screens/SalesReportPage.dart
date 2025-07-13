@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:click_account/models/sale.dart';
-import 'package:csv/csv.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
