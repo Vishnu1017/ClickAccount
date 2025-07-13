@@ -1,3 +1,4 @@
+import 'package:click_account/screens/SalesReportPage.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
@@ -12,7 +13,6 @@ class DashboardPage extends StatefulWidget {
 class _DashboardPageState extends State<DashboardPage> {
   double totalSale = 0.0;
   double growthPercent = 0.0;
-
   List<FlSpot> salesData = [];
   List<String> monthLabels = [];
   double maxYValue = 0;
@@ -69,6 +69,20 @@ class _DashboardPageState extends State<DashboardPage> {
         (i) => FlSpot(i.toDouble(), monthlyTotals[last3MonthKeys[i]]!),
       );
     });
+  }
+
+  void _navigateToSalesReport() {
+    // Get all sales data for the report
+    final box = Hive.box<Sale>('sales');
+    final sales = box.values.toList();
+
+    // Sort by date (newest first)
+    sales.sort((a, b) => b.dateTime.compareTo(a.dateTime));
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => SalesReportPage(sales: sales)),
+    );
   }
 
   @override
@@ -226,6 +240,32 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
               ],
             ),
+          ),
+
+          SizedBox(height: 20),
+          FloatingActionButton.extended(
+            onPressed: _navigateToSalesReport,
+            label: const Text(
+              'View Sales Insights', // Action-oriented text
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            icon: const Icon(
+              Icons.data_usage, // A unique data-related icon
+              color: Colors.white,
+              size: 26,
+            ),
+            backgroundColor:
+                Colors.blueAccent.shade400, // A vibrant, eye-catching color
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(30.0), // More pill-shaped
+            ),
+            elevation: 8, // Prominent shadow
+            // Optional: Add a hero tag if using multiple FABs
+            // heroTag: "salesReportFab",
           ),
         ],
       ),

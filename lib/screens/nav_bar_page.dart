@@ -84,7 +84,7 @@ class _NavBarPageState extends State<NavBarPage>
     return Align(
       alignment: Alignment.bottomCenter,
       child: Padding(
-        padding: const EdgeInsets.only(bottom: 24.0),
+        padding: const EdgeInsets.only(bottom: 6.0),
         child: SlideTransition(
           position: _slideAnimation,
           child: FadeTransition(
