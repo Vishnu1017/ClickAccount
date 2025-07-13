@@ -50,14 +50,16 @@ class _NavBarPageState extends State<NavBarPage>
       begin: Offset(0, 1),
       end: Offset(0, 0),
     ).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOutBack),
     );
 
     _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeIn),
     );
 
-    _animationController.forward();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _animationController.forward();
+    });
   }
 
   @override
@@ -66,7 +68,6 @@ class _NavBarPageState extends State<NavBarPage>
     super.dispose();
   }
 
-  // 🔷 Add New Sale Button (for index 0, 1, 2)
   Widget _buildAddSaleButton() {
     if (![_currentIndex].contains(0) &&
         ![_currentIndex].contains(1) &&
@@ -84,7 +85,7 @@ class _NavBarPageState extends State<NavBarPage>
     return Align(
       alignment: Alignment.bottomCenter,
       child: Padding(
-        padding: const EdgeInsets.only(bottom: 6.0),
+        padding: const EdgeInsets.only(bottom: 2.0),
         child: SlideTransition(
           position: _slideAnimation,
           child: FadeTransition(
@@ -154,56 +155,65 @@ class _NavBarPageState extends State<NavBarPage>
     );
   }
 
-  // 🔷 Add Items Button (for index 3)
   Widget _buildAddItemButton() {
-    if (_currentIndex != 3) return SizedBox.shrink(); // Only on Products page
+    if (_currentIndex != 3) return SizedBox.shrink();
 
     return Align(
       alignment: Alignment.bottomCenter,
       child: Padding(
-        padding: const EdgeInsets.only(bottom: 24.0),
-        child: Container(
-          width: MediaQuery.of(context).size.width * 0.85,
-          height: 55,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(28),
-            gradient: LinearGradient(
-              colors: [Color(0xFF1A237E), Color(0xFF00BCD4)],
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-            ),
-          ),
-          child: ElevatedButton.icon(
-            icon: Icon(Icons.add_box_rounded, color: Colors.white, size: 26),
-            label: Text(
-              'Add Items',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.transparent,
-              shadowColor: Colors.transparent,
-              padding: EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
+        padding: const EdgeInsets.only(bottom: 0.0),
+        child: SlideTransition(
+          position: _slideAnimation,
+          child: FadeTransition(
+            opacity: _fadeAnimation,
+            child: Container(
+              width: MediaQuery.of(context).size.width * 0.85,
+              height: 55,
+              decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(28),
+                gradient: LinearGradient(
+                  colors: [Color(0xFF1A237E), Color(0xFF00BCD4)],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+              ),
+              child: ElevatedButton.icon(
+                icon: Icon(
+                  Icons.add_box_rounded,
+                  color: Colors.white,
+                  size: 26,
+                ),
+                label: Text(
+                  'Add Items',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(28),
+                  ),
+                ),
+                onPressed: () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => SelectItemsScreen()),
+                  );
+
+                  if (result != null && result['itemName'] != null) {
+                    final itemName = result['itemName'];
+                    final rate = result['rate'] ?? 0.0;
+
+                    ProductStore().add(itemName, rate);
+                    setState(() {});
+                  }
+                },
               ),
             ),
-            onPressed: () async {
-              final result = await Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => SelectItemsScreen()),
-              );
-
-              if (result != null && result['itemName'] != null) {
-                final itemName = result['itemName'];
-                final rate = result['rate'] ?? 0.0;
-
-                ProductStore().add(itemName, rate);
-                setState(() {}); // Refresh ProductsPage
-              }
-            },
           ),
         ),
       ),
@@ -252,8 +262,8 @@ class _NavBarPageState extends State<NavBarPage>
                           end: Alignment.bottomRight,
                         ),
                         border: Border.all(
-                          color: Colors.white.withOpacity(0.9), // outline color
-                          width: 2, // outline thickness
+                          color: Colors.white.withOpacity(0.9),
+                          width: 2,
                         ),
                       ),
                       child: Material(
@@ -301,7 +311,6 @@ class _NavBarPageState extends State<NavBarPage>
                 ]
                 : null,
       ),
-
       body: Stack(
         children: [
           _pages[_currentIndex],
@@ -331,7 +340,6 @@ class _NavBarPageState extends State<NavBarPage>
               _animationController.forward();
             });
 
-            // 🔄 Force refresh when returning to Products tab
             if (newIndex == 3) {
               await Future.delayed(Duration(milliseconds: 100));
               setState(() {});

@@ -1,6 +1,15 @@
+import 'dart:io';
+
 import 'package:click_account/models/sale.dart';
+import 'package:csv/csv.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:open_filex/open_filex.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 
 enum DateRangePreset {
   today,
@@ -79,327 +88,315 @@ class _SalesReportPageState extends State<SalesReportPage> {
     });
   }
 
-  void _showPdfOptions(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (BuildContext context) {
-        return Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(24),
-              topRight: Radius.circular(24),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 20,
-                spreadRadius: 5,
-              ),
-            ],
-          ),
-          margin: EdgeInsets.only(top: 40),
-          padding: EdgeInsets.fromLTRB(
-            24,
-            16,
-            24,
-            MediaQuery.of(context).viewInsets.bottom + 16,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Header with close button
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'PDF Options',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue[800],
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Container(
-                      padding: EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.grey[200],
-                      ),
-                      child: Icon(
-                        Icons.close,
-                        size: 20,
-                        color: Colors.grey[700],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 24),
+  Future<pw.Document> _generateSalesReportPdf(List<Sale> sales) async {
+    final pdf = pw.Document();
+    final dateFormat = DateFormat('dd/MM/yyyy');
+    final currencyFormat = NumberFormat.simpleCurrency(locale: 'en_IN');
 
-              // PDF Options Cards
-              _buildPdfOptionCard(
-                context,
-                icon: Icons.picture_as_pdf,
-                iconColor: Colors.red[400],
-                title: 'Open PDF',
-                subtitle: 'View document immediately',
-              ),
-              SizedBox(height: 12),
-              _buildPdfOptionCard(
-                context,
-                icon: Icons.print,
-                iconColor: Colors.blue[400],
-                title: 'Print PDF',
-                subtitle: 'Send to printer',
-              ),
-              SizedBox(height: 12),
-              _buildPdfOptionCard(
-                context,
-                icon: Icons.share,
-                iconColor: Colors.green[400],
-                title: 'Share PDF',
-                subtitle: 'Send via other apps',
-              ),
-              SizedBox(height: 12),
-              _buildPdfOptionCard(
-                context,
-                icon: Icons.save_alt,
-                iconColor: Colors.purple[400],
-                title: 'Save to Device',
-                subtitle: 'Store in downloads',
-              ),
-              SizedBox(height: 16),
-            ],
-          ),
-        );
-      },
-    );
-  }
+    // ✅ Load Roboto font for ₹ support
+    final fontData = await rootBundle.load('assets/fonts/Roboto-Regular.ttf');
+    final ttf = pw.Font.ttf(fontData.buffer.asByteData());
 
-  Widget _buildPdfOptionCard(
-    BuildContext context, {
-    required IconData icon,
-    required Color? iconColor,
-    required String title,
-    required String subtitle,
-  }) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey[200]!, width: 1),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () {
-          Navigator.pop(context);
-          // Add your functionality here
-        },
-        child: Padding(
-          padding: EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Container(
-                padding: EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: iconColor?.withOpacity(0.2),
-                  shape: BoxShape.circle,
+    final totalSales = sales.fold(0.0, (sum, s) => sum + s.totalAmount);
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        margin: pw.EdgeInsets.all(20),
+        build:
+            (context) => [
+              // Header with brand
+              pw.Container(
+                padding: const pw.EdgeInsets.all(8),
+                decoration: pw.BoxDecoration(
+                  border: pw.Border.all(color: PdfColors.grey600),
+                  borderRadius: pw.BorderRadius.circular(6),
+                  color: PdfColor.fromHex('#E0F7FA'),
                 ),
-                child: Icon(icon, size: 24, color: iconColor),
-              ),
-              SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: pw.Row(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
+                    pw.Container(
+                      width: 60,
+                      height: 60,
+                      decoration: pw.BoxDecoration(
+                        color: PdfColors.white,
+                        borderRadius: pw.BorderRadius.circular(8),
+                        border: pw.Border.all(color: PdfColors.grey),
+                      ),
+                      child: pw.Center(
+                        child: pw.Text(
+                          'SLP',
+                          style: pw.TextStyle(
+                            fontSize: 20,
+                            fontWeight: pw.FontWeight.bold,
+                            font: ttf,
+                            color: PdfColors.teal800,
+                          ),
+                        ),
                       ),
                     ),
-                    SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                    pw.SizedBox(width: 12),
+                    pw.Expanded(
+                      child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text(
+                            'Shutter Life Photography',
+                            style: pw.TextStyle(
+                              fontSize: 16,
+                              fontWeight: pw.FontWeight.bold,
+                              font: ttf,
+                              color: PdfColors.indigo800,
+                            ),
+                          ),
+                          pw.Text(
+                            'Phone: 6360120253',
+                            style: pw.TextStyle(font: ttf),
+                          ),
+                          pw.Text(
+                            'Email: shutterlifephotography10@gmail.com',
+                            style: pw.TextStyle(font: ttf),
+                          ),
+                          pw.Text(
+                            'State: 61-Karnataka',
+                            style: pw.TextStyle(font: ttf),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right, color: Colors.grey[400]),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
-  void _showXlsOptions(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (BuildContext context) {
-        return Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(24),
-              topRight: Radius.circular(24),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 20,
-                spreadRadius: 5,
+              pw.SizedBox(height: 16),
+
+              // Report Title
+              pw.Center(
+                child: pw.Text(
+                  'Sales Report',
+                  style: pw.TextStyle(
+                    fontSize: 14,
+                    fontWeight: pw.FontWeight.bold,
+                    decoration: pw.TextDecoration.underline,
+                    font: ttf,
+                    color: PdfColors.deepPurple,
+                  ),
+                ),
               ),
-            ],
-          ),
-          margin: EdgeInsets.only(top: 40),
-          padding: EdgeInsets.fromLTRB(
-            24,
-            16,
-            24,
-            MediaQuery.of(context).viewInsets.bottom + 16,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Header with close button
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+
+              pw.SizedBox(height: 8),
+
+              pw.Text('Username: All Users', style: pw.TextStyle(font: ttf)),
+              pw.Text(
+                'Duration: From ${getFormattedRange()}',
+                style: pw.TextStyle(font: ttf),
+              ),
+
+              pw.SizedBox(height: 16),
+
+              // Table
+              pw.Table.fromTextArray(
+                headerStyle: pw.TextStyle(
+                  fontWeight: pw.FontWeight.bold,
+                  font: ttf,
+                ),
+                headers: [
+                  'Date',
+                  'Order No.',
+                  'Party Name',
+                  'Phone No.',
+                  'Txn Type',
+                  'Status',
+                  'Payment Type',
+                  'Paid Amount',
+                  'Balance',
+                ],
+                cellStyle: pw.TextStyle(fontSize: 10, font: ttf),
+                columnWidths: {
+                  0: pw.FixedColumnWidth(50),
+                  1: pw.FixedColumnWidth(50),
+                  2: pw.FixedColumnWidth(80),
+                  3: pw.FixedColumnWidth(65),
+                  4: pw.FixedColumnWidth(40),
+                  5: pw.FixedColumnWidth(40),
+                  6: pw.FixedColumnWidth(70),
+                  7: pw.FixedColumnWidth(60),
+                  8: pw.FixedColumnWidth(50),
+                },
+                data:
+                    sales.map((s) {
+                      final balance = s.totalAmount - s.amount;
+                      return [
+                        dateFormat.format(s.dateTime),
+                        '-',
+                        s.customerName,
+                        s.phoneNumber,
+                        'Sale',
+                        balance <= 0 ? 'Paid' : 'Unpaid',
+                        s.paymentMode,
+                        currencyFormat.format(s.amount),
+                        currencyFormat.format(balance),
+                      ];
+                    }).toList(),
+              ),
+
+              pw.SizedBox(height: 20),
+
+              // Total Summary Box
+              pw.Container(
+                alignment: pw.Alignment.centerRight,
+                padding: pw.EdgeInsets.all(10),
+                decoration: pw.BoxDecoration(
+                  border: pw.Border.all(color: PdfColors.grey),
+                  borderRadius: pw.BorderRadius.circular(6),
+                  color: PdfColors.indigo50,
+                ),
+                child: pw.Text(
+                  'Total Sale: ${currencyFormat.format(totalSales)}',
+                  style: pw.TextStyle(
+                    fontWeight: pw.FontWeight.bold,
+                    fontSize: 12,
+                    font: ttf,
+                    color: PdfColors.indigo900,
+                  ),
+                ),
+              ),
+
+              pw.Spacer(),
+
+              // Footer
+              pw.Divider(),
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Excel Options',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color:
-                          Colors.green[800], // Green instead of blue for Excel
+                  pw.Text(
+                    'Generated on: ${DateFormat('dd-MM-yyyy hh:mm a').format(DateTime.now())}',
+                    style: pw.TextStyle(
+                      fontSize: 9,
+                      color: PdfColors.grey600,
+                      font: ttf,
                     ),
                   ),
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Container(
-                      padding: EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.grey[200],
-                      ),
-                      child: Icon(
-                        Icons.close,
-                        size: 20,
-                        color: Colors.grey[700],
-                      ),
+                  pw.Text(
+                    'Generated via MyApp',
+                    style: pw.TextStyle(
+                      fontSize: 9,
+                      color: PdfColors.grey600,
+                      font: ttf,
                     ),
                   ),
                 ],
               ),
-              SizedBox(height: 24),
-
-              // Excel Options Cards - Same design as PDF options
-              _buildXlsOptionCard(
-                context,
-                icon: Icons.open_in_new,
-                iconColor: Colors.green[600],
-                title: 'Open Excel',
-                subtitle: 'View spreadsheet immediately',
-              ),
-              SizedBox(height: 12),
-              _buildXlsOptionCard(
-                context,
-                icon: Icons.share,
-                iconColor: Colors.blue[400],
-                title: 'Share Excel',
-                subtitle: 'Send via other apps',
-              ),
-              SizedBox(height: 12),
-              _buildXlsOptionCard(
-                context,
-                icon: Icons.download,
-                iconColor: Colors.red[400],
-                title: 'Export to Excel',
-                subtitle: 'Download file',
-              ),
-              SizedBox(height: 12),
-              _buildXlsOptionCard(
-                context,
-                icon: Icons.schedule,
-                iconColor: Colors.purple[400],
-                title: 'Schedule Report',
-                subtitle: 'Set up automatic exports',
-              ),
-              SizedBox(height: 16),
             ],
-          ),
-        );
-      },
+      ),
     );
+
+    return pdf;
   }
 
-  Widget _buildXlsOptionCard(
-    BuildContext context, {
-    required IconData icon,
-    required Color? iconColor,
-    required String title,
-    required String subtitle,
-  }) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey[200]!, width: 1),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () {
-          Navigator.pop(context);
-          // Add your Excel functionality here
-        },
-        child: Padding(
-          padding: EdgeInsets.all(16),
-          child: Row(
+  Future<void> _exportToCSV(BuildContext context) async {
+    try {
+      if (!mounted) return;
+
+      final scaffoldMessenger = ScaffoldMessenger.of(context);
+      final sales = getFilteredSales();
+
+      if (sales.isEmpty) {
+        scaffoldMessenger.showSnackBar(
+          const SnackBar(content: Text('No sales data to export')),
+        );
+        return;
+      }
+
+      // Show loading indicator
+      scaffoldMessenger.showSnackBar(
+        const SnackBar(
+          content: Row(
             children: [
-              Container(
-                padding: EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: iconColor?.withOpacity(0.2),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, size: 24, color: iconColor),
-              ),
-              SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: TextStyle(fontSize: 13, color: Colors.grey[600]),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(Icons.chevron_right, color: Colors.grey[400]),
+              CircularProgressIndicator(),
+              SizedBox(width: 20),
+              Text('Generating CSV file...'),
             ],
           ),
+          duration: Duration(seconds: 2),
         ),
-      ),
-    );
+      );
+
+      final dateFormat = DateFormat('dd/MM/yyyy');
+      final buffer = StringBuffer();
+
+      // Add UTF-8 BOM for Excel compatibility
+      buffer.write('\uFEFF');
+
+      // Header row
+      buffer.writeln(
+        [
+          'Date',
+          'Order No',
+          'Party Name',
+          'Phone No',
+          'Txn Type',
+          'Status',
+          'Payment Type',
+          'Paid Amount',
+          'Balance',
+        ].map((e) => '"$e"').join(','),
+      );
+
+      // Data rows
+      for (var s in sales) {
+        final balance = s.totalAmount - s.amount;
+        buffer.writeln(
+          [
+            dateFormat.format(s.dateTime),
+            '-',
+            s.customerName,
+            s.phoneNumber,
+            'Sale',
+            balance <= 0 ? 'Paid' : 'Unpaid',
+            s.paymentMode,
+            s.amount.toStringAsFixed(2),
+            balance.toStringAsFixed(2),
+          ].map((e) => '"${e.toString().replaceAll('"', '""')}"').join(','),
+        );
+      }
+
+      // Get directory
+      final directory = await getApplicationDocumentsDirectory();
+      final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+      final path = '${directory.path}/Sales_Report_$timestamp.csv';
+
+      // Write file
+      final file = File(path);
+      await file.writeAsString(buffer.toString());
+
+      // Verify file was created
+      if (!await file.exists()) {
+        throw Exception('Failed to create CSV file');
+      }
+
+      // Open file
+      final result = await OpenFilex.open(path);
+
+      if (!mounted) return;
+
+      if (result.type != ResultType.done) {
+        scaffoldMessenger.showSnackBar(
+          SnackBar(content: Text('Failed to open file: ${result.message}')),
+        );
+      } else {
+        scaffoldMessenger.showSnackBar(
+          const SnackBar(content: Text('CSV file exported successfully')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+      debugPrint('CSV Export Error: $e');
+    }
   }
 
   Future<void> _selectDateRange(BuildContext context) async {
@@ -472,14 +469,17 @@ class _SalesReportPageState extends State<SalesReportPage> {
         title: Text("Sale Report", style: TextStyle(color: Colors.white)),
         actions: [
           IconButton(
-            icon: Icon(Icons.picture_as_pdf, color: Colors.white),
-            onPressed: () => _showPdfOptions(context),
+            icon: Icon(Icons.picture_as_pdf, color: Colors.white, size: 28),
+            onPressed: () async {
+              final pdf = await _generateSalesReportPdf(getFilteredSales());
+              await Printing.layoutPdf(onLayout: (format) async => pdf.save());
+            },
           ),
           Stack(
             children: [
               IconButton(
                 icon: CustomXlsIcon(),
-                onPressed: () => _showXlsOptions(context),
+                onPressed: () => _exportToCSV(context),
               ),
               Positioned(
                 right: 8,
@@ -861,14 +861,7 @@ class CustomXlsIcon extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.green,
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: Colors.white, width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 4,
-            offset: Offset(0, 2),
-          ),
-        ],
+        border: Border.all(color: Colors.white, width: 1.4),
       ),
       child: Center(
         child: Text(
@@ -876,8 +869,7 @@ class CustomXlsIcon extends StatelessWidget {
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
-            fontSize: 12, // Slightly larger font
-            letterSpacing: 0.5,
+            fontSize: 11,
           ),
         ),
       ),
