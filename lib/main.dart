@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:hive/hive.dart';
 
@@ -7,6 +8,10 @@ import 'package:click_account/models/sale.dart';
 import 'package:click_account/models/product.dart';
 import 'package:click_account/models/payment.dart';
 import 'package:click_account/screens/nav_bar_page.dart';
+import 'package:timezone/data/latest_10y.dart' as tz;
+
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,9 +28,23 @@ void main() async {
     Hive.registerAdapter(PaymentAdapter());
   }
 
-  // Open boxes
+  // Open Hive Boxes
   await Hive.openBox<Sale>('sales');
   await Hive.openBox<Product>('products');
+  await Hive.openBox<Payment>('payments');
+
+  // Initialize Notifications
+  const AndroidInitializationSettings androidSettings =
+      AndroidInitializationSettings('@mipmap/ic_launcher');
+
+  final InitializationSettings initializationSettings = InitializationSettings(
+    android: androidSettings,
+  );
+
+  await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+
+  // Initialize Timezone for scheduled notifications
+  tz.initializeTimeZones();
 
   runApp(const MyApp());
 }

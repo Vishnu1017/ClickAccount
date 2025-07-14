@@ -1,7 +1,9 @@
-// ignore_for_file: unused_local_variable, unused_field
+// ignore_for_file: unused_local_variable, unnecessary_null_comparison
 
 import 'package:click_account/models/sale.dart';
 import 'package:click_account/screens/DeliveryTrackerPage.dart';
+import 'package:click_account/screens/WhatsAppHelper.dart';
+import 'package:click_account/screens/notification_helper.dart';
 import 'package:click_account/screens/payment_history_page.dart';
 import 'package:click_account/screens/pdf_preview_screen.dart';
 import 'package:click_account/screens/sale_detail_screen.dart';
@@ -13,6 +15,7 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:url_launcher/url_launcher.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -23,27 +26,37 @@ class _HomePageState extends State<HomePage>
     with SingleTickerProviderStateMixin {
   String welcomeMessage = "";
   late AnimationController _controller;
-  late Animation<Offset> _slideAnimation;
-  late Animation<double> _fadeAnimation;
 
   @override
   void initState() {
     super.initState();
     fetchWelcomeMessage();
+    checkOverduePayments();
 
     _controller = AnimationController(
       vsync: this,
       duration: Duration(milliseconds: 800),
     );
 
-    _slideAnimation = Tween<Offset>(
-      begin: Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
-
-    _fadeAnimation = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
-
     _controller.forward();
+  }
+
+  Future<void> checkOverduePayments() async {
+    final box = await Hive.openBox<Sale>('sales');
+
+    for (int i = 0; i < box.length; i++) {
+      final sale = box.getAt(i);
+      if (sale == null) continue;
+
+      final bool isUnpaid = sale.amount < sale.totalAmount;
+      final bool isDueOver7Days =
+          isUnpaid && DateTime.now().difference(sale.dateTime).inDays > 7;
+
+      if (isDueOver7Days) {
+        final due = sale.totalAmount - sale.amount;
+        await NotificationHelper.showDueNotification(sale.customerName, due);
+      }
+    }
   }
 
   void fetchWelcomeMessage() {
@@ -118,7 +131,6 @@ class _HomePageState extends State<HomePage>
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // 👤 Avatar + Invoice + Date
                             Column(
                               children: [
                                 CircleAvatar(
@@ -155,8 +167,6 @@ class _HomePageState extends State<HomePage>
                               ],
                             ),
                             SizedBox(width: 16),
-
-                            // 📋 Details
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -234,18 +244,17 @@ class _HomePageState extends State<HomePage>
                                             sale.amount > 0 &&
                                             sale.amount < sale.totalAmount;
                                         final bool isUnpaid = sale.amount == 0;
+
                                         final bool isDueOver7Days =
                                             isUnpaid &&
-                                            // ignore: unnecessary_null_comparison
                                             sale.dateTime != null &&
                                             DateTime.now()
                                                     .difference(sale.dateTime)
                                                     .inDays >
                                                 7;
+
                                         String label = '';
-                                        Color badgeColor =
-                                            Colors
-                                                .orange[700]!; // Default to DUE
+                                        Color badgeColor = Colors.orange[700]!;
 
                                         if (isFullyPaid) {
                                           label = "SALE : PAID";
@@ -256,29 +265,60 @@ class _HomePageState extends State<HomePage>
                                         } else if (isDueOver7Days) {
                                           label = "SALE : DUE";
                                           badgeColor = Colors.orange[700]!;
+
+                                          final due =
+                                              sale.totalAmount - sale.amount;
+                                          final phone =
+                                              sale.phoneNumber
+                                                  .replaceAll('+91', '')
+                                                  .trim();
+                                          final msg =
+                                              "Hello ${sale.customerName}, your payment of ₹${due.toStringAsFixed(2)} is overdue for more than 7 days. Please make the payment at the earliest. - Shutter Life Photography";
+                                          if (phone != null &&
+                                              phone.isNotEmpty) {
+                                            WidgetsBinding.instance
+                                                .addPostFrameCallback((_) {
+                                                  WhatsAppHelper.sendWhatsAppMessage(
+                                                    phone: phone,
+                                                    message: msg,
+                                                  );
+                                                });
+                                          }
                                         } else {
                                           label = "SALE : PARTIAL";
                                           badgeColor = Colors.lightBlue;
                                         }
 
-                                        return Container(
-                                          margin: EdgeInsets.only(top: 6),
-                                          padding: EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 4,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: badgeColor,
-                                            borderRadius: BorderRadius.circular(
-                                              12,
+                                        return Align(
+                                          alignment: Alignment.centerRight,
+                                          child: Container(
+                                            margin: EdgeInsets.only(top: 6),
+                                            padding: EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 5,
                                             ),
-                                          ),
-                                          child: Text(
-                                            label,
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.bold,
+                                            decoration: BoxDecoration(
+                                              color: badgeColor,
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: badgeColor.withOpacity(
+                                                    0.3,
+                                                  ),
+                                                  blurRadius: 4,
+                                                  offset: Offset(0, 2),
+                                                ),
+                                              ],
+                                            ),
+                                            child: Text(
+                                              label,
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                                letterSpacing: 0.5,
+                                              ),
                                             ),
                                           ),
                                         );
@@ -288,55 +328,168 @@ class _HomePageState extends State<HomePage>
                                 ],
                               ),
                             ),
-                            // ☰ Delete option
                             PopupMenuButton<String>(
                               onSelected: (value) async {
+                                final scaffoldContext =
+                                    context; // Store context here
+
                                 if (value == 'delete') {
                                   final confirm = await showDialog<bool>(
                                     context: context,
+                                    barrierDismissible: false,
                                     builder:
-                                        (context) => AlertDialog(
-                                          title: Center(
-                                            child: Text('Delete Sale?'),
-                                          ),
-                                          content: Text(
-                                            'Are you sure you want to delete this sale? This action cannot be undone.',
-                                          ),
-                                          actions: [
-                                            TextButton(
-                                              onPressed:
-                                                  () => Navigator.of(
-                                                    context,
-                                                  ).pop(false),
-                                              child: Text(
-                                                'Cancel',
+                                        (ctx) => LayoutBuilder(
+                                          builder: (context, constraints) {
+                                            // Responsive sizing values
+                                            final bool isSmallScreen =
+                                                constraints.maxWidth < 600;
+                                            final double iconSize =
+                                                isSmallScreen ? 24.0 : 28.0;
+                                            final double fontSize =
+                                                isSmallScreen ? 16.0 : 18.0;
+                                            final double padding =
+                                                isSmallScreen ? 12.0 : 16.0;
+                                            final double buttonPadding =
+                                                isSmallScreen ? 10.0 : 14.0;
+
+                                            return AlertDialog(
+                                              insetPadding: EdgeInsets.all(
+                                                padding,
+                                              ),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(16),
+                                              ),
+                                              titlePadding: EdgeInsets.fromLTRB(
+                                                padding,
+                                                padding,
+                                                padding,
+                                                8,
+                                              ),
+                                              contentPadding:
+                                                  EdgeInsets.fromLTRB(
+                                                    padding,
+                                                    8,
+                                                    padding,
+                                                    padding,
+                                                  ),
+                                              title: Row(
+                                                children: [
+                                                  Icon(
+                                                    Icons.warning,
+                                                    color: Colors.red,
+                                                    size: iconSize,
+                                                  ),
+                                                  SizedBox(
+                                                    width:
+                                                        isSmallScreen ? 8 : 12,
+                                                  ),
+                                                  Text(
+                                                    "Confirm Deletion",
+                                                    style: TextStyle(
+                                                      fontSize: fontSize,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              content: Text(
+                                                'Are you sure you want to delete this sale? This action cannot be undone.',
                                                 style: TextStyle(
-                                                  color: Colors.black,
+                                                  fontSize: fontSize - 2,
                                                 ),
+                                                textAlign: TextAlign.center,
                                               ),
-                                            ),
-                                            ElevatedButton(
-                                              onPressed:
-                                                  () => Navigator.of(
-                                                    context,
-                                                  ).pop(true),
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor: Colors.red,
-                                              ),
-                                              child: Text(
-                                                'Delete',
-                                                style: TextStyle(
-                                                  color: Colors.white,
+                                              actionsPadding:
+                                                  EdgeInsets.symmetric(
+                                                    horizontal: padding,
+                                                    vertical: 8,
+                                                  ),
+                                              actions: [
+                                                Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment
+                                                          .spaceBetween,
+                                                  children: [
+                                                    Flexible(
+                                                      child: TextButton(
+                                                        style: TextButton.styleFrom(
+                                                          padding: EdgeInsets.symmetric(
+                                                            horizontal:
+                                                                buttonPadding,
+                                                            vertical:
+                                                                buttonPadding -
+                                                                4,
+                                                          ),
+                                                        ),
+                                                        onPressed:
+                                                            () => Navigator.of(
+                                                              ctx,
+                                                            ).pop(false),
+                                                        child: Text(
+                                                          "Cancel",
+                                                          style: TextStyle(
+                                                            color:
+                                                                Colors
+                                                                    .grey[700],
+                                                            fontSize:
+                                                                fontSize - 2,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    SizedBox(
+                                                      width:
+                                                          isSmallScreen
+                                                              ? 8
+                                                              : 16,
+                                                    ),
+                                                    Flexible(
+                                                      child: ElevatedButton.icon(
+                                                        style: ElevatedButton.styleFrom(
+                                                          backgroundColor:
+                                                              Colors.red,
+                                                          foregroundColor:
+                                                              Colors.white,
+                                                          padding: EdgeInsets.symmetric(
+                                                            horizontal:
+                                                                buttonPadding,
+                                                            vertical:
+                                                                buttonPadding -
+                                                                4,
+                                                          ),
+                                                        ),
+                                                        icon: Icon(
+                                                          Icons.delete_forever,
+                                                          size: iconSize - 2,
+                                                        ),
+                                                        label: Text(
+                                                          "Delete",
+                                                          style: TextStyle(
+                                                            fontSize:
+                                                                fontSize - 2,
+                                                          ),
+                                                        ),
+                                                        onPressed:
+                                                            () => Navigator.of(
+                                                              ctx,
+                                                            ).pop(true),
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
-                                              ),
-                                            ),
-                                          ],
+                                              ],
+                                            );
+                                          },
                                         ),
                                   );
 
                                   if (confirm == true) {
                                     box.deleteAt(index);
-                                    ScaffoldMessenger.of(context).showSnackBar(
+                                    ScaffoldMessenger.of(
+                                      scaffoldContext,
+                                    ).showSnackBar(
                                       SnackBar(
                                         content: Text(
                                           "🗑️ Sale deleted successfully.",
@@ -674,7 +827,7 @@ class _HomePageState extends State<HomePage>
                                   await file.writeAsBytes(await pdf.save());
 
                                   Navigator.push(
-                                    context,
+                                    scaffoldContext,
                                     MaterialPageRoute(
                                       builder:
                                           (_) => PdfPreviewScreen(
@@ -684,7 +837,7 @@ class _HomePageState extends State<HomePage>
                                   );
                                 } else if (value == 'payment_history') {
                                   Navigator.push(
-                                    context,
+                                    scaffoldContext,
                                     MaterialPageRoute(
                                       builder:
                                           (_) => PaymentHistoryPage(sale: sale),
@@ -692,14 +845,91 @@ class _HomePageState extends State<HomePage>
                                   );
                                 } else if (value == 'delivery_tracker') {
                                   Navigator.push(
-                                    context,
+                                    scaffoldContext,
                                     MaterialPageRoute(
                                       builder:
-                                          (_) => DeliveryTrackerPage(
-                                            sale: sale,
-                                          ), // ⬅️ pass current sale
+                                          (_) =>
+                                              DeliveryTrackerPage(sale: sale),
                                     ),
                                   );
+                                } else if (value == 'payment_reminder') {
+                                  final balanceAmount =
+                                      sale.totalAmount - sale.amount;
+                                  final phone =
+                                      sale.phoneNumber
+                                          .replaceAll('+91', '')
+                                          .replaceAll(' ', '')
+                                          .trim();
+
+                                  if (phone == null ||
+                                      phone.isEmpty ||
+                                      phone.length < 10) {
+                                    ScaffoldMessenger.of(
+                                      scaffoldContext,
+                                    ).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          "Phone number not available or invalid",
+                                        ),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                    return;
+                                  }
+
+                                  String message;
+                                  if (sale.dateTime != null &&
+                                      balanceAmount != null &&
+                                      invoiceNumber != null) {
+                                    message =
+                                        "Dear ${sale.customerName},\n\nFriendly reminder from Shutter Life Photography:\n\n"
+                                        "📅 Payment Due: ${DateFormat('dd MMM yyyy').format(sale.dateTime)}\n"
+                                        "💰 Amount: ₹${balanceAmount.toStringAsFixed(2)}\n"
+                                        "📋 Invoice #: $invoiceNumber\n\n"
+                                        "Payment Methods:\n"
+                                        "• UPI: playroll.vish-1@oksbi\n"
+                                        "• Bank Transfer (Details attached)\n"
+                                        "• Cash (At our studio)\n\n"
+                                        "Please confirm once payment is made. Thank you for your prompt attention!\n\n"
+                                        "Warm regards,\nAccounts Team\nShutter Life Photography";
+                                  } else {
+                                    message =
+                                        "Dear ${sale.customerName},\n\nThis is a friendly reminder regarding your payment. "
+                                        "Please contact us for invoice details.\n\n"
+                                        "Warm regards,\nAccounts Team\nShutter Life Photography";
+                                  }
+
+                                  try {
+                                    final encodedMessage = Uri.encodeComponent(
+                                      message,
+                                    );
+                                    final url1 =
+                                        "https://wa.me/$phone?text=${Uri.encodeComponent(message)}";
+                                    final url2 =
+                                        "https://wa.me/91$phone?text=${Uri.encodeComponent(message)}";
+
+                                    canLaunchUrl(Uri.parse(url1)).then((
+                                      canLaunch,
+                                    ) {
+                                      if (canLaunch) {
+                                        launchUrl(
+                                          Uri.parse(url1),
+                                          mode: LaunchMode.externalApplication,
+                                        );
+                                      } else {
+                                        launchUrl(
+                                          Uri.parse(url2),
+                                          mode: LaunchMode.externalApplication,
+                                        );
+                                      }
+                                    });
+                                  } catch (e) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text("Couldn't open WhatsApp"),
+                                      ),
+                                    );
+                                  }
                                 }
                               },
                               itemBuilder:
@@ -743,6 +973,20 @@ class _HomePageState extends State<HomePage>
                                         ],
                                       ),
                                     ),
+                                    if (sale.amount < sale.totalAmount)
+                                      PopupMenuItem(
+                                        value: 'payment_reminder',
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              Icons.notifications_active,
+                                              color: Colors.orange,
+                                            ),
+                                            SizedBox(width: 8),
+                                            Text('Send Payment Reminder'),
+                                          ],
+                                        ),
+                                      ),
                                     PopupMenuItem(
                                       value: 'delete',
                                       child: Row(

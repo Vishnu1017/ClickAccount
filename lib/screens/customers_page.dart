@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/sale.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -47,25 +48,34 @@ class _CustomersPageState extends State<CustomersPage> {
           builder:
               (ctx) => LayoutBuilder(
                 builder: (context, constraints) {
-                  // Responsive sizing based on screen width
+                  // Responsive sizing values
                   final bool isSmallScreen = constraints.maxWidth < 600;
-                  final double horizontalPadding = isSmallScreen ? 16.0 : 24.0;
-                  final double verticalPadding = isSmallScreen ? 12.0 : 20.0;
                   final double iconSize = isSmallScreen ? 24.0 : 28.0;
                   final double fontSize = isSmallScreen ? 16.0 : 18.0;
+                  final double padding = isSmallScreen ? 12.0 : 16.0;
+                  final double buttonPadding = isSmallScreen ? 10.0 : 14.0;
 
                   return AlertDialog(
-                    insetPadding: EdgeInsets.symmetric(
-                      horizontal: isSmallScreen ? 8.0 : 24.0,
-                      vertical: 24.0,
-                    ),
+                    insetPadding: EdgeInsets.all(padding),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
+                    ),
+                    titlePadding: EdgeInsets.fromLTRB(
+                      padding,
+                      padding,
+                      padding,
+                      8,
+                    ),
+                    contentPadding: EdgeInsets.fromLTRB(
+                      padding,
+                      8,
+                      padding,
+                      padding,
                     ),
                     title: Row(
                       children: [
                         Icon(Icons.warning, color: Colors.red, size: iconSize),
-                        SizedBox(width: isSmallScreen ? 8.0 : 12.0),
+                        SizedBox(width: isSmallScreen ? 8 : 12),
                         Text(
                           "Confirm Deletion",
                           style: TextStyle(
@@ -75,54 +85,59 @@ class _CustomersPageState extends State<CustomersPage> {
                         ),
                       ],
                     ),
-                    content: Padding(
-                      padding: EdgeInsets.only(top: 8.0),
-                      child: Text(
-                        "Delete all sales by ${customers[index]['name']}?",
-                        style: TextStyle(fontSize: fontSize - 2),
-                      ),
+                    content: Text(
+                      "Delete all sales by ${customers[index]['name']}?",
+                      style: TextStyle(fontSize: fontSize - 2),
                     ),
-                    actionsAlignment: MainAxisAlignment.spaceBetween,
                     actionsPadding: EdgeInsets.symmetric(
-                      horizontal: horizontalPadding,
-                      vertical: verticalPadding,
+                      horizontal: padding,
+                      vertical: 8,
                     ),
                     actions: [
-                      Flexible(
-                        child: TextButton(
-                          style: TextButton.styleFrom(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: horizontalPadding,
-                              vertical: verticalPadding,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Flexible(
+                            child: TextButton(
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: buttonPadding,
+                                  vertical: buttonPadding - 4,
+                                ),
+                              ),
+                              onPressed: () => Navigator.of(ctx).pop(false),
+                              child: Text(
+                                "Cancel",
+                                style: TextStyle(
+                                  color: Colors.grey[700],
+                                  fontSize: fontSize - 2,
+                                ),
+                              ),
                             ),
                           ),
-                          onPressed: () => Navigator.of(ctx).pop(false),
-                          child: Text(
-                            "Cancel",
-                            style: TextStyle(
-                              color: Colors.grey[700],
-                              fontSize: fontSize - 2,
+                          SizedBox(width: isSmallScreen ? 8 : 16),
+                          Flexible(
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red,
+                                foregroundColor: Colors.white,
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: buttonPadding,
+                                  vertical: buttonPadding - 4,
+                                ),
+                              ),
+                              icon: Icon(
+                                Icons.delete_forever,
+                                size: iconSize - 2,
+                              ),
+                              label: Text(
+                                "Delete",
+                                style: TextStyle(fontSize: fontSize - 2),
+                              ),
+                              onPressed: () => Navigator.of(ctx).pop(true),
                             ),
                           ),
-                        ),
-                      ),
-                      Flexible(
-                        child: ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red,
-                            foregroundColor: Colors.white,
-                            padding: EdgeInsets.symmetric(
-                              horizontal: horizontalPadding,
-                              vertical: verticalPadding,
-                            ),
-                          ),
-                          icon: Icon(Icons.delete_forever, size: iconSize - 4),
-                          label: Text(
-                            "Delete",
-                            style: TextStyle(fontSize: fontSize - 2),
-                          ),
-                          onPressed: () => Navigator.of(ctx).pop(true),
-                        ),
+                        ],
                       ),
                     ],
                   );
@@ -158,12 +173,17 @@ class _CustomersPageState extends State<CustomersPage> {
     if (await canLaunchUrl(uri)) await launchUrl(uri);
   }
 
-  void _openWhatsApp(String phone, String name, {String? purpose}) async {
+  void _openWhatsApp(
+    String phone,
+    String name, {
+    String? purpose,
+    DateTime? dueDate,
+    double? amount,
+    String? invoiceNumber,
+  }) async {
     try {
-      // Original phone cleaning (only removes spaces)
       final cleanedPhone = phone.replaceAll(' ', '');
 
-      // Added validation (10 digits only)
       if (cleanedPhone.length < 10 ||
           !RegExp(r'^[0-9]+$').hasMatch(cleanedPhone)) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -172,8 +192,8 @@ class _CustomersPageState extends State<CustomersPage> {
         return;
       }
 
-      // Keep all original message logic
       final customerName = name.isNotEmpty ? name : "there";
+
       String message =
           "Hi $customerName! This is Shutter Life Photography. How can we help you today?";
 
@@ -181,26 +201,61 @@ class _CustomersPageState extends State<CustomersPage> {
         switch (purpose) {
           case 'followup':
             message =
-                "Hi $customerName! Just following up from Shutter Life Photography. Do you need any assistance?";
+                "Hi $customerName! 👋\n\nThis is Shutter Life Photography following up on your recent experience with us. "
+                "Please let us know if you need any assistance or have any questions!\n\n"
+                "We appreciate your business! ❤️";
             break;
+
           case 'feedback':
             message =
-                "Hi $customerName! We'd love your feedback about your recent Shutter Life Photography experience.";
+                "Dear $customerName,\n\nThank you for choosing Shutter Life Photography! 🌟\n\n"
+                "We would truly value your feedback about your recent experience with us. "
+                "Your thoughts help us serve you better!\n\n"
+                "Warm regards,\nThe Shutter Life Team";
             break;
+
           case 'promo':
             message =
-                "Hi $customerName! Shutter Life Photography here with an exclusive offer for you!";
+                "Hello $customerName! 🎉\n\nShutter Life Photography has an exclusive offer just for you:\n\n"
+                "✨ 15% OFF your next photo session\n"
+                "📸 Free 8x10 print with every booking\n"
+                "🎁 Referral bonuses available\n\n"
+                "Limited time offer - book now!";
             break;
+
+          case 'payment_due':
+            if (dueDate != null && amount != null && invoiceNumber != null) {
+              message =
+                  "Dear $customerName,\n\nFriendly reminder from Shutter Life Photography:\n\n"
+                  "📅 Payment Due: ${DateFormat('dd MMM yyyy').format(dueDate)}\n"
+                  "💰 Amount: ₹${amount.toStringAsFixed(2)}\n"
+                  "📋 Invoice #: $invoiceNumber\n\n"
+                  "Payment Methods:\n"
+                  "• UPI: playroll.vish-1@oksbi\n"
+                  "• Bank Transfer (Details attached)\n"
+                  "• Cash (At our studio)\n\n"
+                  "Please confirm once payment is made. Thank you for your prompt attention!\n\n"
+                  "Warm regards,\nAccounts Team\nShutter Life Photography";
+            } else {
+              message =
+                  "Dear $customerName,\n\nThis is a friendly reminder regarding your payment. "
+                  "Please contact us for invoice details.\n\n"
+                  "Warm regards,\nAccounts Team\nShutter Life Photography";
+            }
+            break;
+
+          default:
+            message =
+                "Hello $customerName! 👋\n\nThank you for contacting Shutter Life Photography. "
+                "How may we assist you today?";
         }
       }
 
-      // Exactly the URL pattern you requested
       final url1 =
           "https://wa.me/$cleanedPhone?text=${Uri.encodeComponent(message)}";
       final url2 =
           "https://wa.me/91$cleanedPhone?text=${Uri.encodeComponent(message)}";
 
-      // Try both URLs exactly as you specified
       canLaunchUrl(Uri.parse(url1)).then((canLaunch) {
         if (canLaunch) {
           launchUrl(Uri.parse(url1), mode: LaunchMode.externalApplication);
@@ -340,6 +395,10 @@ class _CustomersPageState extends State<CustomersPage> {
                                     PopupMenuItem(
                                       value: 'promo',
                                       child: Text("Special Offer"),
+                                    ),
+                                    PopupMenuItem(
+                                      value: 'payment_due',
+                                      child: Text("Payment Due Reminder"),
                                     ),
                                   ],
                               onSelected: (purpose) {

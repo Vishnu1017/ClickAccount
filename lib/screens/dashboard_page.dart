@@ -242,7 +242,7 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
           ),
 
-          SizedBox(height: 20),
+          SizedBox(height: 15),
           FloatingActionButton.extended(
             onPressed: _navigateToSalesReport,
             label: const Text(

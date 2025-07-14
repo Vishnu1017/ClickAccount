@@ -8,7 +8,6 @@ import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
 
 enum DateRangePreset {
   today,
@@ -87,6 +86,38 @@ class _SalesReportPageState extends State<SalesReportPage> {
     });
   }
 
+  Future<void> _generateAndSavePdf(
+    BuildContext context,
+    List<Sale> sales,
+  ) async {
+    try {
+      final pdf = await _generateSalesReportPdf(sales);
+      final directory = await getApplicationDocumentsDirectory();
+      final currentDate = DateFormat('dd-MM-yyyy').format(DateTime.now());
+      final fileName =
+          'Sale report $currentDate.pdf'; // Changed file name format
+      final file = File('${directory.path}/$fileName');
+
+      await file.writeAsBytes(await pdf.save());
+
+      final result = await OpenFilex.open(file.path);
+
+      if (!mounted) return;
+
+      if (result.type != ResultType.done) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('PDF saved but could not open: $fileName')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to generate PDF: ${e.toString()}')),
+      );
+    }
+  }
+
+  // The EXACT same function as before - no changes made
   Future<pw.Document> _generateSalesReportPdf(List<Sale> sales) async {
     final pdf = pw.Document();
     final dateFormat = DateFormat('dd/MM/yyyy');
@@ -150,7 +181,7 @@ class _SalesReportPageState extends State<SalesReportPage> {
                             ),
                           ),
                           pw.Text(
-                            'Phone: 6360120253',
+                            'Phone: +91 63601 20253',
                             style: pw.TextStyle(font: ttf),
                           ),
                           pw.Text(
@@ -158,7 +189,7 @@ class _SalesReportPageState extends State<SalesReportPage> {
                             style: pw.TextStyle(font: ttf),
                           ),
                           pw.Text(
-                            'State: 61-Karnataka',
+                            'State: Karnataka - 61',
                             style: pw.TextStyle(font: ttf),
                           ),
                         ],
@@ -214,14 +245,14 @@ class _SalesReportPageState extends State<SalesReportPage> {
                 cellStyle: pw.TextStyle(fontSize: 10, font: ttf),
                 columnWidths: {
                   0: pw.FixedColumnWidth(50),
-                  1: pw.FixedColumnWidth(50),
+                  1: pw.FixedColumnWidth(40),
                   2: pw.FixedColumnWidth(80),
                   3: pw.FixedColumnWidth(65),
                   4: pw.FixedColumnWidth(40),
                   5: pw.FixedColumnWidth(40),
                   6: pw.FixedColumnWidth(70),
                   7: pw.FixedColumnWidth(60),
-                  8: pw.FixedColumnWidth(50),
+                  8: pw.FixedColumnWidth(65),
                 },
                 data:
                     sales.map((s) {
@@ -261,9 +292,7 @@ class _SalesReportPageState extends State<SalesReportPage> {
                   ),
                 ),
               ),
-
               pw.Spacer(),
-
               // Footer
               pw.Divider(),
               pw.Row(
@@ -271,14 +300,6 @@ class _SalesReportPageState extends State<SalesReportPage> {
                 children: [
                   pw.Text(
                     'Generated on: ${DateFormat('dd-MM-yyyy hh:mm a').format(DateTime.now())}',
-                    style: pw.TextStyle(
-                      fontSize: 9,
-                      color: PdfColors.grey600,
-                      font: ttf,
-                    ),
-                  ),
-                  pw.Text(
-                    'Generated via MyApp',
                     style: pw.TextStyle(
                       fontSize: 9,
                       color: PdfColors.grey600,
@@ -363,8 +384,8 @@ class _SalesReportPageState extends State<SalesReportPage> {
 
       // Get directory
       final directory = await getApplicationDocumentsDirectory();
-      final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
-      final path = '${directory.path}/Sales_Report_$timestamp.csv';
+      final currentDate = DateFormat('dd-MM-yyyy').format(DateTime.now());
+      final path = '${directory.path}/Sale report $currentDate.csv';
 
       // Write file
       final file = File(path);
@@ -468,10 +489,10 @@ class _SalesReportPageState extends State<SalesReportPage> {
         title: Text("Sale Report", style: TextStyle(color: Colors.white)),
         actions: [
           IconButton(
-            icon: Icon(Icons.picture_as_pdf, color: Colors.white, size: 28),
+            icon: Icon(Icons.picture_as_pdf, color: Colors.white, size: 25),
             onPressed: () async {
-              final pdf = await _generateSalesReportPdf(getFilteredSales());
-              await Printing.layoutPdf(onLayout: (format) async => pdf.save());
+              final sales = getFilteredSales(); // Your sales data
+              await _generateAndSavePdf(context, sales);
             },
           ),
           Stack(
@@ -627,166 +648,189 @@ class _SalesReportPageState extends State<SalesReportPage> {
             ),
           ),
           Expanded(
-            child: ListView.separated(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              itemCount: customerMap.length,
-              separatorBuilder: (_, __) => SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                final name = customerMap.keys.elementAt(index);
-                final transactions = customerMap[name]!;
-                final sale = transactions.first;
-                final total = transactions.fold(
-                  0.0,
-                  (sum, s) => sum + s.totalAmount,
-                );
-                final paid = transactions.fold(0.0, (sum, s) => sum + s.amount);
-                final balance = total - paid;
-                final paidPercentage = (paid / total * 100).toStringAsFixed(0);
+            child: Column(
+              children: [
+                Expanded(
+                  child: ListView.separated(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    itemCount: customerMap.length,
+                    separatorBuilder: (_, __) => SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      final name = customerMap.keys.elementAt(index);
+                      final transactions = customerMap[name]!;
+                      final sale = transactions.first;
+                      final total = transactions.fold(
+                        0.0,
+                        (sum, s) => sum + s.totalAmount,
+                      );
+                      final paid = transactions.fold(
+                        0.0,
+                        (sum, s) => sum + s.amount,
+                      );
+                      final balance = total - paid;
+                      final paidPercentage = (paid / total * 100)
+                          .toStringAsFixed(0);
 
-                return Material(
-                  borderRadius: BorderRadius.circular(16),
-                  elevation: 2,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.grey[200]!, width: 1),
-                    ),
-                    child: Column(
-                      children: [
-                        ListTile(
-                          leading: CircleAvatar(
-                            backgroundColor: Colors.blue[50],
-                            child: Icon(Icons.person, color: Colors.blue[800]),
-                          ),
-                          title: Text(
-                            name,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
+                      return Material(
+                        borderRadius: BorderRadius.circular(16),
+                        elevation: 2,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: Colors.grey[200]!,
+                              width: 1,
                             ),
                           ),
-                          subtitle: Text(
-                            "${transactions.length} transactions",
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 12,
-                            ),
-                          ),
-                          trailing: Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color:
-                                  balance > 0
-                                      ? Colors.red[50]
-                                      : Colors.green[50],
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              currencyFormat.format(balance),
-                              style: TextStyle(
-                                color:
-                                    balance > 0
-                                        ? Colors.red[800]
-                                        : Colors.green[800],
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16),
-                          child: LinearProgressIndicator(
-                            value: paid / total,
-                            backgroundColor: Colors.grey[200],
-                            color: balance > 0 ? Colors.orange : Colors.green,
-                            minHeight: 6,
-                          ),
-                        ),
-                        SizedBox(height: 4),
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          child: Column(
                             children: [
-                              Text(
-                                "$paidPercentage% Paid",
-                                style: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontSize: 12,
+                              ListTile(
+                                leading: CircleAvatar(
+                                  backgroundColor: Colors.blue[50],
+                                  child: Icon(
+                                    Icons.person,
+                                    color: Colors.blue[800],
+                                  ),
+                                ),
+                                title: Text(
+                                  name,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  "${transactions.length} transactions",
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                trailing: Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color:
+                                        balance > 0
+                                            ? Colors.red[50]
+                                            : Colors.green[50],
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    currencyFormat.format(balance),
+                                    style: TextStyle(
+                                      color:
+                                          balance > 0
+                                              ? Colors.red[800]
+                                              : Colors.green[800],
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ),
                               ),
-                              Text(
-                                dateFormat.format(sale.dateTime),
-                                style: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontSize: 12,
+                              Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 16),
+                                child: LinearProgressIndicator(
+                                  value: paid / total,
+                                  backgroundColor: Colors.grey[200],
+                                  color:
+                                      balance > 0
+                                          ? Colors.orange
+                                          : Colors.green,
+                                  minHeight: 6,
                                 ),
                               ),
-                            ],
-                          ),
-                        ),
-                        SizedBox(height: 12),
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                              SizedBox(height: 4),
+                              Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 16),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
-                                      "TOTAL AMOUNT",
+                                      "$paidPercentage% Paid",
                                       style: TextStyle(
-                                        color: Colors.grey[500],
-                                        fontSize: 10,
+                                        color: Colors.grey[600],
+                                        fontSize: 12,
                                       ),
                                     ),
-                                    SizedBox(height: 4),
                                     Text(
-                                      currencyFormat.format(total),
+                                      dateFormat.format(sale.dateTime),
                                       style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
+                                        color: Colors.grey[600],
+                                        fontSize: 12,
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
+                              SizedBox(height: 12),
+                              Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 16),
+                                child: Row(
                                   children: [
-                                    Text(
-                                      "LAST PAYMENT",
-                                      style: TextStyle(
-                                        color: Colors.grey[500],
-                                        fontSize: 10,
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            "TOTAL AMOUNT",
+                                            style: TextStyle(
+                                              color: Colors.grey[500],
+                                              fontSize: 10,
+                                            ),
+                                          ),
+                                          SizedBox(height: 4),
+                                          Text(
+                                            currencyFormat.format(total),
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                    SizedBox(height: 4),
-                                    Text(
-                                      currencyFormat.format(paid),
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                        color: Colors.green[800],
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
+                                        children: [
+                                          Text(
+                                            "LAST PAYMENT",
+                                            style: TextStyle(
+                                              color: Colors.grey[500],
+                                              fontSize: 10,
+                                            ),
+                                          ),
+                                          SizedBox(height: 4),
+                                          Text(
+                                            currencyFormat.format(paid),
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                              color: Colors.green[800],
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
+                              SizedBox(height: 16),
                             ],
                           ),
                         ),
-                        SizedBox(height: 16),
-                      ],
-                    ),
+                      );
+                    },
                   ),
-                );
-              },
+                ),
+                SizedBox(height: 10),
+              ],
             ),
           ),
         ],
@@ -834,7 +878,7 @@ class _SalesReportPageState extends State<SalesReportPage> {
             Text(
               value,
               style: TextStyle(
-                fontSize: 18,
+                fontSize: 16,
                 fontWeight: FontWeight.bold,
                 color: color,
               ),
@@ -842,7 +886,7 @@ class _SalesReportPageState extends State<SalesReportPage> {
             SizedBox(height: 4),
             Text(
               label,
-              style: TextStyle(color: Colors.grey[600], fontSize: 12),
+              style: TextStyle(color: Colors.grey[600], fontSize: 10),
             ),
           ],
         ),
@@ -855,8 +899,8 @@ class CustomXlsIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 36,
-      height: 36,
+      width: 27,
+      height: 27,
       decoration: BoxDecoration(
         color: Colors.green,
         borderRadius: BorderRadius.circular(6),

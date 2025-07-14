@@ -136,6 +136,13 @@ class _CalendarPageState extends State<CalendarPage> {
                         itemBuilder: (context, index) {
                           final sale = _getEventsForDay(_selectedDay!)[index];
                           return Container(
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: Colors.grey,
+                                width: 1.5,
+                              ),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
                             margin: EdgeInsets.only(bottom: 12),
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(20),
@@ -148,8 +155,8 @@ class _CalendarPageState extends State<CalendarPage> {
                                   decoration: BoxDecoration(
                                     gradient: LinearGradient(
                                       colors: [
-                                        Colors.white.withOpacity(0.1),
-                                        Colors.blue.shade100.withOpacity(0.15),
+                                        Colors.blue.withOpacity(0.1),
+                                        Colors.blue.shade200.withOpacity(0.05),
                                       ],
                                       begin: Alignment.topLeft,
                                       end: Alignment.bottomRight,
