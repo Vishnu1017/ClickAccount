@@ -1,66 +1,73 @@
-import 'package:click_account/models/payment.dart';
-import 'package:click_account/models/product.dart';
-import 'package:click_account/models/sale.dart';
-import 'package:click_account/screens/nav_bar_page.dart';
-import 'package:flutter/material.dart';
 import 'dart:async';
-import 'package:hive/hive.dart';
+import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:hive/hive.dart';
+
+import 'package:click_account/models/sale.dart';
+import 'package:click_account/models/product.dart';
+import 'package:click_account/models/payment.dart';
+import 'package:click_account/screens/nav_bar_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
 
+  // Register Hive Adapters if not already registered
   if (!Hive.isAdapterRegistered(SaleAdapter().typeId)) {
     Hive.registerAdapter(SaleAdapter());
   }
-
   if (!Hive.isAdapterRegistered(ProductAdapter().typeId)) {
     Hive.registerAdapter(ProductAdapter());
   }
-
   if (!Hive.isAdapterRegistered(PaymentAdapter().typeId)) {
     Hive.registerAdapter(PaymentAdapter());
   }
 
+  // Open boxes
   await Hive.openBox<Sale>('sales');
   await Hive.openBox<Product>('products');
 
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return const MaterialApp(
       title: 'Click Account',
-      home: CustomSplashScreen(),
       debugShowCheckedModeBanner: false,
+      home: CustomSplashScreen(),
     );
   }
 }
 
 class CustomSplashScreen extends StatefulWidget {
+  const CustomSplashScreen({super.key});
+
   @override
   State<CustomSplashScreen> createState() => _CustomSplashScreenState();
 }
 
 class _CustomSplashScreenState extends State<CustomSplashScreen>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _animation;
+  late final AnimationController _controller;
+  late final Animation<double> _animation;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: Duration(seconds: 2),
+      duration: const Duration(seconds: 2),
     );
+
     _animation = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
+
     _controller.forward();
 
-    Timer(Duration(seconds: 3), () {
+    Timer(const Duration(seconds: 3), () {
       Navigator.of(
         context,
       ).pushReplacement(MaterialPageRoute(builder: (_) => NavBarPage()));
@@ -77,7 +84,7 @@ class _CustomSplashScreenState extends State<CustomSplashScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [Color(0xFF1A237E), Color(0xFF00BCD4)],
             begin: Alignment.topLeft,
@@ -90,12 +97,9 @@ class _CustomSplashScreenState extends State<CustomSplashScreen>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Image.asset(
-                  'assets/images/logo.PNG', // Make sure this path exists in your pubspec.yaml
-                  width: 130,
-                ),
-                SizedBox(height: 20),
-                Text(
+                Image.asset('assets/images/logo.PNG', width: 130),
+                const SizedBox(height: 20),
+                const Text(
                   "Click Account",
                   style: TextStyle(
                     fontSize: 28,

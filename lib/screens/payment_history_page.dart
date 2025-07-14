@@ -71,10 +71,13 @@ class PaymentHistoryPage extends StatelessWidget {
                         itemCount: sale.paymentHistory.length,
                         itemBuilder: (context, index) {
                           if (index == 0) return SizedBox.shrink();
-                          final payment = sale.paymentHistory[index];
-                          final difference =
-                              sale.paymentHistory[index - 1].amount -
-                              payment.amount;
+
+                          final current = sale.paymentHistory[index];
+                          final previous = sale.paymentHistory[index - 1];
+
+                          final difference = previous.amount - current.amount;
+                          final mode =
+                              previous.mode; // ✅ Fix: use previous mode
 
                           return Stack(
                             children: [
@@ -141,7 +144,7 @@ class PaymentHistoryPage extends StatelessWidget {
                                                 ),
                                                 SizedBox(width: 6),
                                                 Text(
-                                                  payment.mode,
+                                                  mode, // ✅ Display correct payment mode
                                                   style: TextStyle(
                                                     fontWeight: FontWeight.w500,
                                                     color: Colors.blueGrey[700],
@@ -161,7 +164,9 @@ class PaymentHistoryPage extends StatelessWidget {
                                                 Text(
                                                   DateFormat(
                                                     'dd MMM yyyy, hh:mm a',
-                                                  ).format(payment.date),
+                                                  ).format(
+                                                    previous.date,
+                                                  ), // ✅ Use previous date
                                                   style: TextStyle(
                                                     fontSize: 12,
                                                     color: Colors.grey[600],

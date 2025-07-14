@@ -22,7 +22,7 @@ enum DateRangePreset {
 class SalesReportPage extends StatefulWidget {
   final List<Sale> sales;
 
-  const SalesReportPage({Key? key, required this.sales}) : super(key: key);
+  const SalesReportPage({super.key, required this.sales});
 
   @override
   State<SalesReportPage> createState() => _SalesReportPageState();

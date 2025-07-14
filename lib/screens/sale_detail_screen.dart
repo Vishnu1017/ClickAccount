@@ -61,7 +61,8 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
     totalAmountController = TextEditingController(
       text: widget.sale.totalAmount.toString(),
     );
-    _selectedMode = widget.sale.paymentMode;
+    _selectedMode =
+        widget.sale.paymentMode.isNotEmpty ? widget.sale.paymentMode : 'Cash';
   }
 
   void saveChanges() async {
