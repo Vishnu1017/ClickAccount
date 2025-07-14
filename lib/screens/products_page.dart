@@ -27,7 +27,7 @@ class _ProductsPageState extends State<ProductsPage> {
                   Icon(Icons.inventory_2, size: 80, color: Colors.grey[400]),
                   SizedBox(height: 16),
                   Text(
-                    "No Products Yet",
+                    "No Packages Yet",
                     style: TextStyle(
                       fontSize: 20,
                       color: Colors.grey[600],
@@ -115,39 +115,105 @@ class _ProductsPageState extends State<ProductsPage> {
           context: context,
           barrierDismissible: false,
           builder:
-              (ctx) => AlertDialog(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                title: Row(
-                  children: [
-                    Icon(Icons.warning, color: Colors.red),
-                    SizedBox(width: 10),
-                    Text("Confirm Deletion"),
-                  ],
-                ),
-                content: Text("Are you sure you want to delete this product?"),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(ctx).pop(false),
-                    child: Text(
-                      "Cancel",
-                      style: TextStyle(color: Colors.grey[700]),
+              (ctx) => LayoutBuilder(
+                builder: (context, constraints) {
+                  // Responsive sizing values
+                  final bool isSmallScreen = constraints.maxWidth < 600;
+                  final double iconSize = isSmallScreen ? 24.0 : 28.0;
+                  final double fontSize = isSmallScreen ? 16.0 : 18.0;
+                  final double padding = isSmallScreen ? 12.0 : 16.0;
+                  final double buttonPadding = isSmallScreen ? 10.0 : 14.0;
+
+                  return AlertDialog(
+                    insetPadding: EdgeInsets.all(padding),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                  ),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      foregroundColor: Colors.white,
+                    titlePadding: EdgeInsets.fromLTRB(
+                      padding,
+                      padding,
+                      padding,
+                      8,
                     ),
-                    icon: Icon(Icons.delete_forever),
-                    label: Text("Delete"),
-                    onPressed: () {
-                      ProductStore().remove(index);
-                      Navigator.of(ctx).pop(true);
-                    },
-                  ),
-                ],
+                    contentPadding: EdgeInsets.fromLTRB(
+                      padding,
+                      8,
+                      padding,
+                      padding,
+                    ),
+                    title: Row(
+                      children: [
+                        Icon(Icons.warning, color: Colors.red, size: iconSize),
+                        SizedBox(width: isSmallScreen ? 8 : 12),
+                        Text(
+                          "Confirm Deletion",
+                          style: TextStyle(
+                            fontSize: fontSize,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    content: Text(
+                      "Are you sure you want to delete this Package?",
+                      style: TextStyle(fontSize: fontSize - 2),
+                    ),
+                    actionsPadding: EdgeInsets.symmetric(
+                      horizontal: padding,
+                      vertical: 8,
+                    ),
+                    actions: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Flexible(
+                            child: TextButton(
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: buttonPadding,
+                                  vertical: buttonPadding - 4,
+                                ),
+                              ),
+                              onPressed: () => Navigator.of(ctx).pop(false),
+                              child: Text(
+                                "Cancel",
+                                style: TextStyle(
+                                  color: Colors.grey[700],
+                                  fontSize: fontSize - 2,
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: isSmallScreen ? 8 : 16),
+                          Flexible(
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red,
+                                foregroundColor: Colors.white,
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: buttonPadding,
+                                  vertical: buttonPadding - 4,
+                                ),
+                              ),
+                              icon: Icon(
+                                Icons.delete_forever,
+                                size: iconSize - 2,
+                              ),
+                              label: Text(
+                                "Delete",
+                                style: TextStyle(fontSize: fontSize - 2),
+                              ),
+                              onPressed: () {
+                                ProductStore().remove(index);
+                                Navigator.of(ctx).pop(true);
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  );
+                },
               ),
         ) ??
         false;

@@ -25,7 +25,7 @@ class _NavBarPageState extends State<NavBarPage>
     "Home",
     "Dashboard",
     "Customers",
-    "Products",
+    "Packages",
     "Profile",
   ];
 
@@ -184,7 +184,7 @@ class _NavBarPageState extends State<NavBarPage>
                   size: 26,
                 ),
                 label: Text(
-                  'Add Items',
+                  'Add Packages',
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -364,7 +364,7 @@ class _NavBarPageState extends State<NavBarPage>
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.inventory),
-              label: 'Items',
+              label: 'Packages',
             ),
             BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
           ],

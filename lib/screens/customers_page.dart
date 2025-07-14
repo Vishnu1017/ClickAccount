@@ -45,38 +45,88 @@ class _CustomersPageState extends State<CustomersPage> {
           context: context,
           barrierDismissible: false,
           builder:
-              (ctx) => AlertDialog(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                title: Row(
-                  children: [
-                    Icon(Icons.warning, color: Colors.red),
-                    SizedBox(width: 10),
-                    Text("Confirm Deletion"),
-                  ],
-                ),
-                content: Text(
-                  "Delete all sales by ${customers[index]['name']}?",
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(ctx).pop(false),
-                    child: Text(
-                      "Cancel",
-                      style: TextStyle(color: Colors.grey[700]),
+              (ctx) => LayoutBuilder(
+                builder: (context, constraints) {
+                  // Responsive sizing based on screen width
+                  final bool isSmallScreen = constraints.maxWidth < 600;
+                  final double horizontalPadding = isSmallScreen ? 16.0 : 24.0;
+                  final double verticalPadding = isSmallScreen ? 12.0 : 20.0;
+                  final double iconSize = isSmallScreen ? 24.0 : 28.0;
+                  final double fontSize = isSmallScreen ? 16.0 : 18.0;
+
+                  return AlertDialog(
+                    insetPadding: EdgeInsets.symmetric(
+                      horizontal: isSmallScreen ? 8.0 : 24.0,
+                      vertical: 24.0,
                     ),
-                  ),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                    icon: Icon(Icons.delete_forever),
-                    label: Text("Delete"),
-                    onPressed: () => Navigator.of(ctx).pop(true),
-                  ),
-                ],
+                    title: Row(
+                      children: [
+                        Icon(Icons.warning, color: Colors.red, size: iconSize),
+                        SizedBox(width: isSmallScreen ? 8.0 : 12.0),
+                        Text(
+                          "Confirm Deletion",
+                          style: TextStyle(
+                            fontSize: fontSize,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    content: Padding(
+                      padding: EdgeInsets.only(top: 8.0),
+                      child: Text(
+                        "Delete all sales by ${customers[index]['name']}?",
+                        style: TextStyle(fontSize: fontSize - 2),
+                      ),
+                    ),
+                    actionsAlignment: MainAxisAlignment.spaceBetween,
+                    actionsPadding: EdgeInsets.symmetric(
+                      horizontal: horizontalPadding,
+                      vertical: verticalPadding,
+                    ),
+                    actions: [
+                      Flexible(
+                        child: TextButton(
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: horizontalPadding,
+                              vertical: verticalPadding,
+                            ),
+                          ),
+                          onPressed: () => Navigator.of(ctx).pop(false),
+                          child: Text(
+                            "Cancel",
+                            style: TextStyle(
+                              color: Colors.grey[700],
+                              fontSize: fontSize - 2,
+                            ),
+                          ),
+                        ),
+                      ),
+                      Flexible(
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            foregroundColor: Colors.white,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: horizontalPadding,
+                              vertical: verticalPadding,
+                            ),
+                          ),
+                          icon: Icon(Icons.delete_forever, size: iconSize - 4),
+                          label: Text(
+                            "Delete",
+                            style: TextStyle(fontSize: fontSize - 2),
+                          ),
+                          onPressed: () => Navigator.of(ctx).pop(true),
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
         ) ??
         false;
