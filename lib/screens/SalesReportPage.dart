@@ -172,7 +172,7 @@ class _SalesReportPageState extends State<SalesReportPage> {
                           height: 50,
                           child:
                               headerImage != null
-                                  ? pw.Image(headerImage!)
+                                  ? pw.Image(headerImage)
                                   : pw.SizedBox(), // Empty when no image
                         ),
                       ),
