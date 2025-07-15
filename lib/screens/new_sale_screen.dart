@@ -16,6 +16,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
   final productController = TextEditingController();
   final amountController = TextEditingController();
   final totalAmountController = TextEditingController();
+  final receivedController = TextEditingController();
   final phoneController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   DateTime selectedDate = DateTime.now();
@@ -535,21 +536,25 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
     setState(() => isLoading = true);
 
     final saleBox = Hive.box<Sale>('sales');
+    final newPayment = Payment(
+      amount:
+          double.tryParse(amountController.text) ??
+          0, // ✅ Using existing controller
+      date: DateTime.now(),
+      mode: _selectedMode,
+    );
+
     final sale = Sale(
       customerName: customerController.text,
       productName: productController.text,
-      amount: double.tryParse(amountController.text) ?? 0,
-      totalAmount: double.tryParse(totalAmountController.text) ?? 0,
       phoneNumber: phoneController.text,
+      amount: newPayment.amount, // ✅ Save received amount
+      totalAmount: double.tryParse(totalAmountController.text) ?? 0,
       dateTime: selectedDate,
-      paymentHistory: [
-        Payment(
-          amount: double.tryParse(amountController.text) ?? 0,
-          date: DateTime.now(),
-          mode: _selectedMode,
-        ),
-      ],
       deliveryStatus: 'Editing',
+      paymentHistory: [
+        newPayment, // ✅ Add current payment
+      ],
     );
 
     await saleBox.add(sale);
@@ -801,186 +806,185 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                       ],
                     ),
                     Divider(),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            Checkbox(
-                              value: isFullyPaid,
-                              onChanged: (val) {
-                                setState(() {
-                                  isFullyPaid = val!;
-                                  if (isFullyPaid) {
-                                    amountController.text =
-                                        totalAmountController.text;
-                                  } else {
-                                    amountController
-                                        .clear(); // allow manual entry
-                                  }
-                                });
-                              },
-                            ),
-                            Text(
-                              "Received",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                                color: Colors.black87,
-                              ),
-                            ),
-                          ],
-                        ),
+                    // Row(
+                    //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    //   children: [
+                    //     Row(
+                    //       children: [
+                    //         Checkbox(
+                    //           value: isFullyPaid,
+                    //           onChanged: (val) {
+                    //             setState(() {
+                    //               isFullyPaid = val!;
+                    //               if (isFullyPaid) {
+                    //                 amountController.text =
+                    //                     totalAmountController.text;
+                    //               } else {
+                    //                 amountController
+                    //                     .clear(); // allow manual entry
+                    //               }
+                    //             });
+                    //           },
+                    //         ),
+                    //         Text(
+                    //           "Received",
+                    //           style: TextStyle(
+                    //             fontWeight: FontWeight.bold,
+                    //             fontSize: 14,
+                    //             color: Colors.black87,
+                    //           ),
+                    //         ),
+                    //       ],
+                    //     ),
 
-                        // 👇 This is the switch part
-                        isFullyPaid
-                            ? Text(
-                              "₹ ${(double.tryParse(totalAmountController.text) ?? 0).toStringAsFixed(2)}",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                                color: Colors.green[700],
-                              ),
-                            )
-                            : Container(
-                              width: 100,
-                              height: 40,
-                              child: TextFormField(
-                                controller: amountController,
-                                keyboardType: TextInputType.number,
-                                textAlign: TextAlign.end,
-                                decoration: InputDecoration(
-                                  hintText: "Enter",
-                                  hintStyle: TextStyle(
-                                    color: Colors.green.shade400,
-                                  ),
-                                  prefixIcon: Icon(
-                                    Icons.currency_rupee,
-                                    color: Colors.green.shade700,
-                                  ),
-                                  border: InputBorder.none,
-                                  contentPadding: EdgeInsets.symmetric(
-                                    vertical: 12,
-                                  ), // center vertically
-                                ),
-
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                  color: Colors.green[700],
-                                ),
-                                onChanged: (_) => setState(() {}),
-                              ),
-                            ),
-                      ],
-                    ),
-                    Divider(),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              "Balance Due",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                                color: Colors.red[700],
-                              ),
-                            ),
-                            Text(
-                              "₹ ${(double.tryParse(totalAmountController.text) ?? 0) - (double.tryParse(amountController.text) ?? 0)}",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                                color: Colors.red[700],
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 20),
-                        Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16),
-                            gradient: LinearGradient(
-                              colors: [Color(0xFFE3F2FD), Color(0xFFFFFFFF)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black12,
-                                blurRadius: 8,
-                                offset: Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: DropdownButtonFormField<String>(
-                            value: _selectedMode,
-                            items:
-                                _paymentModes.map((mode) {
-                                  return DropdownMenuItem(
-                                    value: mode,
-                                    child: Row(
-                                      children: [
-                                        Icon(
-                                          _getIconForMode(mode),
-                                          color: Color(0xFF1A237E),
-                                          size: 20,
-                                        ),
-                                        SizedBox(width: 8),
-                                        Text(
-                                          mode,
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                }).toList(),
-                            dropdownColor: Colors.white,
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedMode = value!;
-                              });
-                            },
-                            decoration: InputDecoration(
-                              prefixIcon: Icon(
-                                Icons.payment,
-                                color: Color(0xFF1A237E),
-                              ),
-                              labelText: 'Select payment mode',
-                              labelStyle: TextStyle(
-                                color: Color(0xFF1A237E),
-                                fontWeight: FontWeight.w600,
-                              ),
-                              filled: true,
-                              fillColor: Colors.white.withOpacity(0.95),
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 18,
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: BorderSide(
-                                  color: Colors.blue.shade100,
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: BorderSide(
-                                  color: Color(0xFF1A237E),
-                                  width: 2,
-                                ),
-                              ),
-                            ),
-                            style: TextStyle(color: Colors.black87),
-                          ),
-                        ),
-                      ],
-                    ),
+                    //     // 👇 This is the switch part
+                    //     isFullyPaid
+                    //         ? Text(
+                    //           "₹ ${(double.tryParse(totalAmountController.text) ?? 0).toStringAsFixed(2)}",
+                    //           style: TextStyle(
+                    //             fontWeight: FontWeight.bold,
+                    //             fontSize: 14,
+                    //             color: Colors.green[700],
+                    //           ),
+                    //         )
+                    //         : Container(
+                    //           width: 100,
+                    //           height: 40,
+                    //           child: TextFormField(
+                    //             controller: amountController,
+                    //             keyboardType: TextInputType.number,
+                    //             textAlign: TextAlign.end,
+                    //             decoration: InputDecoration(
+                    //               hintText: "Enter",
+                    //               hintStyle: TextStyle(
+                    //                 color: Colors.green.shade400,
+                    //               ),
+                    //               prefixIcon: Icon(
+                    //                 Icons.currency_rupee,
+                    //                 color: Colors.green.shade700,
+                    //               ),
+                    //               border: InputBorder.none,
+                    //               contentPadding: EdgeInsets.symmetric(
+                    //                 vertical: 12,
+                    //               ),
+                    //             ),
+                    //             style: TextStyle(
+                    //               fontWeight: FontWeight.bold,
+                    //               fontSize: 14,
+                    //               color: Colors.green[700],
+                    //             ),
+                    //             onChanged: (_) => setState(() {}),
+                    //           ),
+                    //         ),
+                    //   ],
+                    // ),
+                    // Divider(),
+                    // Column(
+                    //   crossAxisAlignment: CrossAxisAlignment.start,
+                    //   children: [
+                    //     Row(
+                    //       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    //       children: [
+                    //         Text(
+                    //           "Balance Due",
+                    //           style: TextStyle(
+                    //             fontWeight: FontWeight.bold,
+                    //             fontSize: 14,
+                    //             color: Colors.red[700],
+                    //           ),
+                    //         ),
+                    //         Text(
+                    //           "₹ ${(double.tryParse(totalAmountController.text) ?? 0) - (double.tryParse(amountController.text) ?? 0)}",
+                    //           style: TextStyle(
+                    //             fontWeight: FontWeight.bold,
+                    //             fontSize: 14,
+                    //             color: Colors.red[700],
+                    //           ),
+                    //         ),
+                    //       ],
+                    //     ),
+                    //     SizedBox(height: 20),
+                    //     Container(
+                    //       decoration: BoxDecoration(
+                    //         borderRadius: BorderRadius.circular(16),
+                    //         gradient: LinearGradient(
+                    //           colors: [Color(0xFFE3F2FD), Color(0xFFFFFFFF)],
+                    //           begin: Alignment.topLeft,
+                    //           end: Alignment.bottomRight,
+                    //         ),
+                    //         boxShadow: [
+                    //           BoxShadow(
+                    //             color: Colors.black12,
+                    //             blurRadius: 8,
+                    //             offset: Offset(0, 4),
+                    //           ),
+                    //         ],
+                    //       ),
+                    //       child: DropdownButtonFormField<String>(
+                    //         value: _selectedMode,
+                    //         items:
+                    //             _paymentModes.map((mode) {
+                    //               return DropdownMenuItem(
+                    //                 value: mode,
+                    //                 child: Row(
+                    //                   children: [
+                    //                     Icon(
+                    //                       _getIconForMode(mode),
+                    //                       color: Color(0xFF1A237E),
+                    //                       size: 20,
+                    //                     ),
+                    //                     SizedBox(width: 8),
+                    //                     Text(
+                    //                       mode,
+                    //                       style: TextStyle(
+                    //                         fontWeight: FontWeight.w500,
+                    //                       ),
+                    //                     ),
+                    //                   ],
+                    //                 ),
+                    //               );
+                    //             }).toList(),
+                    //         dropdownColor: Colors.white,
+                    //         onChanged: (value) {
+                    //           setState(() {
+                    //             _selectedMode = value!;
+                    //           });
+                    //         },
+                    //         decoration: InputDecoration(
+                    //           prefixIcon: Icon(
+                    //             Icons.payment,
+                    //             color: Color(0xFF1A237E),
+                    //           ),
+                    //           labelText: 'Select payment mode',
+                    //           labelStyle: TextStyle(
+                    //             color: Color(0xFF1A237E),
+                    //             fontWeight: FontWeight.w600,
+                    //           ),
+                    //           filled: true,
+                    //           fillColor: Colors.white.withOpacity(0.95),
+                    //           contentPadding: EdgeInsets.symmetric(
+                    //             horizontal: 16,
+                    //             vertical: 18,
+                    //           ),
+                    //           enabledBorder: OutlineInputBorder(
+                    //             borderRadius: BorderRadius.circular(16),
+                    //             borderSide: BorderSide(
+                    //               color: Colors.blue.shade100,
+                    //             ),
+                    //           ),
+                    //           focusedBorder: OutlineInputBorder(
+                    //             borderRadius: BorderRadius.circular(16),
+                    //             borderSide: BorderSide(
+                    //               color: Color(0xFF1A237E),
+                    //               width: 2,
+                    //             ),
+                    //           ),
+                    //         ),
+                    //         style: TextStyle(color: Colors.black87),
+                    //       ),
+                    //     ),
+                    //   ],
+                    // ),
                   ],
                 ),
               ),

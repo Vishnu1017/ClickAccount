@@ -68,27 +68,46 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
   void saveChanges() async {
     final box = Hive.box<Sale>('sales');
 
+    // Create a new Payment object from current inputs
+    final newPayment = Payment(
+      amount: double.tryParse(amountController.text) ?? 0,
+      date: DateTime.now(),
+      mode: _selectedMode,
+    );
+
+    // Build the updated Sale with the new payment prepended to the old ones
     final updatedSale = Sale(
       customerName: customerController.text,
       phoneNumber: phoneController.text,
       productName: productController.text,
-      amount: double.tryParse(amountController.text) ?? 0,
+      amount: newPayment.amount, // ✅ Store received amount
       totalAmount: double.tryParse(totalAmountController.text) ?? 0,
       dateTime: widget.sale.dateTime, // ✅ Preserve original date
-      paymentMode: _selectedMode, // ✅ Save selected payment mode
+      paymentMode: _selectedMode, // ✅ Save current selected mode
       deliveryStatus: widget.sale.deliveryStatus,
       deliveryLink: widget.sale.deliveryLink,
       paymentHistory: [
-        Payment(
-          amount: double.tryParse(amountController.text) ?? 0,
-          date: DateTime.now(),
-          mode: _selectedMode,
-        ),
-        ...widget.sale.paymentHistory, // ✅ Keep old history too if needed
+        newPayment, // ✅ New payment at the top
+        ...widget.sale.paymentHistory, // ✅ Preserve existing history
       ],
     );
 
+    // Save updated sale at correct index in Hive
     await box.putAt(widget.index, updatedSale);
+
+    // Optionally show success feedback
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("✅ Sale updated successfully!"),
+        backgroundColor: Colors.green[600],
+        behavior: SnackBarBehavior.floating,
+        duration: Duration(seconds: 2),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+
+    // Close the screen after short delay
+    await Future.delayed(Duration(milliseconds: 500));
     Navigator.pop(context);
   }
 

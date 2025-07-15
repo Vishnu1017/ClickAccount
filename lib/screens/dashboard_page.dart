@@ -133,7 +133,13 @@ class _DashboardPageState extends State<DashboardPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.arrow_upward, color: Colors.green, size: 18),
+                    Icon(
+                      growthPercent >= 0
+                          ? Icons.arrow_upward
+                          : Icons.arrow_downward,
+                      color: growthPercent >= 0 ? Colors.green : Colors.red,
+                      size: 18,
+                    ),
                     SizedBox(width: 4),
                     RichText(
                       text: TextSpan(
@@ -143,12 +149,18 @@ class _DashboardPageState extends State<DashboardPage> {
                             text: "${growthPercent.toStringAsFixed(0)}% ",
                             style: TextStyle(
                               fontSize: 15,
-                              color: Colors.green[700],
+                              color:
+                                  growthPercent >= 0
+                                      ? Colors.green[700]
+                                      : Colors.red[700],
                               fontWeight: FontWeight.w700,
                             ),
                           ),
                           TextSpan(
-                            text: "More Growth This Month",
+                            text:
+                                growthPercent >= 0
+                                    ? "More Growth This Month"
+                                    : "Less Growth This Month",
                             style: TextStyle(
                               fontSize: 15,
                               color: Colors.grey[600],
