@@ -3,7 +3,6 @@
 import 'package:click_account/models/sale.dart';
 import 'package:click_account/screens/DeliveryTrackerPage.dart';
 import 'package:click_account/screens/WhatsAppHelper.dart';
-import 'package:click_account/screens/notification_helper.dart';
 import 'package:click_account/screens/payment_history_page.dart';
 import 'package:click_account/screens/pdf_preview_screen.dart';
 import 'package:click_account/screens/sale_detail_screen.dart';
@@ -15,6 +14,7 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class HomePage extends StatefulWidget {
@@ -31,7 +31,6 @@ class _HomePageState extends State<HomePage>
   void initState() {
     super.initState();
     fetchWelcomeMessage();
-    checkOverduePayments();
 
     _controller = AnimationController(
       vsync: this,
@@ -39,24 +38,6 @@ class _HomePageState extends State<HomePage>
     );
 
     _controller.forward();
-  }
-
-  Future<void> checkOverduePayments() async {
-    final box = await Hive.openBox<Sale>('sales');
-
-    for (int i = 0; i < box.length; i++) {
-      final sale = box.getAt(i);
-      if (sale == null) continue;
-
-      final bool isUnpaid = sale.amount < sale.totalAmount;
-      final bool isDueOver7Days =
-          isUnpaid && DateTime.now().difference(sale.dateTime).inDays > 7;
-
-      if (isDueOver7Days) {
-        final due = sale.totalAmount - sale.amount;
-        await NotificationHelper.showDueNotification(sale.customerName, due);
-      }
-    }
   }
 
   void fetchWelcomeMessage() {
@@ -521,6 +502,23 @@ class _HomePageState extends State<HomePage>
                                     height: 120,
                                   );
 
+                                  // ✅ Load profile image from SharedPreferences
+                                  final prefs =
+                                      await SharedPreferences.getInstance();
+                                  final profileImagePath = prefs.getString(
+                                    'profileImagePath',
+                                  );
+                                  pw.MemoryImage? headerImage;
+
+                                  if (profileImagePath != null) {
+                                    final profileFile = File(profileImagePath);
+                                    if (await profileFile.exists()) {
+                                      final imageBytes =
+                                          await profileFile.readAsBytes();
+                                      headerImage = pw.MemoryImage(imageBytes);
+                                    }
+                                  }
+
                                   pdf.addPage(
                                     pw.Page(
                                       build:
@@ -534,287 +532,316 @@ class _HomePageState extends State<HomePage>
                                                   .BorderRadius.circular(6),
                                             ),
                                             padding: pw.EdgeInsets.all(16),
-                                            child: pw.Container(
-                                              padding: pw.EdgeInsets.all(16),
-                                              child: pw.Column(
-                                                crossAxisAlignment:
-                                                    pw.CrossAxisAlignment.start,
-                                                children: [
-                                                  pw.Text(
-                                                    'Shutter Life Photography',
+                                            child: pw.Column(
+                                              crossAxisAlignment:
+                                                  pw.CrossAxisAlignment.start,
+                                              children: [
+                                                // ✅ Show image and company info side-by-side (Vyapar-style)
+                                                pw.Row(
+                                                  crossAxisAlignment:
+                                                      pw
+                                                          .CrossAxisAlignment
+                                                          .start,
+                                                  children: [
+                                                    if (headerImage != null)
+                                                      pw.Container(
+                                                        width: 60,
+                                                        height: 60,
+                                                        child: pw.Image(
+                                                          headerImage,
+                                                        ),
+                                                      ),
+                                                    if (headerImage != null)
+                                                      pw.SizedBox(width: 16),
+                                                    pw.Column(
+                                                      crossAxisAlignment:
+                                                          pw
+                                                              .CrossAxisAlignment
+                                                              .start,
+                                                      children: [
+                                                        pw.Text(
+                                                          'Shutter Life Photography',
+                                                          style: pw.TextStyle(
+                                                            fontSize: 22,
+                                                            fontWeight:
+                                                                pw
+                                                                    .FontWeight
+                                                                    .bold,
+                                                          ),
+                                                        ),
+                                                        pw.SizedBox(height: 4),
+                                                        pw.Text(
+                                                          'Phone Number: +91 63601 20253',
+                                                        ),
+                                                        pw.Text(
+                                                          'Email: shutterlifephotography10@gmail.com',
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ],
+                                                ),
+
+                                                pw.SizedBox(height: 12),
+                                                pw.Divider(),
+
+                                                pw.Center(
+                                                  child: pw.Text(
+                                                    'Tax Invoice',
                                                     style: pw.TextStyle(
-                                                      fontSize: 22,
+                                                      fontSize: 18,
                                                       fontWeight:
                                                           pw.FontWeight.bold,
+                                                      color: PdfColors.indigo,
                                                     ),
                                                   ),
-                                                  pw.SizedBox(height: 4),
-                                                  pw.Text(
-                                                    'Phone Number: +916360120253',
-                                                  ),
-                                                  pw.Text(
-                                                    'Email: shutterlifephotography10@gmail.com',
-                                                  ),
-                                                  pw.Divider(),
-                                                  pw.Center(
-                                                    child: pw.Text(
-                                                      'Tax Invoice',
-                                                      style: pw.TextStyle(
-                                                        fontSize: 18,
-                                                        fontWeight:
-                                                            pw.FontWeight.bold,
-                                                        color: PdfColors.indigo,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  pw.SizedBox(height: 12),
-                                                  pw.Row(
-                                                    crossAxisAlignment:
-                                                        pw
-                                                            .CrossAxisAlignment
-                                                            .start,
-                                                    children: [
-                                                      pw.Expanded(
-                                                        flex: 2,
-                                                        child: pw.Column(
-                                                          crossAxisAlignment:
-                                                              pw
-                                                                  .CrossAxisAlignment
-                                                                  .start,
-                                                          children: [
-                                                            pw.Text(
-                                                              'Bill To',
-                                                              style: pw.TextStyle(
-                                                                fontWeight:
-                                                                    pw
-                                                                        .FontWeight
-                                                                        .bold,
-                                                              ),
+                                                ),
+
+                                                pw.SizedBox(height: 12),
+                                                pw.Row(
+                                                  crossAxisAlignment:
+                                                      pw
+                                                          .CrossAxisAlignment
+                                                          .start,
+                                                  children: [
+                                                    pw.Expanded(
+                                                      flex: 2,
+                                                      child: pw.Column(
+                                                        crossAxisAlignment:
+                                                            pw
+                                                                .CrossAxisAlignment
+                                                                .start,
+                                                        children: [
+                                                          pw.Text(
+                                                            'Bill To',
+                                                            style: pw.TextStyle(
+                                                              fontWeight:
+                                                                  pw
+                                                                      .FontWeight
+                                                                      .bold,
                                                             ),
-                                                            pw.Text(
-                                                              '${sale.customerName}',
+                                                          ),
+                                                          pw.Text(
+                                                            '${sale.customerName}',
+                                                          ),
+                                                          pw.Text(
+                                                            'Contact No.: ${sale.phoneNumber}',
+                                                          ),
+                                                          pw.SizedBox(
+                                                            height: 12,
+                                                          ),
+                                                          pw.Text(
+                                                            'Terms And Conditions',
+                                                            style: pw.TextStyle(
+                                                              fontWeight:
+                                                                  pw
+                                                                      .FontWeight
+                                                                      .bold,
                                                             ),
-                                                            pw.Text(
-                                                              'Contact No.: ${sale.phoneNumber}',
+                                                          ),
+                                                          pw.Text(
+                                                            'Thank you for doing business with us.',
+                                                          ),
+                                                          if (balanceAmount >
+                                                              0) ...[
+                                                            pw.SizedBox(
+                                                              height: 20,
+                                                            ),
+                                                            pw.Center(
+                                                              child:
+                                                                  pw.SvgImage(
+                                                                    svg:
+                                                                        qrImage,
+                                                                  ),
                                                             ),
                                                             pw.SizedBox(
-                                                              height: 12,
+                                                              height: 6,
                                                             ),
-                                                            pw.Text(
-                                                              'Terms And Conditions',
-                                                              style: pw.TextStyle(
-                                                                fontWeight:
-                                                                    pw
-                                                                        .FontWeight
-                                                                        .bold,
-                                                              ),
-                                                            ),
-                                                            pw.Text(
-                                                              'Thank you for doing business with us.',
-                                                            ),
-                                                            if (balanceAmount >
-                                                                0) ...[
-                                                              pw.SizedBox(
-                                                                height: 20,
-                                                              ),
-                                                              pw.Center(
-                                                                child:
-                                                                    pw.SvgImage(
-                                                                      svg:
-                                                                          qrImage,
-                                                                    ),
-                                                              ),
-                                                              pw.SizedBox(
-                                                                height: 6,
-                                                              ),
-                                                              pw.Center(
-                                                                child: pw.Text(
-                                                                  "Scan to Pay UPI",
-                                                                  style: pw.TextStyle(
-                                                                    fontSize:
-                                                                        16,
-                                                                    fontWeight:
-                                                                        pw
-                                                                            .FontWeight
-                                                                            .bold,
-                                                                  ),
+                                                            pw.Center(
+                                                              child: pw.Text(
+                                                                "Scan to Pay UPI",
+                                                                style: pw.TextStyle(
+                                                                  fontSize: 16,
+                                                                  fontWeight:
+                                                                      pw
+                                                                          .FontWeight
+                                                                          .bold,
                                                                 ),
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ],
+                                                      ),
+                                                    ),
+                                                    pw.SizedBox(width: 20),
+                                                    pw.Expanded(
+                                                      flex: 2,
+                                                      child: pw.Column(
+                                                        crossAxisAlignment:
+                                                            pw
+                                                                .CrossAxisAlignment
+                                                                .start,
+                                                        children: [
+                                                          pw.Text(
+                                                            'Invoice Details',
+                                                            style: pw.TextStyle(
+                                                              fontWeight:
+                                                                  pw
+                                                                      .FontWeight
+                                                                      .bold,
+                                                            ),
+                                                          ),
+                                                          pw.Text(
+                                                            'Invoice No.: #$invoiceNumber',
+                                                          ),
+                                                          pw.Text(
+                                                            'Date: ${DateFormat('dd-MM-yyyy').format(sale.dateTime)}',
+                                                          ),
+                                                          pw.SizedBox(
+                                                            height: 8,
+                                                          ),
+                                                          pw.Table(
+                                                            border: pw
+                                                                .TableBorder.all(
+                                                              color:
+                                                                  PdfColors
+                                                                      .grey300,
+                                                            ),
+                                                            columnWidths: {
+                                                              0: pw.FlexColumnWidth(
+                                                                3,
+                                                              ),
+                                                              1: pw.FlexColumnWidth(
+                                                                2,
+                                                              ),
+                                                            },
+                                                            children: [
+                                                              pw.TableRow(
+                                                                decoration:
+                                                                    pw.BoxDecoration(
+                                                                      color:
+                                                                          PdfColors
+                                                                              .indigo100,
+                                                                    ),
+                                                                children: [
+                                                                  pw.Padding(
+                                                                    padding: pw
+                                                                        .EdgeInsets.all(
+                                                                      6,
+                                                                    ),
+                                                                    child: pw.Text(
+                                                                      'Total',
+                                                                      style: pw.TextStyle(
+                                                                        fontWeight:
+                                                                            pw.FontWeight.bold,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                  pw.Padding(
+                                                                    padding: pw
+                                                                        .EdgeInsets.all(
+                                                                      6,
+                                                                    ),
+                                                                    child: pw.Text(
+                                                                      '₹ ${sale.totalAmount.toStringAsFixed(2)}',
+                                                                      style: pw.TextStyle(
+                                                                        font:
+                                                                            rupeeFont,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                              pw.TableRow(
+                                                                children: [
+                                                                  pw.Padding(
+                                                                    padding: pw
+                                                                        .EdgeInsets.all(
+                                                                      6,
+                                                                    ),
+                                                                    child: pw.Text(
+                                                                      'Received',
+                                                                    ),
+                                                                  ),
+                                                                  pw.Padding(
+                                                                    padding: pw
+                                                                        .EdgeInsets.all(
+                                                                      6,
+                                                                    ),
+                                                                    child: pw.Text(
+                                                                      '₹ ${sale.amount.toStringAsFixed(2)}',
+                                                                      style: pw.TextStyle(
+                                                                        font:
+                                                                            rupeeFont,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                              pw.TableRow(
+                                                                children: [
+                                                                  pw.Padding(
+                                                                    padding: pw
+                                                                        .EdgeInsets.all(
+                                                                      6,
+                                                                    ),
+                                                                    child: pw.Text(
+                                                                      'Balance',
+                                                                    ),
+                                                                  ),
+                                                                  pw.Padding(
+                                                                    padding: pw
+                                                                        .EdgeInsets.all(
+                                                                      6,
+                                                                    ),
+                                                                    child: pw.Text(
+                                                                      '₹ ${balanceAmount.toStringAsFixed(2)}',
+                                                                      style: pw.TextStyle(
+                                                                        font:
+                                                                            rupeeFont,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                              pw.TableRow(
+                                                                children: [
+                                                                  pw.Padding(
+                                                                    padding: pw
+                                                                        .EdgeInsets.all(
+                                                                      6,
+                                                                    ),
+                                                                    child: pw.Text(
+                                                                      'Payment Mode',
+                                                                    ),
+                                                                  ),
+                                                                  pw.Padding(
+                                                                    padding: pw
+                                                                        .EdgeInsets.all(
+                                                                      6,
+                                                                    ),
+                                                                    child: pw.Text(
+                                                                      sale.paymentMode,
+                                                                    ),
+                                                                  ),
+                                                                ],
                                                               ),
                                                             ],
-                                                          ],
-                                                        ),
+                                                          ),
+                                                        ],
                                                       ),
-                                                      pw.SizedBox(width: 20),
-                                                      pw.Expanded(
-                                                        flex: 2,
-                                                        child: pw.Column(
-                                                          crossAxisAlignment:
-                                                              pw
-                                                                  .CrossAxisAlignment
-                                                                  .start,
-                                                          children: [
-                                                            pw.Text(
-                                                              'Invoice Details',
-                                                              style: pw.TextStyle(
-                                                                fontWeight:
-                                                                    pw
-                                                                        .FontWeight
-                                                                        .bold,
-                                                              ),
-                                                            ),
-                                                            pw.Text(
-                                                              'Invoice No.: #$invoiceNumber',
-                                                            ),
-                                                            pw.Text(
-                                                              'Date: ${DateFormat('dd-MM-yyyy').format(sale.dateTime)}',
-                                                            ),
-                                                            pw.SizedBox(
-                                                              height: 8,
-                                                            ),
-                                                            pw.Table(
-                                                              border: pw
-                                                                  .TableBorder.all(
-                                                                color:
-                                                                    PdfColors
-                                                                        .grey300,
-                                                              ),
-                                                              columnWidths: {
-                                                                0: pw.FlexColumnWidth(
-                                                                  3,
-                                                                ),
-                                                                1: pw.FlexColumnWidth(
-                                                                  2,
-                                                                ),
-                                                              },
-                                                              children: [
-                                                                pw.TableRow(
-                                                                  decoration: pw.BoxDecoration(
-                                                                    color:
-                                                                        PdfColors
-                                                                            .indigo100,
-                                                                  ),
-                                                                  children: [
-                                                                    pw.Padding(
-                                                                      padding: pw
-                                                                          .EdgeInsets.all(
-                                                                        6,
-                                                                      ),
-                                                                      child: pw.Text(
-                                                                        'Total',
-                                                                        style: pw.TextStyle(
-                                                                          fontWeight:
-                                                                              pw.FontWeight.bold,
-                                                                        ),
-                                                                      ),
-                                                                    ),
-                                                                    pw.Padding(
-                                                                      padding: pw
-                                                                          .EdgeInsets.all(
-                                                                        6,
-                                                                      ),
-                                                                      child: pw.Text(
-                                                                        '₹ ${sale.totalAmount.toStringAsFixed(2)}',
-                                                                        style: pw.TextStyle(
-                                                                          font:
-                                                                              rupeeFont,
-                                                                        ),
-                                                                      ),
-                                                                    ),
-                                                                  ],
-                                                                ),
-                                                                pw.TableRow(
-                                                                  children: [
-                                                                    pw.Padding(
-                                                                      padding: pw
-                                                                          .EdgeInsets.all(
-                                                                        6,
-                                                                      ),
-                                                                      child: pw.Text(
-                                                                        'Received',
-                                                                      ),
-                                                                    ),
-                                                                    pw.Padding(
-                                                                      padding: pw
-                                                                          .EdgeInsets.all(
-                                                                        6,
-                                                                      ),
-                                                                      child: pw.Text(
-                                                                        '₹ ${sale.amount.toStringAsFixed(2)}',
-                                                                        style: pw.TextStyle(
-                                                                          font:
-                                                                              rupeeFont,
-                                                                        ),
-                                                                      ),
-                                                                    ),
-                                                                  ],
-                                                                ),
-                                                                pw.TableRow(
-                                                                  children: [
-                                                                    pw.Padding(
-                                                                      padding: pw
-                                                                          .EdgeInsets.all(
-                                                                        6,
-                                                                      ),
-                                                                      child: pw.Text(
-                                                                        'Balance',
-                                                                      ),
-                                                                    ),
-                                                                    pw.Padding(
-                                                                      padding: pw
-                                                                          .EdgeInsets.all(
-                                                                        6,
-                                                                      ),
-                                                                      child: pw.Text(
-                                                                        '₹ ${balanceAmount.toStringAsFixed(2)}',
-                                                                        style: pw.TextStyle(
-                                                                          font:
-                                                                              rupeeFont,
-                                                                        ),
-                                                                      ),
-                                                                    ),
-                                                                  ],
-                                                                ),
-                                                                pw.TableRow(
-                                                                  children: [
-                                                                    pw.Padding(
-                                                                      padding: pw
-                                                                          .EdgeInsets.all(
-                                                                        6,
-                                                                      ),
-                                                                      child: pw.Text(
-                                                                        'Payment Mode',
-                                                                      ),
-                                                                    ),
-                                                                    pw.Padding(
-                                                                      padding: pw
-                                                                          .EdgeInsets.all(
-                                                                        6,
-                                                                      ),
-                                                                      child: pw.Text(
-                                                                        sale.paymentMode,
-                                                                      ),
-                                                                    ),
-                                                                  ],
-                                                                ),
-                                                              ],
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                  pw.SizedBox(height: 16),
-                                                  pw.Align(
-                                                    alignment:
-                                                        pw
-                                                            .Alignment
-                                                            .centerRight,
-                                                    child: pw.Text(
-                                                      'For: Shutter Life Photography',
                                                     ),
+                                                  ],
+                                                ),
+
+                                                pw.SizedBox(height: 16),
+                                                pw.Align(
+                                                  alignment:
+                                                      pw.Alignment.centerRight,
+                                                  child: pw.Text(
+                                                    'For: Shutter Life Photography',
                                                   ),
-                                                ],
-                                              ),
+                                                ),
+                                              ],
                                             ),
                                           ),
                                     ),

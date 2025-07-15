@@ -1,6 +1,7 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:hive/hive.dart';
 
@@ -8,16 +9,14 @@ import 'package:click_account/models/sale.dart';
 import 'package:click_account/models/product.dart';
 import 'package:click_account/models/payment.dart';
 import 'package:click_account/screens/nav_bar_page.dart';
-import 'package:timezone/data/latest_10y.dart' as tz;
-
-final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-    FlutterLocalNotificationsPlugin();
+import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
 
-  // Register Hive Adapters if not already registered
+  // ✅ Register Hive Adapters if not already registered
   if (!Hive.isAdapterRegistered(SaleAdapter().typeId)) {
     Hive.registerAdapter(SaleAdapter());
   }
@@ -28,23 +27,20 @@ void main() async {
     Hive.registerAdapter(PaymentAdapter());
   }
 
-  // Open Hive Boxes
+  // ✅ Open boxes
   await Hive.openBox<Sale>('sales');
   await Hive.openBox<Product>('products');
-  await Hive.openBox<Payment>('payments');
 
-  // Initialize Notifications
-  const AndroidInitializationSettings androidSettings =
-      AndroidInitializationSettings('@mipmap/ic_launcher');
-
-  final InitializationSettings initializationSettings = InitializationSettings(
-    android: androidSettings,
-  );
-
-  await flutterLocalNotificationsPlugin.initialize(initializationSettings);
-
-  // Initialize Timezone for scheduled notifications
-  tz.initializeTimeZones();
+  // ✅ Save default profile image if not already set
+  final prefs = await SharedPreferences.getInstance();
+  final imagePath = prefs.getString('profileImagePath');
+  if (imagePath == null || !File(imagePath).existsSync()) {
+    final byteData = await rootBundle.load('assets/images/LOGO.jpg');
+    final tempDir = await getTemporaryDirectory();
+    final file = File('${tempDir.path}/default_logo.jpg');
+    await file.writeAsBytes(byteData.buffer.asUint8List());
+    await prefs.setString('profileImagePath', file.path);
+  }
 
   runApp(const MyApp());
 }

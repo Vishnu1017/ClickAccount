@@ -8,6 +8,7 @@ import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:shared_preferences/shared_preferences.dart';
 
 enum DateRangePreset {
   today,
@@ -126,6 +127,18 @@ class _SalesReportPageState extends State<SalesReportPage> {
     // ✅ Load Roboto font for ₹ support
     final fontData = await rootBundle.load('assets/fonts/Roboto-Regular.ttf');
     final ttf = pw.Font.ttf(fontData.buffer.asByteData());
+    final prefs = await SharedPreferences.getInstance();
+    final profileImagePath = prefs.getString('profileImagePath');
+
+    pw.MemoryImage? headerImage;
+
+    if (profileImagePath != null) {
+      final profileFile = File(profileImagePath);
+      if (await profileFile.exists()) {
+        final imageBytes = await profileFile.readAsBytes();
+        headerImage = pw.MemoryImage(imageBytes);
+      }
+    }
 
     final totalSales = sales.fold(0.0, (sum, s) => sum + s.totalAmount);
 
@@ -147,22 +160,20 @@ class _SalesReportPageState extends State<SalesReportPage> {
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
                     pw.Container(
-                      width: 60,
-                      height: 60,
+                      width: 55,
+                      height: 55,
                       decoration: pw.BoxDecoration(
                         color: PdfColors.white,
                         borderRadius: pw.BorderRadius.circular(8),
                         border: pw.Border.all(color: PdfColors.grey),
                       ),
                       child: pw.Center(
-                        child: pw.Text(
-                          'SLP',
-                          style: pw.TextStyle(
-                            fontSize: 20,
-                            fontWeight: pw.FontWeight.bold,
-                            font: ttf,
-                            color: PdfColors.teal800,
-                          ),
+                        child: pw.Container(
+                          height: 50,
+                          child:
+                              headerImage != null
+                                  ? pw.Image(headerImage!)
+                                  : pw.SizedBox(), // Empty when no image
                         ),
                       ),
                     ),

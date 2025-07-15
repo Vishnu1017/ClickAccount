@@ -15,15 +15,16 @@ class _ProfilePageState extends State<ProfilePage> {
   String role = "Photographer";
   File? _profileImage;
   final picker = ImagePicker();
-  bool _isImageLoaded = false;
+  bool _isImageLoading = false;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadImage());
+    _loadImage();
   }
 
   Future<void> _loadImage() async {
+    setState(() => _isImageLoading = true);
     final prefs = await SharedPreferences.getInstance();
     final path = prefs.getString('profileImagePath');
 
@@ -33,7 +34,7 @@ class _ProfilePageState extends State<ProfilePage> {
         setState(() => _profileImage = file);
       }
     }
-    setState(() => _isImageLoaded = true);
+    setState(() => _isImageLoading = false);
   }
 
   Future<void> _pickImage() async {
@@ -42,10 +43,14 @@ class _ProfilePageState extends State<ProfilePage> {
     if (status.isGranted) {
       final picked = await picker.pickImage(source: ImageSource.gallery);
       if (picked != null) {
+        setState(() => _isImageLoading = true);
         final file = File(picked.path);
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('profileImagePath', picked.path);
-        setState(() => _profileImage = file);
+        setState(() {
+          _profileImage = file;
+          _isImageLoading = false;
+        });
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -60,106 +65,108 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBodyBehindAppBar: true,
-      body:
-          !_isImageLoaded
-              ? const Center(child: CircularProgressIndicator())
-              : Stack(
-                children: [
-                  // Background Gradient
-                  Container(
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Color(0xFF1A237E), Color(0xFF00BCD4)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
+      body: Stack(
+        children: [
+          // Background Gradient
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF1A237E), Color(0xFF00BCD4)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Center(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 8.0, sigmaY: 8.0),
+                  child: Container(
+                    width: MediaQuery.of(context).size.width * 0.9,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: Colors.white30, width: 1.5),
                     ),
-                  ),
-                  SafeArea(
-                    child: Center(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(24),
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 8.0, sigmaY: 8.0),
-                          child: Container(
-                            width: MediaQuery.of(context).size.width * 0.85,
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(24),
-                              border: Border.all(
-                                color: Colors.white30,
-                                width: 1.5,
-                              ),
-                            ),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                GestureDetector(
-                                  onTap: _pickImage,
-                                  child: Stack(
-                                    alignment: Alignment.bottomRight,
-                                    children: [
-                                      CircleAvatar(
-                                        radius: 50,
-                                        backgroundImage:
-                                            _profileImage != null
-                                                ? FileImage(_profileImage!)
-                                                : const AssetImage(
-                                                      'assets/profile.jpg',
-                                                    )
-                                                    as ImageProvider,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        GestureDetector(
+                          onTap: _pickImage,
+                          child: Stack(
+                            alignment: Alignment.bottomRight,
+                            children: [
+                              _isImageLoading
+                                  ? const CircleAvatar(
+                                    radius: 50,
+                                    child: Padding(
+                                      padding: EdgeInsets.all(16.0),
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
                                       ),
-                                      const CircleAvatar(
-                                        radius: 14,
-                                        backgroundColor: Colors.white,
-                                        child: Icon(
-                                          Icons.edit,
-                                          size: 16,
-                                          color: Colors.black87,
-                                        ),
-                                      ),
-                                    ],
+                                    ),
+                                  )
+                                  : CircleAvatar(
+                                    radius: 50,
+                                    backgroundImage:
+                                        _profileImage != null
+                                            ? FileImage(_profileImage!)
+                                            : const AssetImage(
+                                                  'assets/profile.jpg',
+                                                )
+                                                as ImageProvider,
+                                  ),
+                              if (!_isImageLoading)
+                                const CircleAvatar(
+                                  radius: 14,
+                                  backgroundColor: Colors.white,
+                                  child: Icon(
+                                    Icons.edit,
+                                    size: 16,
+                                    color: Colors.black87,
                                   ),
                                 ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  name,
-                                  style: const TextStyle(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                Text(
-                                  role,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.white70,
-                                  ),
-                                ),
-                                const SizedBox(height: 20),
-                                const Divider(color: Colors.white30),
-                                _glassRow(
-                                  Icons.email,
-                                  'shutterlifephotography10@gmail.com',
-                                ),
-                                const SizedBox(height: 12),
-                                _glassRow(Icons.phone, '+91 63601 20253'),
-                                const SizedBox(height: 12),
-                                _glassRow(
-                                  Icons.location_city,
-                                  'Bangalore, India',
-                                ),
-                              ],
-                            ),
+                            ],
                           ),
                         ),
-                      ),
+                        const SizedBox(height: 16),
+                        Text(
+                          name,
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        Text(
+                          role,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.white70,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        const Divider(color: Colors.white30),
+                        _glassRow(
+                          Icons.email,
+                          'shutterlifephotography10@gmail.com',
+                        ),
+                        const SizedBox(height: 12),
+                        _glassRow(Icons.phone, '+91 63601 20253'),
+                        const SizedBox(height: 12),
+                        _glassRow(Icons.location_city, 'Bangalore, India'),
+                      ],
                     ),
                   ),
-                ],
+                ),
               ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
