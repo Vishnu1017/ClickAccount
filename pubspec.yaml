@@ -65,6 +65,7 @@ dependencies:
   csv: ^6.0.0
   timezone: ^0.10.1
   flutter_local_notifications: ^19.3.0
+  file_picker: ^10.2.0
   
 flutter_icons:
   android: true

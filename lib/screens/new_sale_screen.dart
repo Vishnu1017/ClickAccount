@@ -22,36 +22,37 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
   DateTime selectedDate = DateTime.now();
   bool isLoading = false;
   bool isFullyPaid = false;
+  // ignore: prefer_final_fields
   String _selectedMode = 'Cash';
 
-  final List<String> _paymentModes = [
-    'Cash',
-    'UPI',
-    'Card',
-    'Bank Transfer',
-    'Cheque',
-    'Wallet',
-    'Other',
-  ];
+  // final List<String> _paymentModes = [
+  //   'Cash',
+  //   'UPI',
+  //   'Card',
+  //   'Bank Transfer',
+  //   'Cheque',
+  //   'Wallet',
+  //   'Other',
+  // ];
 
-  IconData _getIconForMode(String mode) {
-    switch (mode) {
-      case 'Cash':
-        return Icons.money;
-      case 'UPI':
-        return Icons.qr_code_scanner;
-      case 'Card':
-        return Icons.credit_card;
-      case 'Bank Transfer':
-        return Icons.account_balance;
-      case 'Cheque':
-        return Icons.receipt_long;
-      case 'Wallet':
-        return Icons.account_balance_wallet;
-      default:
-        return Icons.payments;
-    }
-  }
+  // IconData _getIconForMode(String mode) {
+  //   switch (mode) {
+  //     case 'Cash':
+  //       return Icons.money;
+  //     case 'UPI':
+  //       return Icons.qr_code_scanner;
+  //     case 'Card':
+  //       return Icons.credit_card;
+  //     case 'Bank Transfer':
+  //       return Icons.account_balance;
+  //     case 'Cheque':
+  //       return Icons.receipt_long;
+  //     case 'Wallet':
+  //       return Icons.account_balance_wallet;
+  //     default:
+  //       return Icons.payments;
+  //   }
+  // }
 
   List<Map<String, String>> customerList = [];
   Map<String, dynamic>? selectedItemDetails;
