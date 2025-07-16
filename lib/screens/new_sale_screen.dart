@@ -24,35 +24,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
   bool isFullyPaid = false;
   // ignore: prefer_final_fields
   String _selectedMode = 'Cash';
-
-  // final List<String> _paymentModes = [
-  //   'Cash',
-  //   'UPI',
-  //   'Card',
-  //   'Bank Transfer',
-  //   'Cheque',
-  //   'Wallet',
-  //   'Other',
-  // ];
-
-  // IconData _getIconForMode(String mode) {
-  //   switch (mode) {
-  //     case 'Cash':
-  //       return Icons.money;
-  //     case 'UPI':
-  //       return Icons.qr_code_scanner;
-  //     case 'Card':
-  //       return Icons.credit_card;
-  //     case 'Bank Transfer':
-  //       return Icons.account_balance;
-  //     case 'Cheque':
-  //       return Icons.receipt_long;
-  //     case 'Wallet':
-  //       return Icons.account_balance_wallet;
-  //     default:
-  //       return Icons.payments;
-  //   }
-  // }
+  bool isCustomerSelectedFromList = false;
 
   List<Map<String, String>> customerList = [];
   Map<String, dynamic>? selectedItemDetails;
@@ -103,7 +75,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
       }
 
       final itemSubtotal = rate * qty;
-      final discountAmount = itemSubtotal * discountPercent / 100;
+      final discountAmount = subtotal * discountPercent / 100;
       final taxableAmount = itemSubtotal - discountAmount;
 
       double taxAmount = 0.0;
@@ -181,6 +153,18 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
     });
   }
 
+  Future<bool> isPhoneNumberDuplicate() async {
+    // Skip duplicate check if customer was selected from list
+    if (isCustomerSelectedFromList) return false;
+
+    final saleBox = Hive.box<Sale>('sales');
+    final phoneNumber = phoneController.text.trim();
+
+    if (phoneNumber.isEmpty) return false;
+
+    return saleBox.values.any((sale) => sale.phoneNumber.trim() == phoneNumber);
+  }
+
   void addItem() async {
     final newItem = await Navigator.push(
       context,
@@ -188,7 +172,6 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
     );
 
     if (newItem != null && newItem is Map<String, dynamic>) {
-      // Clean and correct values
       newItem['tax'] = _parsePercent(newItem['tax']);
       newItem['discount'] = _parsePercent(newItem['discount']);
       newItem['qty'] =
@@ -228,7 +211,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
           ),
           padding: EdgeInsets.all(16),
           child: Column(
-            mainAxisSize: MainAxisSize.min, // prevents unbounded height
+            mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 "📅 Select Date",
@@ -240,7 +223,6 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
               ),
               SizedBox(height: 12),
               Expanded(
-                // You can keep this if you're using fixed height (like 420)
                 child: SingleChildScrollView(
                   physics: ClampingScrollPhysics(),
                   child: Container(
@@ -307,7 +289,6 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
     double totalAmount = 0.0;
 
     if (taxType == 'With Tax' && taxPercent > 0) {
-      // Tax-inclusive rate
       rate = rawRate / (1 + taxPercent / 100);
       subtotal = rate * qty;
 
@@ -319,7 +300,6 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
 
       totalAmount = taxableAmount + taxAmount;
     } else {
-      // Tax-exclusive rate (or no tax)
       rate = rawRate;
       subtotal = rate * qty;
 
@@ -429,7 +409,6 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                   Expanded(
                     child: LayoutBuilder(
                       builder: (context, constraints) {
-                        // Responsive logic: adjust number of columns based on width
                         int crossAxisCount = 2;
                         if (constraints.maxWidth > 600) {
                           crossAxisCount = 3;
@@ -457,8 +436,11 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
 
                             return GestureDetector(
                               onTap: () {
-                                customerController.text = customer['name']!;
-                                phoneController.text = customer['phone']!;
+                                setState(() {
+                                  customerController.text = customer['name']!;
+                                  phoneController.text = customer['phone']!;
+                                  isCustomerSelectedFromList = true;
+                                });
                                 Navigator.pop(context);
                               },
                               child: AnimatedContainer(
@@ -544,14 +526,11 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
   }
 
   void saveSale() async {
-    if (!_formKey.currentState!.validate()) return;
     setState(() => isLoading = true);
 
     final saleBox = Hive.box<Sale>('sales');
     final newPayment = Payment(
-      amount:
-          double.tryParse(amountController.text) ??
-          0, // ✅ Using existing controller
+      amount: double.tryParse(amountController.text) ?? 0,
       date: DateTime.now(),
       mode: _selectedMode,
     );
@@ -560,13 +539,11 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
       customerName: customerController.text,
       productName: productController.text,
       phoneNumber: phoneController.text,
-      amount: newPayment.amount, // ✅ Save received amount
+      amount: newPayment.amount,
       totalAmount: double.tryParse(totalAmountController.text) ?? 0,
       dateTime: selectedDate,
       deliveryStatus: 'Editing',
-      paymentHistory: [
-        newPayment, // ✅ Add current payment
-      ],
+      paymentHistory: [newPayment],
     );
 
     await saleBox.add(sale);
@@ -618,7 +595,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
     return Scaffold(
       backgroundColor: Color(0xFFE3F2FD),
       appBar: AppBar(
-        iconTheme: IconThemeData(color: Colors.white), // makes back arrow white
+        iconTheme: IconThemeData(color: Colors.white),
         title: Text("New Sale", style: TextStyle(color: Colors.white)),
         centerTitle: true,
         flexibleSpace: Container(
@@ -640,9 +617,38 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
               TextFormField(
                 controller: customerController,
                 onTap: showCustomerPicker,
-                decoration: customInput("Customer Name", Icons.person),
+                decoration: customInput("Customer Name", Icons.person).copyWith(
+                  suffixIcon: IconButton(
+                    icon: Icon(Icons.arrow_drop_down),
+                    onPressed: showCustomerPicker,
+                  ),
+                ),
+                textCapitalization: TextCapitalization.words,
                 validator:
                     (val) => val!.trim().isEmpty ? 'Enter customer name' : null,
+                onChanged: (value) {
+                  if (value.isNotEmpty && value[0] != value[0].toUpperCase()) {
+                    customerController.text = value.splitMapJoin(
+                      ' ',
+                      onNonMatch:
+                          (word) =>
+                              word.isNotEmpty
+                                  ? word[0].toUpperCase() +
+                                      (word.length > 1
+                                          ? word.substring(1).toLowerCase()
+                                          : '')
+                                  : '',
+                    );
+                    customerController.selection = TextSelection.fromPosition(
+                      TextPosition(offset: customerController.text.length),
+                    );
+                  }
+                  if (isCustomerSelectedFromList) {
+                    setState(() {
+                      isCustomerSelectedFromList = false;
+                    });
+                  }
+                },
               ),
               SizedBox(height: 20),
               TextFormField(
@@ -657,6 +663,13 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                     return 'Enter valid 10-digit number';
                   }
                   return null;
+                },
+                onChanged: (value) {
+                  if (isCustomerSelectedFromList) {
+                    setState(() {
+                      isCustomerSelectedFromList = false;
+                    });
+                  }
                 },
               ),
               SizedBox(height: 20),
@@ -704,7 +717,6 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                   ),
                 ),
               ),
-
               SizedBox(height: 20),
               Container(
                 width: double.infinity,
@@ -818,185 +830,6 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                       ],
                     ),
                     Divider(),
-                    // Row(
-                    //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    //   children: [
-                    //     Row(
-                    //       children: [
-                    //         Checkbox(
-                    //           value: isFullyPaid,
-                    //           onChanged: (val) {
-                    //             setState(() {
-                    //               isFullyPaid = val!;
-                    //               if (isFullyPaid) {
-                    //                 amountController.text =
-                    //                     totalAmountController.text;
-                    //               } else {
-                    //                 amountController
-                    //                     .clear(); // allow manual entry
-                    //               }
-                    //             });
-                    //           },
-                    //         ),
-                    //         Text(
-                    //           "Received",
-                    //           style: TextStyle(
-                    //             fontWeight: FontWeight.bold,
-                    //             fontSize: 14,
-                    //             color: Colors.black87,
-                    //           ),
-                    //         ),
-                    //       ],
-                    //     ),
-
-                    //     // 👇 This is the switch part
-                    //     isFullyPaid
-                    //         ? Text(
-                    //           "₹ ${(double.tryParse(totalAmountController.text) ?? 0).toStringAsFixed(2)}",
-                    //           style: TextStyle(
-                    //             fontWeight: FontWeight.bold,
-                    //             fontSize: 14,
-                    //             color: Colors.green[700],
-                    //           ),
-                    //         )
-                    //         : Container(
-                    //           width: 100,
-                    //           height: 40,
-                    //           child: TextFormField(
-                    //             controller: amountController,
-                    //             keyboardType: TextInputType.number,
-                    //             textAlign: TextAlign.end,
-                    //             decoration: InputDecoration(
-                    //               hintText: "Enter",
-                    //               hintStyle: TextStyle(
-                    //                 color: Colors.green.shade400,
-                    //               ),
-                    //               prefixIcon: Icon(
-                    //                 Icons.currency_rupee,
-                    //                 color: Colors.green.shade700,
-                    //               ),
-                    //               border: InputBorder.none,
-                    //               contentPadding: EdgeInsets.symmetric(
-                    //                 vertical: 12,
-                    //               ),
-                    //             ),
-                    //             style: TextStyle(
-                    //               fontWeight: FontWeight.bold,
-                    //               fontSize: 14,
-                    //               color: Colors.green[700],
-                    //             ),
-                    //             onChanged: (_) => setState(() {}),
-                    //           ),
-                    //         ),
-                    //   ],
-                    // ),
-                    // Divider(),
-                    // Column(
-                    //   crossAxisAlignment: CrossAxisAlignment.start,
-                    //   children: [
-                    //     Row(
-                    //       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    //       children: [
-                    //         Text(
-                    //           "Balance Due",
-                    //           style: TextStyle(
-                    //             fontWeight: FontWeight.bold,
-                    //             fontSize: 14,
-                    //             color: Colors.red[700],
-                    //           ),
-                    //         ),
-                    //         Text(
-                    //           "₹ ${(double.tryParse(totalAmountController.text) ?? 0) - (double.tryParse(amountController.text) ?? 0)}",
-                    //           style: TextStyle(
-                    //             fontWeight: FontWeight.bold,
-                    //             fontSize: 14,
-                    //             color: Colors.red[700],
-                    //           ),
-                    //         ),
-                    //       ],
-                    //     ),
-                    //     SizedBox(height: 20),
-                    //     Container(
-                    //       decoration: BoxDecoration(
-                    //         borderRadius: BorderRadius.circular(16),
-                    //         gradient: LinearGradient(
-                    //           colors: [Color(0xFFE3F2FD), Color(0xFFFFFFFF)],
-                    //           begin: Alignment.topLeft,
-                    //           end: Alignment.bottomRight,
-                    //         ),
-                    //         boxShadow: [
-                    //           BoxShadow(
-                    //             color: Colors.black12,
-                    //             blurRadius: 8,
-                    //             offset: Offset(0, 4),
-                    //           ),
-                    //         ],
-                    //       ),
-                    //       child: DropdownButtonFormField<String>(
-                    //         value: _selectedMode,
-                    //         items:
-                    //             _paymentModes.map((mode) {
-                    //               return DropdownMenuItem(
-                    //                 value: mode,
-                    //                 child: Row(
-                    //                   children: [
-                    //                     Icon(
-                    //                       _getIconForMode(mode),
-                    //                       color: Color(0xFF1A237E),
-                    //                       size: 20,
-                    //                     ),
-                    //                     SizedBox(width: 8),
-                    //                     Text(
-                    //                       mode,
-                    //                       style: TextStyle(
-                    //                         fontWeight: FontWeight.w500,
-                    //                       ),
-                    //                     ),
-                    //                   ],
-                    //                 ),
-                    //               );
-                    //             }).toList(),
-                    //         dropdownColor: Colors.white,
-                    //         onChanged: (value) {
-                    //           setState(() {
-                    //             _selectedMode = value!;
-                    //           });
-                    //         },
-                    //         decoration: InputDecoration(
-                    //           prefixIcon: Icon(
-                    //             Icons.payment,
-                    //             color: Color(0xFF1A237E),
-                    //           ),
-                    //           labelText: 'Select payment mode',
-                    //           labelStyle: TextStyle(
-                    //             color: Color(0xFF1A237E),
-                    //             fontWeight: FontWeight.w600,
-                    //           ),
-                    //           filled: true,
-                    //           fillColor: Colors.white.withOpacity(0.95),
-                    //           contentPadding: EdgeInsets.symmetric(
-                    //             horizontal: 16,
-                    //             vertical: 18,
-                    //           ),
-                    //           enabledBorder: OutlineInputBorder(
-                    //             borderRadius: BorderRadius.circular(16),
-                    //             borderSide: BorderSide(
-                    //               color: Colors.blue.shade100,
-                    //             ),
-                    //           ),
-                    //           focusedBorder: OutlineInputBorder(
-                    //             borderRadius: BorderRadius.circular(16),
-                    //             borderSide: BorderSide(
-                    //               color: Color(0xFF1A237E),
-                    //               width: 2,
-                    //             ),
-                    //           ),
-                    //         ),
-                    //         style: TextStyle(color: Colors.black87),
-                    //       ),
-                    //     ),
-                    //   ],
-                    // ),
                   ],
                 ),
               ),
@@ -1014,7 +847,29 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                       borderRadius: BorderRadius.circular(28),
                     ),
                     child: ElevatedButton.icon(
-                      onPressed: saveSale,
+                      onPressed: () async {
+                        if (!_formKey.currentState!.validate()) return;
+
+                        // Check for duplicate phone number only if customer wasn't selected from list
+                        if (!isCustomerSelectedFromList) {
+                          final isDuplicate = await isPhoneNumberDuplicate();
+                          if (isDuplicate) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  "A customer with this phone number already exists!",
+                                ),
+                                backgroundColor: Colors.red,
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                            return;
+                          }
+                        }
+
+                        // Proceed with saving
+                        saveSale();
+                      },
                       icon: Icon(Icons.save, color: Colors.white),
                       label: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 14.0),

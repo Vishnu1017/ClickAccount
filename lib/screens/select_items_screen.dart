@@ -20,6 +20,8 @@ class _SelectItemsScreenState extends State<SelectItemsScreen> {
   final TextEditingController discountAmountController =
       TextEditingController();
 
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
   bool isEditingPercent = true;
   bool showSummarySections = false;
 
@@ -56,6 +58,8 @@ class _SelectItemsScreenState extends State<SelectItemsScreen> {
         showSummarySections = itemController.text.trim().isNotEmpty;
       });
     });
+    // Initialize quantity with default value 1
+    quantityController.text = '1';
   }
 
   double parseTaxRate() {
@@ -177,153 +181,222 @@ class _SelectItemsScreenState extends State<SelectItemsScreen> {
         ),
         foregroundColor: Colors.white,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildCardSection(
-              title: "Item Details",
-              children: [
-                _buildTextField(
-                  itemController,
-                  "e.g. Premium Photography",
-                  onTap: showItemPicker,
-                  keyboardType: TextInputType.text, // Full keyboard
-                ),
-
-                SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildTextField(
-                        quantityController,
-                        "Quantity",
-                        keyboardType: TextInputType.numberWithOptions(
-                          decimal: false,
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: _buildDropdown(
-                        "Unit",
-                        selectedUnit,
-                        units,
-                        (val) => setState(() => selectedUnit = val),
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildTextField(
-                        rateController,
-                        "Rate (Price/Unit)",
-                        keyboardType: TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: _buildDropdown(
-                        "Tax Type",
-                        selectedTaxType,
-                        taxChoiceOptions,
-                        (val) => setState(() => selectedTaxType = val!),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            SizedBox(height: 24),
-            if (showSummarySections)
-              Column(
+      body: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildCardSection(
+                title: "Item Details",
                 children: [
-                  _buildCardSection(
-                    title: "Discount & Tax",
+                  _buildTextField(
+                    itemController,
+                    "e.g. Premium Photography",
+                    onTap: showItemPicker,
+                    keyboardType: TextInputType.text,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Please enter an item name';
+                      }
+                      return null;
+                    },
+                  ),
+
+                  SizedBox(height: 16),
+                  Row(
                     children: [
-                      _buildSummaryRow("Subtotal", summary['subtotal']!),
-                      SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildTextField(
-                              discountPercentController,
-                              "Discount %",
-                              suffixText: "%",
-                              onTap:
-                                  () => setState(() => isEditingPercent = true),
-                            ),
+                      Expanded(
+                        child: _buildTextField(
+                          quantityController,
+                          "Quantity",
+                          keyboardType: TextInputType.numberWithOptions(
+                            decimal: false,
                           ),
-                          SizedBox(width: 12),
-                          Expanded(
-                            child: _buildTextField(
-                              discountAmountController,
-                              "Discount ₹",
-                              prefixText: "₹ ",
-                              onTap:
-                                  () =>
-                                      setState(() => isEditingPercent = false),
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 16),
-                      IgnorePointer(
-                        ignoring: selectedTaxType != 'With Tax',
-                        child: Opacity(
-                          opacity: selectedTaxType == 'With Tax' ? 1.0 : 0.4,
-                          child: _buildDropdown(
-                            "Select Tax Rate",
-                            selectedTaxRate,
-                            taxRateOptions,
-                            (val) => setState(() => selectedTaxRate = val),
-                          ),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Please enter quantity';
+                            }
+                            final quantity = int.tryParse(value);
+                            if (quantity == null || quantity <= 0) {
+                              return 'Quantity must be greater than 0';
+                            }
+                            if (quantity > 9999) {
+                              return 'Maximum quantity is 9999';
+                            }
+                            return null;
+                          },
                         ),
                       ),
-                      if (selectedTaxType == 'With Tax' &&
-                          parseTaxRate() > 0) ...[
-                        SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildInfoCard(
-                                "Tax Rate",
-                                "${parseTaxRate().toStringAsFixed(2)}%",
-                              ),
-                            ),
-                            SizedBox(width: 12),
-                            Expanded(
-                              child: _buildInfoCard(
-                                "Tax Amount",
-                                "₹ ${summary['taxAmount']!.toStringAsFixed(2)}",
-                              ),
-                            ),
-                          ],
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: _buildDropdown(
+                          "Unit",
+                          selectedUnit,
+                          units,
+                          (val) => setState(() => selectedUnit = val),
                         ),
-                      ],
+                      ),
                     ],
                   ),
-                  SizedBox(height: 24),
-                  _buildCardSection(
-                    title: "Total Summary",
+                  SizedBox(height: 16),
+                  Row(
                     children: [
-                      _buildSummaryRow(
-                        "Total Amount",
-                        summary['total']!,
-                        isBold: true,
-                        fontSize: 18,
+                      Expanded(
+                        child: _buildTextField(
+                          rateController,
+                          "Rate (Price/Unit)",
+                          keyboardType: TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Please enter a rate';
+                            }
+                            final rate = double.tryParse(value);
+                            if (rate == null || rate <= 0) {
+                              return 'Rate must be greater than 0';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: _buildDropdown(
+                          "Tax Type",
+                          selectedTaxType,
+                          taxChoiceOptions,
+                          (val) => setState(() => selectedTaxType = val!),
+                        ),
                       ),
                     ],
                   ),
                 ],
               ),
-          ],
+              SizedBox(height: 24),
+              if (showSummarySections)
+                Column(
+                  children: [
+                    _buildCardSection(
+                      title: "Discount & Tax",
+                      children: [
+                        _buildSummaryRow("Subtotal", summary['subtotal']!),
+                        SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildTextField(
+                                discountPercentController,
+                                "Discount %",
+                                suffixText: "%",
+                                onTap:
+                                    () =>
+                                        setState(() => isEditingPercent = true),
+                                validator:
+                                    isEditingPercent
+                                        ? (value) {
+                                          if (value == null ||
+                                              value.trim().isEmpty) {
+                                            return null; // Allow empty discount
+                                          }
+                                          final percent = double.tryParse(
+                                            value,
+                                          );
+                                          if (percent == null ||
+                                              percent < 0 ||
+                                              percent > 100) {
+                                            return 'Enter 0-100%';
+                                          }
+                                          return null;
+                                        }
+                                        : null,
+                              ),
+                            ),
+                            SizedBox(width: 12),
+                            Expanded(
+                              child: _buildTextField(
+                                discountAmountController,
+                                "Discount ₹",
+                                prefixText: "₹ ",
+                                onTap:
+                                    () => setState(
+                                      () => isEditingPercent = false,
+                                    ),
+                                validator:
+                                    !isEditingPercent
+                                        ? (value) {
+                                          if (value == null ||
+                                              value.trim().isEmpty) {
+                                            return null; // Allow empty discount
+                                          }
+                                          final amount = double.tryParse(value);
+                                          if (amount == null || amount < 0) {
+                                            return 'Invalid amount';
+                                          }
+                                          if (amount > summary['subtotal']!) {
+                                            return 'Cannot exceed subtotal';
+                                          }
+                                          return null;
+                                        }
+                                        : null,
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 16),
+                        IgnorePointer(
+                          ignoring: selectedTaxType != 'With Tax',
+                          child: Opacity(
+                            opacity: selectedTaxType == 'With Tax' ? 1.0 : 0.4,
+                            child: _buildDropdown(
+                              "Select Tax Rate",
+                              selectedTaxRate,
+                              taxRateOptions,
+                              (val) => setState(() => selectedTaxRate = val),
+                            ),
+                          ),
+                        ),
+                        if (selectedTaxType == 'With Tax' &&
+                            parseTaxRate() > 0) ...[
+                          SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildInfoCard(
+                                  "Tax Rate",
+                                  "${parseTaxRate().toStringAsFixed(2)}%",
+                                ),
+                              ),
+                              SizedBox(width: 12),
+                              Expanded(
+                                child: _buildInfoCard(
+                                  "Tax Amount",
+                                  "₹ ${summary['taxAmount']!.toStringAsFixed(2)}",
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ],
+                    ),
+                    SizedBox(height: 24),
+                    _buildCardSection(
+                      title: "Total Summary",
+                      children: [
+                        _buildSummaryRow(
+                          "Total Amount",
+                          summary['total']!,
+                          isBold: true,
+                          fontSize: 18,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: SafeArea(
@@ -334,27 +407,29 @@ class _SelectItemsScreenState extends State<SelectItemsScreen> {
                 color: Colors.white,
                 child: TextButton(
                   onPressed: () {
-                    final itemName = itemController.text.trim();
-                    final itemRate =
-                        double.tryParse(rateController.text.trim()) ?? 0.0;
+                    if (_formKey.currentState!.validate()) {
+                      final itemName = itemController.text.trim();
+                      final itemRate =
+                          double.tryParse(rateController.text.trim()) ?? 0.0;
 
-                    // ✅ Save to Hive
-                    if (itemName.isNotEmpty && itemRate > 0) {
-                      ProductStore().add(itemName, itemRate);
+                      // ✅ Save to Hive
+                      if (itemName.isNotEmpty && itemRate > 0) {
+                        ProductStore().add(itemName, itemRate);
+                      }
+
+                      // Clear fields
+                      itemController.clear();
+                      quantityController.text = '1'; // Reset to default value
+                      rateController.clear();
+                      discountPercentController.clear();
+                      discountAmountController.clear();
+                      setState(() {
+                        selectedUnit = null;
+                        selectedTaxRate = null;
+                        selectedTaxType = 'Without Tax';
+                        showSummarySections = false;
+                      });
                     }
-
-                    // Clear fields
-                    itemController.clear();
-                    quantityController.clear();
-                    rateController.clear();
-                    discountPercentController.clear();
-                    discountAmountController.clear();
-                    setState(() {
-                      selectedUnit = null;
-                      selectedTaxRate = null;
-                      selectedTaxType = 'Without Tax';
-                      showSummarySections = false;
-                    });
                   },
                   child: Text("Save & New"),
                 ),
@@ -372,19 +447,22 @@ class _SelectItemsScreenState extends State<SelectItemsScreen> {
                 ),
                 child: TextButton(
                   onPressed: () {
-                    final summary = calculateSummary();
-                    Navigator.pop(context, {
-                      'itemName': itemController.text.trim(),
-                      'qty': double.tryParse(quantityController.text) ?? 0,
-                      'rate': double.tryParse(rateController.text) ?? 0,
-                      'unit': selectedUnit ?? '',
-                      'tax': parseTaxRate(),
-                      'discount':
-                          double.tryParse(discountPercentController.text) ?? 0,
-                      'totalAmount': summary['total']!,
-                      'subtotal': summary['subtotal']!,
-                      'taxType': selectedTaxType,
-                    });
+                    if (_formKey.currentState!.validate()) {
+                      final summary = calculateSummary();
+                      Navigator.pop(context, {
+                        'itemName': itemController.text.trim(),
+                        'qty': double.tryParse(quantityController.text) ?? 0,
+                        'rate': double.tryParse(rateController.text) ?? 0,
+                        'unit': selectedUnit ?? '',
+                        'tax': parseTaxRate(),
+                        'discount':
+                            double.tryParse(discountPercentController.text) ??
+                            0,
+                        'totalAmount': summary['total']!,
+                        'subtotal': summary['subtotal']!,
+                        'taxType': selectedTaxType,
+                      });
+                    }
                   },
                   child: Text("Save", style: TextStyle(color: Colors.white)),
                 ),
@@ -540,7 +618,8 @@ class _SelectItemsScreenState extends State<SelectItemsScreen> {
     String? prefixText,
     Color? fillColor,
     VoidCallback? onTap,
-    TextInputType keyboardType = TextInputType.text, // Default to text keyboard
+    TextInputType keyboardType = TextInputType.text,
+    String? Function(String?)? validator,
   }) {
     return TextFormField(
       controller: controller,
@@ -554,7 +633,8 @@ class _SelectItemsScreenState extends State<SelectItemsScreen> {
         fillColor: fillColor,
         filled: fillColor != null,
       ),
-      keyboardType: keyboardType, // Use the provided keyboard type
+      keyboardType: keyboardType,
+      validator: validator,
       onChanged: (value) => setState(() {}),
     );
   }
