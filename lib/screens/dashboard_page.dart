@@ -436,7 +436,7 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
           SizedBox(height: 15),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 75),
+            padding: const EdgeInsets.symmetric(horizontal: 15),
             child: FloatingActionButton.extended(
               onPressed: _navigateToSalesReport,
               label: const Text(
