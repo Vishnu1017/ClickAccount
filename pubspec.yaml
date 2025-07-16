@@ -66,6 +66,7 @@ dependencies:
   timezone: ^0.10.1
   flutter_local_notifications: ^19.3.0
   file_picker: ^10.2.0
+  device_info_plus: ^11.5.0
   
 flutter_icons:
   android: true

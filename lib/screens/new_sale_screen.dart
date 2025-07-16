@@ -293,32 +293,43 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
   }
 
   Widget buildItemCard(int index, Map<String, dynamic> item) {
-    final qty = double.tryParse(item['qty']?.toString() ?? '1') ?? 1;
-    final rawRate = double.tryParse(item['rate']?.toString() ?? '0') ?? 0;
+    final qty = double.tryParse(item['qty']?.toString() ?? '1') ?? 1.0;
+    final rawRate = double.tryParse(item['rate']?.toString() ?? '0') ?? 0.0;
     final discountPercent =
-        double.tryParse(item['discount']?.toString() ?? '0') ?? 0;
-    final taxPercent = double.tryParse(item['tax']?.toString() ?? '0') ?? 0;
-
+        double.tryParse(item['discount']?.toString() ?? '0') ?? 0.0;
+    final taxPercent = double.tryParse(item['tax']?.toString() ?? '0') ?? 0.0;
     final taxType = item['taxType']?.toString() ?? 'Without Tax';
 
     double rate = rawRate;
     double taxAmount = 0.0;
-
-    // 💡 Tax logic based on With/Without Tax
-    if (taxType == 'With Tax' && taxPercent > 0) {
-      rate = rawRate / (1 + (taxPercent / 100));
-    }
-
-    final itemSubtotal = rate * qty;
-    final discountAmount = itemSubtotal * discountPercent / 100;
-    final taxableAmount = itemSubtotal - discountAmount;
+    double subtotal = 0.0;
+    double discountAmount = 0.0;
+    double totalAmount = 0.0;
 
     if (taxType == 'With Tax' && taxPercent > 0) {
+      // Tax-inclusive rate
+      rate = rawRate / (1 + taxPercent / 100);
+      subtotal = rate * qty;
+
+      discountAmount = subtotal * discountPercent / 100;
+      final taxableAmount = subtotal - discountAmount;
+
       taxAmount =
-          discountPercent == 100 ? 0.0 : taxableAmount * taxPercent / 100;
-    }
+          discountAmount >= subtotal ? 0.0 : taxableAmount * taxPercent / 100;
 
-    final totalAmount = taxableAmount + taxAmount;
+      totalAmount = taxableAmount + taxAmount;
+    } else {
+      // Tax-exclusive rate (or no tax)
+      rate = rawRate;
+      subtotal = rate * qty;
+
+      discountAmount = subtotal * discountPercent / 100;
+      final taxableAmount = subtotal - discountAmount;
+
+      taxAmount = taxPercent > 0 ? taxableAmount * taxPercent / 100 : 0.0;
+
+      totalAmount = taxableAmount + taxAmount;
+    }
 
     return Card(
       elevation: 3,
@@ -350,14 +361,14 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
             ),
             SizedBox(height: 6),
             Text(
-              "Item Subtotal: $qty x ₹${rate.toStringAsFixed(2)} = ₹${itemSubtotal.toStringAsFixed(2)}",
+              "Item Subtotal: $qty x ₹${rate.toStringAsFixed(2)} = ₹${subtotal.toStringAsFixed(2)}",
               style: TextStyle(color: Colors.black87),
             ),
             Text(
               "Discount (${discountPercent.toStringAsFixed(2)}%): ₹${discountAmount.toStringAsFixed(2)}",
               style: TextStyle(color: Colors.orange[800]),
             ),
-            if (taxType == 'With Tax' && taxAmount > 0)
+            if (taxPercent > 0)
               Text(
                 "Tax (${taxPercent.toStringAsFixed(2)}%): ₹${taxAmount.toStringAsFixed(2)}",
                 style: TextStyle(color: Colors.blueGrey[700]),

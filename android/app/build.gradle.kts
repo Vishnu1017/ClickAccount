@@ -7,14 +7,12 @@ plugins {
 
 android {
     namespace = "com.example.click_account"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 35
     ndkVersion = "27.0.12077973"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
-
-        // ✅ Enable core library desugaring
         isCoreLibraryDesugaringEnabled = true
     }
 
@@ -24,8 +22,8 @@ android {
 
     defaultConfig {
         applicationId = "com.example.click_account"
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        minSdk = 21
+        targetSdk = 35 // ✅ Fixed here
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }

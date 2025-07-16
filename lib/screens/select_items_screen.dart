@@ -382,6 +382,7 @@ class _SelectItemsScreenState extends State<SelectItemsScreen> {
                       'discount':
                           double.tryParse(discountPercentController.text) ?? 0,
                       'totalAmount': summary['total']!,
+                      'subtotal': summary['subtotal']!,
                       'taxType': selectedTaxType,
                     });
                   },
