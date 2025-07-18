@@ -157,13 +157,12 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  void _logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
-    Navigator.pushAndRemoveUntil(
+  Future<void> _logout() async {
+    final sessionBox = await Hive.openBox('session');
+    await sessionBox.clear();
+    Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => LoginScreen()),
-      (route) => false,
     );
   }
 
@@ -196,647 +195,596 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isSmallScreen = screenWidth < 600;
+    final isPortrait =
+        MediaQuery.of(context).orientation == Orientation.portrait;
+
     return Scaffold(
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: IntrinsicHeight(
-                child: Stack(
-                  children: [
-                    Container(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Color(0xFF1A237E), Color(0xFF00BCD4)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                      ),
-                    ),
-                    SafeArea(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Center(
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(24),
-                              child: BackdropFilter(
-                                filter: ImageFilter.blur(
-                                  sigmaX: 8.0,
-                                  sigmaY: 8.0,
-                                ),
+      body: SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: screenHeight),
+          child: Stack(
+            children: [
+              Container(
+                height: screenHeight,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF1A237E), Color(0xFF00BCD4)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+              ),
+              SafeArea(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isSmallScreen ? 16 : 32,
+                    vertical: isSmallScreen ? 16 : 24,
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Center(
+                        child: Container(
+                          width:
+                              isSmallScreen
+                                  ? screenWidth * 0.95
+                                  : isPortrait
+                                  ? screenWidth * 0.8
+                                  : screenWidth * 0.6,
+                          padding: EdgeInsets.all(isSmallScreen ? 16 : 24),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(
+                              color: Colors.white30,
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Align(
+                                alignment: Alignment.topRight,
                                 child: Container(
-                                  width:
-                                      MediaQuery.of(context).size.width * 0.9,
-                                  padding: const EdgeInsets.all(20),
                                   decoration: BoxDecoration(
                                     color: Colors.white.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(24),
+                                    borderRadius: BorderRadius.circular(20),
                                     border: Border.all(
                                       color: Colors.white30,
-                                      width: 1.5,
+                                      width: 1,
                                     ),
                                   ),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
+                                  child: PopupMenuButton<String>(
+                                    icon: const Icon(
+                                      FontAwesomeIcons.ellipsisV,
+                                      color: Colors.white,
+                                      size: 24,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      side: BorderSide(
+                                        color: Colors.white.withOpacity(0.2),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    color: Colors.blueGrey[800]?.withOpacity(
+                                      0.95,
+                                    ),
+                                    elevation: 8,
+                                    shadowColor: Colors.black.withOpacity(0.3),
+                                    onSelected: (value) {
+                                      if (value == 'edit') {
+                                        _toggleEditing();
+                                      }
+                                    },
+                                    itemBuilder: (BuildContext context) {
+                                      return [
+                                        PopupMenuItem<String>(
+                                          value: 'edit',
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 4,
+                                              vertical: 4,
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Container(
+                                                  padding: const EdgeInsets.all(
+                                                    6,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.blueAccent
+                                                        .withOpacity(0.2),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          8,
+                                                        ),
+                                                  ),
+                                                  child: const Icon(
+                                                    Icons.edit,
+                                                    color: Colors.blueAccent,
+                                                    size: 20,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 12),
+                                                const Text(
+                                                  'Edit Profile',
+                                                  style: TextStyle(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.w500,
+                                                    color: Colors.white,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ];
+                                    },
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              GestureDetector(
+                                onTap: _pickImage,
+                                child: Stack(
+                                  alignment: Alignment.bottomRight,
+                                  children: [
+                                    _isImageLoading
+                                        ? const CircleAvatar(
+                                          radius: 50,
+                                          child: Padding(
+                                            padding: EdgeInsets.all(16.0),
+                                            child: CircularProgressIndicator(
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        )
+                                        : CircleAvatar(
+                                          radius: isSmallScreen ? 50 : 60,
+                                          backgroundColor: Colors.white
+                                              .withOpacity(0.3),
+                                          child:
+                                              _profileImage != null &&
+                                                      _isImageSaved
+                                                  ? ClipRRect(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          50,
+                                                        ),
+                                                    child: Image.file(
+                                                      _profileImage!,
+                                                      fit: BoxFit.cover,
+                                                      width:
+                                                          isSmallScreen
+                                                              ? 100
+                                                              : 120,
+                                                      height:
+                                                          isSmallScreen
+                                                              ? 100
+                                                              : 120,
+                                                    ),
+                                                  )
+                                                  : Text(
+                                                    name.isNotEmpty
+                                                        ? name[0].toUpperCase()
+                                                        : 'U',
+                                                    style: TextStyle(
+                                                      fontSize:
+                                                          isSmallScreen
+                                                              ? 36
+                                                              : 42,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: Colors.white,
+                                                    ),
+                                                  ),
+                                        ),
+                                    if (!_isImageLoading)
+                                      const CircleAvatar(
+                                        radius: 14,
+                                        backgroundColor: Colors.white,
+                                        child: Icon(
+                                          Icons.edit,
+                                          size: 16,
+                                          color: Colors.black87,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              _isEditing
+                                  ? TextField(
+                                    controller: _nameController,
+                                    style: TextStyle(
+                                      fontSize: isSmallScreen ? 22 : 24,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                    decoration: const InputDecoration(
+                                      border: InputBorder.none,
+                                      contentPadding: EdgeInsets.zero,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  )
+                                  : Text(
+                                    name,
+                                    style: TextStyle(
+                                      fontSize: isSmallScreen ? 22 : 24,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                              const SizedBox(height: 4),
+                              _isEditing
+                                  ? Padding(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: isSmallScreen ? 20 : 40,
+                                      vertical: 8,
+                                    ),
+                                    child: DropdownButtonFormField<String>(
+                                      value: role,
+                                      decoration: InputDecoration(
+                                        labelText: 'Role',
+                                        labelStyle: const TextStyle(
+                                          color: Colors.white70,
+                                        ),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          borderSide: const BorderSide(
+                                            color: Colors.white30,
+                                          ),
+                                        ),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          borderSide: const BorderSide(
+                                            color: Colors.white30,
+                                          ),
+                                        ),
+                                        filled: true,
+                                        fillColor: Colors.white.withOpacity(
+                                          0.1,
+                                        ),
+                                      ),
+                                      dropdownColor: Colors.blueGrey[800],
+                                      icon: const Icon(
+                                        Icons.arrow_drop_down,
+                                        color: Colors.white70,
+                                      ),
+                                      style: TextStyle(
+                                        fontSize: isSmallScreen ? 14 : 16,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.blue.shade900,
+                                      ),
+                                      onChanged: (String? newValue) {
+                                        setState(() {
+                                          role = newValue!;
+                                          _roleController.text = newValue;
+                                        });
+                                      },
+                                      items:
+                                          roles.map<DropdownMenuItem<String>>((
+                                            String value,
+                                          ) {
+                                            return DropdownMenuItem<String>(
+                                              value: value,
+                                              child: Text(
+                                                value,
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                            );
+                                          }).toList(),
+                                    ),
+                                  )
+                                  : Chip(
+                                    avatar: CircleAvatar(
+                                      backgroundColor: Colors.blue.shade100
+                                          .withOpacity(0.8),
+                                      child: Icon(
+                                        Icons.work_outline,
+                                        size: isSmallScreen ? 16 : 18,
+                                        color: Colors.blue.shade700,
+                                      ),
+                                    ),
+                                    label: Text(
+                                      role,
+                                      style: TextStyle(
+                                        fontSize: isSmallScreen ? 14 : 16,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.blue.shade900,
+                                      ),
+                                    ),
+                                    backgroundColor: Colors.blue.shade50
+                                        .withOpacity(0.9),
+                                    elevation: 0,
+                                    shadowColor: Colors.transparent,
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: isSmallScreen ? 10 : 12,
+                                      vertical: isSmallScreen ? 6 : 8,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      side: BorderSide(
+                                        color: Colors.blue.shade200.withOpacity(
+                                          0.5,
+                                        ),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    materialTapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                              const SizedBox(height: 20),
+                              const Divider(color: Colors.white30),
+                              const SizedBox(height: 6),
+                              _isEditing
+                                  ? Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: Colors.white30,
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: TextField(
+                                      controller: _emailController,
+                                      style: TextStyle(
+                                        fontSize: isSmallScreen ? 16 : 18,
+                                        color: Colors.white,
+                                      ),
+                                      decoration: InputDecoration(
+                                        prefixIcon: Icon(
+                                          Icons.email,
+                                          size: isSmallScreen ? 20 : 22,
+                                          color: Colors.white70,
+                                        ),
+                                        border: InputBorder.none,
+                                      ),
+                                    ),
+                                  )
+                                  : _glassRow(
+                                    Icons.email,
+                                    email.isNotEmpty ? email : "No email",
+                                    isSmallScreen,
+                                  ),
+                              const SizedBox(height: 12),
+                              _isEditing
+                                  ? Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: Colors.white30,
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: TextField(
+                                      controller: _phoneController,
+                                      style: TextStyle(
+                                        fontSize: isSmallScreen ? 16 : 18,
+                                        color: Colors.white,
+                                      ),
+                                      decoration: InputDecoration(
+                                        prefixIcon: Icon(
+                                          Icons.phone,
+                                          size: isSmallScreen ? 20 : 22,
+                                          color: Colors.white70,
+                                        ),
+                                        border: InputBorder.none,
+                                      ),
+                                    ),
+                                  )
+                                  : _glassRow(
+                                    Icons.phone,
+                                    phone.isNotEmpty ? phone : "No phone",
+                                    isSmallScreen,
+                                  ),
+                              const SizedBox(height: 12),
+                              _glassRow(
+                                Icons.location_city,
+                                'Bangalore, India',
+                                isSmallScreen,
+                              ),
+                              if (_isEditing) ...[
+                                const SizedBox(height: 24),
+                                Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: isSmallScreen ? 20 : 40,
+                                  ),
+                                  child: Row(
                                     children: [
-                                      Align(
-                                        alignment: Alignment.topRight,
-                                        child: Container(
-                                          decoration: BoxDecoration(
-                                            color: Colors.white.withOpacity(
-                                              0.2,
+                                      Expanded(
+                                        child: OutlinedButton(
+                                          onPressed: _toggleEditing,
+                                          style: OutlinedButton.styleFrom(
+                                            foregroundColor: Colors.white,
+                                            side: BorderSide(
+                                              color: Colors.white.withOpacity(
+                                                0.5,
+                                              ),
                                             ),
-                                            borderRadius: BorderRadius.circular(
-                                              20,
-                                            ),
-                                            border: Border.all(
-                                              color: Colors.white30,
-                                              width: 1,
-                                            ),
-                                          ),
-                                          child: PopupMenuButton<String>(
-                                            icon: const Icon(
-                                              FontAwesomeIcons.ellipsisV,
-                                              color: Colors.white,
-                                              size: 24,
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: 14,
                                             ),
                                             shape: RoundedRectangleBorder(
                                               borderRadius:
                                                   BorderRadius.circular(12),
-                                              side: BorderSide(
-                                                color: Colors.white.withOpacity(
-                                                  0.2,
-                                                ),
-                                                width: 1,
-                                              ),
                                             ),
-                                            color: Colors.blueGrey[800]
-                                                ?.withOpacity(0.95),
-                                            elevation: 8,
-                                            shadowColor: Colors.black
-                                                .withOpacity(0.3),
-                                            onSelected: (value) {
-                                              if (value == 'edit') {
-                                                _toggleEditing();
-                                              }
-                                            },
-                                            itemBuilder: (
-                                              BuildContext context,
-                                            ) {
-                                              return [
-                                                PopupMenuItem<String>(
-                                                  value: 'edit',
-                                                  child: Container(
-                                                    padding:
-                                                        const EdgeInsets.symmetric(
-                                                          horizontal: 4,
-                                                          vertical: 4,
-                                                        ),
-                                                    child: Row(
-                                                      mainAxisSize:
-                                                          MainAxisSize.min,
-                                                      children: [
-                                                        Container(
-                                                          padding:
-                                                              const EdgeInsets.all(
-                                                                6,
-                                                              ),
-                                                          decoration: BoxDecoration(
-                                                            color: Colors
-                                                                .blueAccent
-                                                                .withOpacity(
-                                                                  0.2,
-                                                                ),
-                                                            borderRadius:
-                                                                BorderRadius.circular(
-                                                                  8,
-                                                                ),
-                                                          ),
-                                                          child: const Icon(
-                                                            Icons.edit,
-                                                            color:
-                                                                Colors
-                                                                    .blueAccent,
-                                                            size: 20,
-                                                          ),
-                                                        ),
-                                                        const SizedBox(
-                                                          width: 12,
-                                                        ),
-                                                        const Text(
-                                                          'Edit Profile',
-                                                          style: TextStyle(
-                                                            fontSize: 14,
-                                                            fontWeight:
-                                                                FontWeight.w500,
-                                                            color: Colors.white,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ),
-                                              ];
-                                            },
                                           ),
-                                        ),
-                                      ),
-                                      GestureDetector(
-                                        onTap: _pickImage,
-                                        child: Stack(
-                                          alignment: Alignment.bottomRight,
-                                          children: [
-                                            _isImageLoading
-                                                ? const CircleAvatar(
-                                                  radius: 50,
-                                                  child: Padding(
-                                                    padding: EdgeInsets.all(
-                                                      16.0,
-                                                    ),
-                                                    child:
-                                                        CircularProgressIndicator(
-                                                          color: Colors.white,
-                                                        ),
-                                                  ),
-                                                )
-                                                : CircleAvatar(
-                                                  radius: 50,
-                                                  backgroundColor: Colors.white
-                                                      .withOpacity(0.3),
-                                                  child:
-                                                      _profileImage != null &&
-                                                              _isImageSaved
-                                                          ? ClipRRect(
-                                                            borderRadius:
-                                                                BorderRadius.circular(
-                                                                  50,
-                                                                ),
-                                                            child: Image.file(
-                                                              _profileImage!,
-                                                              fit: BoxFit.cover,
-                                                              width: 100,
-                                                              height: 100,
-                                                            ),
-                                                          )
-                                                          : Text(
-                                                            name.isNotEmpty
-                                                                ? name[0]
-                                                                    .toUpperCase()
-                                                                : 'U',
-                                                            style:
-                                                                const TextStyle(
-                                                                  fontSize: 36,
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .bold,
-                                                                  color:
-                                                                      Colors
-                                                                          .white,
-                                                                ),
-                                                          ),
-                                                ),
-                                            if (!_isImageLoading)
-                                              const CircleAvatar(
-                                                radius: 14,
-                                                backgroundColor: Colors.white,
-                                                child: Icon(
-                                                  Icons.edit,
-                                                  size: 16,
-                                                  color: Colors.black87,
-                                                ),
-                                              ),
-                                          ],
-                                        ),
-                                      ),
-                                      const SizedBox(height: 16),
-                                      _isEditing
-                                          ? TextField(
-                                            controller: _nameController,
+                                          child: Text(
+                                            'Cancel',
                                             style: TextStyle(
-                                              fontSize: 22,
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.white,
-                                            ),
-                                            decoration: InputDecoration(
-                                              border: InputBorder.none,
-                                              contentPadding: EdgeInsets.zero,
-                                            ),
-                                            textAlign: TextAlign.center,
-                                          )
-                                          : Text(
-                                            name,
-                                            style: const TextStyle(
-                                              fontSize: 22,
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.white,
+                                              fontSize: isSmallScreen ? 16 : 18,
+                                              fontWeight: FontWeight.w600,
                                             ),
                                           ),
-                                      const SizedBox(height: 4),
-                                      _isEditing
-                                          ? Padding(
+                                        ),
+                                      ),
+                                      SizedBox(width: isSmallScreen ? 16 : 24),
+                                      Expanded(
+                                        child: ElevatedButton(
+                                          onPressed: _saveProfile,
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.blueAccent,
+                                            foregroundColor: Colors.white,
+                                            elevation: 2,
                                             padding: const EdgeInsets.symmetric(
-                                              horizontal: 40,
-                                              vertical: 8,
-                                            ),
-                                            child: DropdownButtonFormField<
-                                              String
-                                            >(
-                                              value: role,
-                                              decoration: InputDecoration(
-                                                labelText: 'Role',
-                                                labelStyle: TextStyle(
-                                                  color: Colors.white70,
-                                                ),
-                                                border: OutlineInputBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(12),
-                                                  borderSide: BorderSide(
-                                                    color: Colors.white30,
-                                                  ),
-                                                ),
-                                                enabledBorder:
-                                                    OutlineInputBorder(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            12,
-                                                          ),
-                                                      borderSide: BorderSide(
-                                                        color: Colors.white30,
-                                                      ),
-                                                    ),
-                                                filled: true,
-                                                fillColor: Colors.white
-                                                    .withOpacity(0.1),
-                                              ),
-                                              dropdownColor:
-                                                  Colors.blueGrey[800],
-                                              icon: Icon(
-                                                Icons.arrow_drop_down,
-                                                color: Colors.white70,
-                                              ),
-                                              style: TextStyle(
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.w600,
-                                                color: Colors.blue.shade900,
-                                              ),
-                                              onChanged: (String? newValue) {
-                                                setState(() {
-                                                  role = newValue!;
-                                                  _roleController.text =
-                                                      newValue;
-                                                });
-                                              },
-                                              items:
-                                                  roles.map<
-                                                    DropdownMenuItem<String>
-                                                  >((String value) {
-                                                    return DropdownMenuItem<
-                                                      String
-                                                    >(
-                                                      value: value,
-                                                      child: Text(
-                                                        value,
-                                                        style: TextStyle(
-                                                          color: Colors.white,
-                                                        ),
-                                                      ),
-                                                    );
-                                                  }).toList(),
-                                            ),
-                                          )
-                                          : Chip(
-                                            avatar: CircleAvatar(
-                                              backgroundColor: Colors
-                                                  .blue
-                                                  .shade100
-                                                  .withOpacity(0.8),
-                                              child: Icon(
-                                                Icons.work_outline,
-                                                size: 16,
-                                                color: Colors.blue.shade700,
-                                              ),
-                                            ),
-                                            label: Text(
-                                              role,
-                                              style: TextStyle(
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.w600,
-                                                color: Colors.blue.shade900,
-                                              ),
-                                            ),
-                                            backgroundColor: Colors.blue.shade50
-                                                .withOpacity(0.9),
-                                            elevation: 0,
-                                            shadowColor: Colors.transparent,
-                                            padding: EdgeInsets.symmetric(
-                                              horizontal: 10,
-                                              vertical: 6,
+                                              vertical: 14,
                                             ),
                                             shape: RoundedRectangleBorder(
                                               borderRadius:
                                                   BorderRadius.circular(12),
-                                              side: BorderSide(
-                                                color: Colors.blue.shade200
-                                                    .withOpacity(0.5),
-                                                width: 1,
-                                              ),
                                             ),
-                                            materialTapTargetSize:
-                                                MaterialTapTargetSize
-                                                    .shrinkWrap,
+                                            shadowColor: Colors.blueAccent
+                                                .withOpacity(0.3),
                                           ),
-                                      const SizedBox(height: 20),
-                                      const Divider(color: Colors.white30),
-                                      const SizedBox(height: 6),
-                                      _isEditing
-                                          ? Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 16,
-                                              vertical: 12,
+                                          child: Text(
+                                            'Save Changes',
+                                            style: TextStyle(
+                                              fontSize: isSmallScreen ? 16 : 18,
+                                              fontWeight: FontWeight.w600,
                                             ),
-                                            decoration: BoxDecoration(
-                                              color: Colors.white.withOpacity(
-                                                0.1,
-                                              ),
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                              border: Border.all(
-                                                color: Colors.white30,
-                                                width: 1,
-                                              ),
-                                            ),
-                                            child: TextField(
-                                              controller: _emailController,
-                                              style: const TextStyle(
-                                                fontSize: 16,
-                                                color: Colors.white,
-                                              ),
-                                              decoration: InputDecoration(
-                                                prefixIcon: Icon(
-                                                  Icons.email,
-                                                  size: 20,
-                                                  color: Colors.white70,
-                                                ),
-                                                border: InputBorder.none,
-                                              ),
-                                            ),
-                                          )
-                                          : _glassRow(
-                                            Icons.email,
-                                            email.isNotEmpty
-                                                ? email
-                                                : "No email",
-                                          ),
-                                      const SizedBox(height: 12),
-                                      _isEditing
-                                          ? Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 16,
-                                              vertical: 12,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: Colors.white.withOpacity(
-                                                0.1,
-                                              ),
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                              border: Border.all(
-                                                color: Colors.white30,
-                                                width: 1,
-                                              ),
-                                            ),
-                                            child: TextField(
-                                              controller: _phoneController,
-                                              style: const TextStyle(
-                                                fontSize: 16,
-                                                color: Colors.white,
-                                              ),
-                                              decoration: InputDecoration(
-                                                prefixIcon: Icon(
-                                                  Icons.phone,
-                                                  size: 20,
-                                                  color: Colors.white70,
-                                                ),
-                                                border: InputBorder.none,
-                                              ),
-                                            ),
-                                          )
-                                          : _glassRow(
-                                            Icons.phone,
-                                            phone.isNotEmpty
-                                                ? phone
-                                                : "No phone",
-                                          ),
-                                      const SizedBox(height: 12),
-                                      _glassRow(
-                                        Icons.location_city,
-                                        'Bangalore, India',
-                                      ),
-                                      if (_isEditing) ...[
-                                        const SizedBox(height: 24),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 40,
-                                          ),
-                                          child: Row(
-                                            children: [
-                                              Expanded(
-                                                child: OutlinedButton(
-                                                  onPressed: _toggleEditing,
-                                                  style: OutlinedButton.styleFrom(
-                                                    foregroundColor:
-                                                        Colors.white,
-                                                    side: BorderSide(
-                                                      color: Colors.white
-                                                          .withOpacity(0.5),
-                                                    ),
-                                                    padding:
-                                                        const EdgeInsets.symmetric(
-                                                          vertical: 14,
-                                                        ),
-                                                    shape: RoundedRectangleBorder(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            12,
-                                                          ),
-                                                    ),
-                                                  ),
-                                                  child: const Text(
-                                                    'Cancel',
-                                                    style: TextStyle(
-                                                      fontSize: 16,
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                              const SizedBox(width: 16),
-                                              Expanded(
-                                                child: ElevatedButton(
-                                                  onPressed: _saveProfile,
-                                                  style: ElevatedButton.styleFrom(
-                                                    backgroundColor:
-                                                        Colors.blueAccent,
-                                                    foregroundColor:
-                                                        Colors.white,
-                                                    elevation: 2,
-                                                    padding:
-                                                        const EdgeInsets.symmetric(
-                                                          vertical: 14,
-                                                        ),
-                                                    shape: RoundedRectangleBorder(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            12,
-                                                          ),
-                                                    ),
-                                                    shadowColor: Colors
-                                                        .blueAccent
-                                                        .withOpacity(0.3),
-                                                  ),
-                                                  child: const Text(
-                                                    'Save Changes',
-                                                    style: TextStyle(
-                                                      fontSize: 16,
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
                                           ),
                                         ),
-                                      ],
+                                      ),
                                     ],
                                   ),
                                 ),
-                              ),
-                            ),
+                              ],
+                            ],
                           ),
-                          const SizedBox(height: 15),
-                          if (!_isEditing)
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                              ),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: InkWell(
-                                      onTap: _logout,
-                                      borderRadius: BorderRadius.circular(16),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 14,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(
-                                            16,
-                                          ),
-                                          border: Border.all(
-                                            color: Colors.white.withOpacity(
-                                              0.5,
-                                            ),
-                                          ),
-                                          gradient: LinearGradient(
-                                            colors: [
-                                              Colors.white.withOpacity(0.15),
-                                              Colors.white.withOpacity(0.05),
-                                            ],
-                                          ),
-                                        ),
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Icon(
-                                              Icons.logout,
-                                              color: Colors.white,
-                                              size: 20,
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Text(
-                                              "Logout",
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: InkWell(
-                                      onTap:
-                                          () => _showEnhancedDeleteDialog(
-                                            context,
-                                          ),
-                                      borderRadius: BorderRadius.circular(16),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 14,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(
-                                            16,
-                                          ),
-                                          gradient: LinearGradient(
-                                            colors: [
-                                              Colors.red.shade600,
-                                              Colors.red.shade800,
-                                            ],
-                                          ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.red.withOpacity(
-                                                0.3,
-                                              ),
-                                              blurRadius: 8,
-                                              offset: Offset(0, 4),
-                                            ),
-                                          ],
-                                        ),
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Icon(
-                                              Icons.delete_forever,
-                                              color: Colors.white,
-                                              size: 20,
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Text(
-                                              "Delete",
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                        ],
+                        ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 15),
+                      if (!_isEditing)
+                        Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: isSmallScreen ? 16 : 24,
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: InkWell(
+                                  onTap: _logout,
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 14,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(
+                                        color: Colors.white.withOpacity(0.5),
+                                      ),
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          Colors.white.withOpacity(0.15),
+                                          Colors.white.withOpacity(0.05),
+                                        ],
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.logout,
+                                          color: Colors.white,
+                                          size: isSmallScreen ? 20 : 22,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          "Logout",
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: isSmallScreen ? 16 : 18,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              SizedBox(width: isSmallScreen ? 16 : 24),
+                              Expanded(
+                                child: InkWell(
+                                  onTap:
+                                      () => _showEnhancedDeleteDialog(context),
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 14,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(16),
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          Colors.red.shade600,
+                                          Colors.red.shade800,
+                                        ],
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.red.withOpacity(0.3),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.delete_forever,
+                                          color: Colors.white,
+                                          size: isSmallScreen ? 20 : 22,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          "Delete",
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: isSmallScreen ? 16 : 18,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          );
-        },
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -847,9 +795,9 @@ class _ProfilePageState extends State<ProfilePage> {
       builder:
           (context) => Dialog(
             backgroundColor: Colors.transparent,
-            insetPadding: EdgeInsets.all(24),
+            insetPadding: const EdgeInsets.all(24),
             child: Container(
-              padding: EdgeInsets.all(24),
+              padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(24),
@@ -869,7 +817,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     color: Colors.red,
                     size: 48,
                   ),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   Text(
                     "Delete Account?",
                     style: TextStyle(
@@ -878,19 +826,19 @@ class _ProfilePageState extends State<ProfilePage> {
                       color: Colors.red,
                     ),
                   ),
-                  SizedBox(height: 12),
+                  const SizedBox(height: 12),
                   Text(
                     "This will permanently remove all your data. This action cannot be undone.",
                     textAlign: TextAlign.center,
                     style: TextStyle(color: Colors.grey.shade700),
                   ),
-                  SizedBox(height: 24),
+                  const SizedBox(height: 24),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       TextButton(
                         style: TextButton.styleFrom(
-                          padding: EdgeInsets.symmetric(
+                          padding: const EdgeInsets.symmetric(
                             horizontal: 24,
                             vertical: 12,
                           ),
@@ -915,13 +863,13 @@ class _ProfilePageState extends State<ProfilePage> {
                             BoxShadow(
                               color: Colors.red.withOpacity(0.3),
                               blurRadius: 6,
-                              offset: Offset(0, 3),
+                              offset: const Offset(0, 3),
                             ),
                           ],
                         ),
                         child: TextButton(
                           style: TextButton.styleFrom(
-                            padding: EdgeInsets.symmetric(
+                            padding: const EdgeInsets.symmetric(
                               horizontal: 24,
                               vertical: 12,
                             ),
@@ -930,7 +878,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             ),
                           ),
                           onPressed: () => Navigator.pop(context, true),
-                          child: Text(
+                          child: const Text(
                             "Delete Forever",
                             style: TextStyle(
                               color: Colors.white,
@@ -952,21 +900,24 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  Widget _glassRow(IconData icon, String label) {
-    return Row(
-      children: [
-        Icon(icon, color: Colors.white70, size: 20),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            label,
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.9),
-              fontSize: 14,
+  Widget _glassRow(IconData icon, String label, bool isSmallScreen) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.white70, size: isSmallScreen ? 20 : 22),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.9),
+                fontSize: isSmallScreen ? 16 : 18,
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
