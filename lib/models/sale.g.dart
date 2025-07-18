@@ -16,18 +16,17 @@ class SaleAdapter extends TypeAdapter<Sale> {
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-
     return Sale(
-      customerName: fields[0] as String? ?? '',
-      amount: fields[1] as double? ?? 0.0,
-      productName: fields[2] as String? ?? '',
-      dateTime: fields[3] as DateTime? ?? DateTime.now(),
-      phoneNumber: fields[4] as String? ?? '',
-      totalAmount: fields[5] as double? ?? 0.0,
-      paymentHistory: (fields[6] as List?)?.cast<Payment>() ?? [], // safe cast
-      deliveryStatus: fields[7] as String? ?? 'Editing',
-      deliveryLink: fields[8] as String? ?? '',
-      paymentMode: fields[9] as String? ?? 'Cash',
+      customerName: fields[0] as String,
+      amount: fields[1] as double,
+      productName: fields[2] as String,
+      dateTime: fields[3] as DateTime,
+      phoneNumber: fields[4] as String,
+      totalAmount: fields[5] as double,
+      paymentHistory: (fields[6] as List?)?.cast<Payment>(),
+      deliveryStatus: fields[7] as String,
+      deliveryLink: fields[8] as String,
+      paymentMode: fields[9] as String,
     );
   }
 
@@ -58,12 +57,12 @@ class SaleAdapter extends TypeAdapter<Sale> {
   }
 
   @override
+  int get hashCode => typeId.hashCode;
+
+  @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is SaleAdapter &&
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
-
-  @override
-  int get hashCode => typeId.hashCode;
 }

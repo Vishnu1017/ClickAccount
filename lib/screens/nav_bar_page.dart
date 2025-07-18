@@ -1,15 +1,22 @@
-import 'package:click_account/screens/CalendarPage.dart';
+// ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'package:flutter/material.dart';
-import 'home_page.dart';
-import 'dashboard_page.dart';
+
+import 'package:click_account/models/user_model.dart';
+import 'package:click_account/screens/CalendarPage.dart';
+
+import '../models/product_store.dart';
 import 'customers_page.dart';
+import 'dashboard_page.dart';
+import 'home_page.dart';
+import 'new_sale_screen.dart';
 import 'products_page.dart';
 import 'profile_page.dart';
 import 'select_items_screen.dart';
-import 'new_sale_screen.dart';
-import '../models/product_store.dart';
 
 class NavBarPage extends StatefulWidget {
+  final User user;
+  const NavBarPage({Key? key, required this.user}) : super(key: key);
+
   @override
   State<NavBarPage> createState() => _NavBarPageState();
 }
@@ -29,12 +36,12 @@ class _NavBarPageState extends State<NavBarPage>
     "Profile",
   ];
 
-  final List<Widget> _pages = [
+  List<Widget> get _pages => [
     HomePage(),
     DashboardPage(),
     CustomersPage(),
     ProductsPage(),
-    ProfilePage(),
+    ProfilePage(user: widget.user), // ✅ Now widget.user works
   ];
 
   @override

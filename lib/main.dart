@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:click_account/models/user_model.dart';
+import 'package:click_account/screens/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -8,15 +10,23 @@ import 'package:hive/hive.dart';
 import 'package:click_account/models/sale.dart';
 import 'package:click_account/models/product.dart';
 import 'package:click_account/models/payment.dart';
-import 'package:click_account/screens/nav_bar_page.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Hive.initFlutter();
 
-  // ✅ Register Hive Adapters if not already registered
+  // Initialize Hive with proper path
+  final appDocDir = await getApplicationDocumentsDirectory();
+  Hive.init(appDocDir.path);
+
+  // OPTIONAL: Delete boxes from disk before opening (use only when needed)
+  // await _deleteAllHiveBoxes();
+
+  // Register all Hive adapters with typeId checks
+  if (!Hive.isAdapterRegistered(UserAdapter().typeId)) {
+    Hive.registerAdapter(UserAdapter());
+  }
   if (!Hive.isAdapterRegistered(SaleAdapter().typeId)) {
     Hive.registerAdapter(SaleAdapter());
   }
@@ -27,11 +37,13 @@ void main() async {
     Hive.registerAdapter(PaymentAdapter());
   }
 
-  // ✅ Open boxes
+  // Open all required boxes
+  await Hive.openBox<User>('users');
   await Hive.openBox<Sale>('sales');
   await Hive.openBox<Product>('products');
+  await Hive.openBox<Payment>('payments');
 
-  // ✅ Save default profile image if not already set
+  // Save default profile image if not already set
   final prefs = await SharedPreferences.getInstance();
   final imagePath = prefs.getString('profileImagePath');
   if (imagePath == null || !File(imagePath).existsSync()) {
@@ -44,6 +56,19 @@ void main() async {
 
   runApp(const MyApp());
 }
+
+// Future<void> _deleteAllHiveBoxes() async {
+//   final List<String> boxNames = ['users', 'sales', 'products', 'payments'];
+
+//   for (var boxName in boxNames) {
+//     if (await Hive.boxExists(boxName)) {
+//       if (Hive.isBoxOpen(boxName)) {
+//         await Hive.box(boxName).close();
+//       }
+//       await Hive.deleteBoxFromDisk(boxName);
+//     }
+//   }
+// }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -85,7 +110,7 @@ class _CustomSplashScreenState extends State<CustomSplashScreen>
     Timer(const Duration(seconds: 3), () {
       Navigator.of(
         context,
-      ).pushReplacement(MaterialPageRoute(builder: (_) => NavBarPage()));
+      ).pushReplacement(MaterialPageRoute(builder: (_) => LoginScreen()));
     });
   }
 
