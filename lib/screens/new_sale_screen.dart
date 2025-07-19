@@ -7,6 +7,8 @@ import 'select_items_screen.dart';
 import 'dart:ui';
 
 class NewSaleScreen extends StatefulWidget {
+  const NewSaleScreen({super.key});
+
   @override
   State<NewSaleScreen> createState() => _NewSaleScreenState();
 }
