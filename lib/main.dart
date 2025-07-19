@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:click_account/models/user_model.dart';
-import 'package:click_account/screens/login_screen.dart';
+import 'package:click_account/screens/login_screen.dart' hide User;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';

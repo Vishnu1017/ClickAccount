@@ -26,7 +26,8 @@ class _ProfilePageState extends State<ProfilePage> {
   File? _profileImage;
   final picker = ImagePicker();
   bool _isImageLoading = false;
-  final bool _isImageSaved = false;
+  // ignore: prefer_final_fields
+  bool _isImageSaved = false;
   bool _isEditing = false;
 
   final List<String> roles = [
@@ -80,32 +81,50 @@ class _ProfilePageState extends State<ProfilePage> {
     if (path != null) {
       final file = File(path);
       if (await file.exists()) {
-        setState(() => _profileImage = file);
+        setState(() {
+          _profileImage = file;
+          _isImageSaved = true;
+        });
       }
     }
     setState(() => _isImageLoading = false);
   }
 
+  // Modify your _pickImage function to:
   Future<void> _pickImage() async {
-    final status = await Permission.photos.request();
+    try {
+      final status = await Permission.photos.request();
 
-    if (status.isGranted) {
-      final picked = await picker.pickImage(source: ImageSource.gallery);
-      if (picked != null) {
-        setState(() => _isImageLoading = true);
-        final file = File(picked.path);
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('profileImagePath', picked.path);
-        setState(() {
-          _profileImage = file;
-          _isImageLoading = false;
-        });
+      if (!status.isGranted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Permission denied. Please allow access to gallery.'),
+          ),
+        );
+        return;
       }
-    } else {
+
+      setState(() => _isImageLoading = true);
+
+      final picked = await picker.pickImage(source: ImageSource.gallery);
+      if (picked == null) {
+        setState(() => _isImageLoading = false);
+        return;
+      }
+
+      final file = File(picked.path);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('profileImagePath', picked.path);
+
+      setState(() {
+        _profileImage = file;
+        _isImageLoading = false;
+        _isImageSaved = true;
+      });
+    } catch (e) {
+      setState(() => _isImageLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Permission denied. Please allow access to gallery.'),
-        ),
+        SnackBar(content: Text('Error picking image: ${e.toString()}')),
       );
     }
   }
@@ -402,7 +421,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                   ? TextField(
                                     controller: _nameController,
                                     style: TextStyle(
-                                      fontSize: isSmallScreen ? 22 : 24,
+                                      fontSize: isSmallScreen ? 18 : 20,
                                       fontWeight: FontWeight.bold,
                                       color: Colors.white,
                                     ),
@@ -415,7 +434,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                   : Text(
                                     name,
                                     style: TextStyle(
-                                      fontSize: isSmallScreen ? 22 : 24,
+                                      fontSize: isSmallScreen ? 18 : 20,
                                       fontWeight: FontWeight.bold,
                                       color: Colors.white,
                                     ),
@@ -525,7 +544,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                     materialTapTargetSize:
                                         MaterialTapTargetSize.shrinkWrap,
                                   ),
-                              const SizedBox(height: 20),
+                              const SizedBox(height: 10),
                               const Divider(color: Colors.white30),
                               const SizedBox(height: 6),
                               _isEditing
@@ -563,7 +582,6 @@ class _ProfilePageState extends State<ProfilePage> {
                                     email.isNotEmpty ? email : "No email",
                                     isSmallScreen,
                                   ),
-                              const SizedBox(height: 12),
                               _isEditing
                                   ? Container(
                                     padding: const EdgeInsets.symmetric(
@@ -599,7 +617,6 @@ class _ProfilePageState extends State<ProfilePage> {
                                     phone.isNotEmpty ? phone : "No phone",
                                     isSmallScreen,
                                   ),
-                              const SizedBox(height: 12),
                               _glassRow(
                                 Icons.location_city,
                                 'Bangalore, India',

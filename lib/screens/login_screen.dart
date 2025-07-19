@@ -47,36 +47,6 @@ class _LoginScreenState extends State<LoginScreen>
       begin: 0,
       end: 1,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
-
-    // Check for existing login session
-    _checkLoginStatus();
-  }
-
-  // Check if user is already logged in
-  Future<void> _checkLoginStatus() async {
-    final sessionBox = await Hive.openBox('session');
-    final loggedInUser = sessionBox.get('loggedInUser');
-
-    if (loggedInUser != null) {
-      final userBox = Hive.box<User>('users');
-      final user = userBox.get(loggedInUser);
-
-      if (user != null) {
-        // Give a small delay to allow the UI to build
-        await Future.delayed(Duration(milliseconds: 100));
-        if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            PageRouteBuilder(
-              pageBuilder: (_, __, ___) => NavBarPage(user: user),
-              transitionsBuilder: (_, animation, __, child) {
-                return FadeTransition(opacity: animation, child: child);
-              },
-            ),
-          );
-        }
-      }
-    }
   }
 
   @override
@@ -147,7 +117,7 @@ class _LoginScreenState extends State<LoginScreen>
     toggleMode();
   }
 
-  Future<void> login() async {
+  void login() {
     final identifier = emailController.text.trim(); // Can be email or phone
     final password = passwordController.text.trim();
 
@@ -166,10 +136,6 @@ class _LoginScreenState extends State<LoginScreen>
     );
 
     if (user.name.isNotEmpty) {
-      // Save login session
-      final sessionBox = await Hive.openBox('session');
-      await sessionBox.put('loggedInUser', user.key);
-
       Navigator.pushReplacement(
         context,
         PageRouteBuilder(

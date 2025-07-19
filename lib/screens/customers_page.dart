@@ -116,27 +116,6 @@ class _CustomersPageState extends State<CustomersPage> {
                             ),
                           ),
                           SizedBox(width: isSmallScreen ? 8 : 16),
-                          Flexible(
-                            child: ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red,
-                                foregroundColor: Colors.white,
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: buttonPadding,
-                                  vertical: buttonPadding - 4,
-                                ),
-                              ),
-                              icon: Icon(
-                                Icons.delete_forever,
-                                size: iconSize - 2,
-                              ),
-                              label: Text(
-                                "Delete",
-                                style: TextStyle(fontSize: fontSize - 2),
-                              ),
-                              onPressed: () => Navigator.of(ctx).pop(true),
-                            ),
-                          ),
                         ],
                       ),
                     ],
