@@ -5,8 +5,6 @@ import 'package:click_account/screens/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:hive/hive.dart';
-
 import 'package:click_account/models/sale.dart';
 import 'package:click_account/models/product.dart';
 import 'package:click_account/models/payment.dart';
@@ -14,6 +12,9 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
+  await Hive.initFlutter();
+  Hive.registerAdapter(UserAdapter());
+
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize Hive with proper path
