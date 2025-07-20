@@ -42,6 +42,7 @@ class _LoginScreenState extends State<LoginScreen>
   bool isCreating = false;
   bool _obscurePassword = true;
   late AnimationController _controller;
+  // ignore: unused_field
   late Animation<double> _animation;
   String selectedRole = 'None';
   final List<String> roles = [
