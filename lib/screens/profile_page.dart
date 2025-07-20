@@ -76,7 +76,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _loadImage() async {
     setState(() => _isImageLoading = true);
     final prefs = await SharedPreferences.getInstance();
-    final path = prefs.getString('profileImagePath');
+    final path = prefs.getString('${widget.user.email}_profileImagePath');
 
     if (path != null) {
       final file = File(path);
@@ -85,8 +85,19 @@ class _ProfilePageState extends State<ProfilePage> {
           _profileImage = file;
           _isImageSaved = true;
         });
+      } else {
+        setState(() {
+          _profileImage = null;
+          _isImageSaved = false;
+        });
       }
+    } else {
+      setState(() {
+        _profileImage = null;
+        _isImageSaved = false;
+      });
     }
+
     setState(() => _isImageLoading = false);
   }
 
@@ -114,7 +125,10 @@ class _ProfilePageState extends State<ProfilePage> {
 
       final file = File(picked.path);
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('profileImagePath', picked.path);
+      await prefs.setString(
+        '${widget.user.email}_profileImagePath',
+        picked.path,
+      );
 
       setState(() {
         _profileImage = file;
@@ -177,6 +191,10 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(
+      '${widget.user.email}_profileImagePath',
+    ); // 👈 Clear image path
     final sessionBox = await Hive.openBox('session');
     await sessionBox.clear();
     Navigator.pushReplacement(

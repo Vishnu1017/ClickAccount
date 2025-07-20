@@ -1,36 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:click_account/models/user_model.dart';
 import 'package:click_account/screens/nav_bar_page.dart';
 import 'package:flutter/animation.dart';
-
-class AuthService {
-  static const String _authBoxName = 'auth';
-  static const String _loggedInUserKey = 'loggedInUser';
-
-  static Future<Box> get _authBox async => await Hive.openBox(_authBoxName);
-
-  static Future<void> persistLogin(User user) async {
-    final box = await _authBox;
-    await box.put(_loggedInUserKey, user.key);
-  }
-
-  static Future<void> logout() async {
-    final box = await _authBox;
-    await box.delete(_loggedInUserKey);
-  }
-
-  static Future<User?> getLoggedInUser() async {
-    final box = await _authBox;
-    final userKey = box.get(_loggedInUserKey);
-    if (userKey != null) {
-      final usersBox = Hive.box<User>('users');
-      return usersBox.get(userKey);
-    }
-    return null;
-  }
-}
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -44,7 +16,7 @@ class _LoginScreenState extends State<LoginScreen>
   late AnimationController _controller;
   // ignore: unused_field
   late Animation<double> _animation;
-  String selectedRole = 'None';
+  String selectedRole = 'None'; // Default role
   final List<String> roles = [
     'None',
     'Photographer',
@@ -75,26 +47,6 @@ class _LoginScreenState extends State<LoginScreen>
       begin: 0,
       end: 1,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
-
-    // Check if user is already logged in
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkLoginStatus();
-    });
-  }
-
-  Future<void> _checkLoginStatus() async {
-    final loggedInUser = await AuthService.getLoggedInUser();
-    if (loggedInUser != null && mounted) {
-      Navigator.pushReplacement(
-        context,
-        PageRouteBuilder(
-          pageBuilder: (_, __, ___) => NavBarPage(user: loggedInUser),
-          transitionsBuilder: (_, animation, __, child) {
-            return FadeTransition(opacity: animation, child: child);
-          },
-        ),
-      );
-    }
   }
 
   @override
@@ -166,7 +118,7 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   void login() {
-    final identifier = emailController.text.trim();
+    final identifier = emailController.text.trim(); // Can be email or phone
     final password = passwordController.text.trim();
 
     if (identifier.isEmpty || password.isEmpty) {
@@ -184,7 +136,6 @@ class _LoginScreenState extends State<LoginScreen>
     );
 
     if (user.name.isNotEmpty) {
-      AuthService.persistLogin(user);
       Navigator.pushReplacement(
         context,
         PageRouteBuilder(
@@ -392,6 +343,7 @@ class _LoginScreenState extends State<LoginScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
+                // Header Section
                 SizedBox(height: screenHeight * 0.05),
                 Text(
                   isCreating ? 'Join Us!' : 'Welcome Back',
@@ -411,6 +363,7 @@ class _LoginScreenState extends State<LoginScreen>
                 ),
                 SizedBox(height: screenHeight * 0.05),
 
+                // Form Fields
                 AnimatedSize(
                   duration: Duration(milliseconds: 300),
                   child: Column(
@@ -457,7 +410,7 @@ class _LoginScreenState extends State<LoginScreen>
                               labelStyle: TextStyle(color: Colors.white70),
                               border: InputBorder.none,
                               prefixIcon: Icon(
-                                Icons.work_outline,
+                                Icons.work_outline, // Professional work icon
                                 color: Colors.white70,
                               ),
                             ),
@@ -556,6 +509,7 @@ class _LoginScreenState extends State<LoginScreen>
                 ),
                 SizedBox(height: screenHeight * 0.02),
 
+                // Forgot Password (Login only)
                 if (!isCreating)
                   Align(
                     alignment: Alignment.centerRight,
@@ -569,6 +523,7 @@ class _LoginScreenState extends State<LoginScreen>
                   ),
                 SizedBox(height: screenHeight * 0.04),
 
+                // Action Button
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -595,6 +550,7 @@ class _LoginScreenState extends State<LoginScreen>
                 ),
                 SizedBox(height: screenHeight * 0.03),
 
+                // Toggle Button
                 TextButton(
                   onPressed: toggleMode,
                   child: RichText(
