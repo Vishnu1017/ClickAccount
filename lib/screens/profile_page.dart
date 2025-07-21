@@ -19,6 +19,7 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
+  bool _isLoggingOut = false;
   late String name;
   late String role;
   late String email;
@@ -51,6 +52,9 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _verifySession();
+    });
     name = widget.user.name;
     email = widget.user.email;
     phone = widget.user.phone;
@@ -71,6 +75,24 @@ class _ProfilePageState extends State<ProfilePage> {
     _emailController.dispose();
     _phoneController.dispose();
     super.dispose();
+  }
+
+  Future<void> _verifySession() async {
+    try {
+      final sessionBox = await Hive.openBox('session');
+      if (sessionBox.isEmpty && mounted) {
+        debugPrint('Session expired');
+        await _logout();
+      }
+    } catch (e) {
+      debugPrint('Session verification error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Session error. Please login again.')),
+        );
+        await _logout();
+      }
+    }
   }
 
   Future<void> _loadImage() async {
@@ -191,16 +213,34 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(
-      '${widget.user.email}_profileImagePath',
-    ); // 👈 Clear image path
-    final sessionBox = await Hive.openBox('session');
-    await sessionBox.clear();
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => LoginScreen()),
-    );
+    if (_isLoggingOut) return; // Prevent multiple calls
+    _isLoggingOut = true;
+
+    try {
+      // Clear profile image
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('${widget.user.email}_profileImagePath');
+
+      // Clear session
+      final sessionBox = await Hive.openBox('session');
+      await sessionBox.clear();
+      await sessionBox.close(); // Properly close the box
+
+      if (!mounted) return;
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => LoginScreen()),
+        (route) => false, // Remove all routes
+      );
+    } catch (e) {
+      debugPrint('Logout error: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Logout failed. Please try again.')),
+      );
+    } finally {
+      _isLoggingOut = false;
+    }
   }
 
   Future<void> deleteCurrentUser(String email) async {
@@ -632,7 +672,9 @@ class _ProfilePageState extends State<ProfilePage> {
                                   )
                                   : _glassRow(
                                     Icons.phone,
-                                    phone.isNotEmpty ? phone : "No phone",
+                                    phone.isNotEmpty
+                                        ? "+91 $phone"
+                                        : "No phone",
                                     isSmallScreen,
                                   ),
                               _glassRow(

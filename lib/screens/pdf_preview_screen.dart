@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
 import 'package:share_plus/share_plus.dart';
+import '../models/sale.dart'; // Ensure this file includes the new getters
 
 class PdfPreviewScreen extends StatelessWidget {
   final String filePath;
+  final Sale sale;
 
-  const PdfPreviewScreen({required this.filePath});
+  const PdfPreviewScreen({required this.filePath, required this.sale});
 
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final outerMargin = screenWidth * 0.03; // ~12 on small screens
-    final innerMargin = screenWidth * 0.04; // ~16 on small screens
+    final outerMargin = screenWidth * 0.03;
+    final innerMargin = screenWidth * 0.04;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -43,22 +46,15 @@ class PdfPreviewScreen extends StatelessWidget {
             return Container(
               margin: EdgeInsets.all(outerMargin),
               padding: EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.transparent, width: 2),
-                borderRadius: BorderRadius.circular(14),
-              ),
               child: Center(
                 child: Container(
                   margin: EdgeInsets.symmetric(
                     horizontal: innerMargin,
-                    vertical: screenWidth * 0.3, // smaller vertical margin
+                    vertical: screenWidth * 0.3,
                   ),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    border: Border.all(
-                      color: Colors.black,
-                      width: 3,
-                    ), // 👈 as-is
+                    border: Border.all(color: Colors.black, width: 3),
                     borderRadius: BorderRadius.circular(8),
                     boxShadow: [
                       BoxShadow(
@@ -70,17 +66,13 @@ class PdfPreviewScreen extends StatelessWidget {
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: SizedBox(
-                      width: double.infinity,
-                      height: double.infinity,
-                      child: PDFView(
-                        filePath: filePath,
-                        enableSwipe: true,
-                        swipeHorizontal: false,
-                        autoSpacing: true,
-                        pageFling: true,
-                        fitEachPage: true,
-                      ),
+                    child: PDFView(
+                      filePath: filePath,
+                      enableSwipe: true,
+                      swipeHorizontal: false,
+                      autoSpacing: true,
+                      pageFling: true,
+                      fitEachPage: true,
                     ),
                   ),
                 ),
@@ -103,10 +95,54 @@ class PdfPreviewScreen extends StatelessWidget {
           elevation: 0,
           icon: Icon(Icons.share, color: Colors.white),
           label: Text("Share", style: TextStyle(color: Colors.white)),
-          onPressed: () {
-            Share.shareXFiles([
-              XFile(filePath),
-            ], text: "Here is your invoice PDF");
+          onPressed: () async {
+            final message = '''
+Hi ${sale.customerName},
+
+🧾 *Invoice Summary*
+• Total Amount: ₹${sale.totalAmount}
+• Received: ₹${sale.receivedAmount}
+• Balance Due: ₹${sale.balanceAmount}
+• Date: ${sale.formattedDate}
+
+📲 Scan the QR code to pay via UPI.
+
+Thanks for choosing *Shutter Life Photography*!
+– *Team Shutter Life Photography*
+''';
+
+            final file = XFile(filePath);
+
+            // 1. First copy to clipboard for WhatsApp
+            await Clipboard.setData(ClipboardData(text: message));
+
+            // Show snackbar about clipboard copy
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  "✅ Message copied! Paste it in WhatsApp after selecting contact.",
+                ),
+                backgroundColor: Colors.green,
+              ),
+            );
+
+            await Future.delayed(Duration(milliseconds: 300)); // Small wait
+
+            // 2. Then share both PDF and message via other apps
+            try {
+              await Share.shareXFiles(
+                [file],
+                text: message, // This will work in Telegram, Gmail etc.
+                subject: '📸 Your Invoice from Shutter Life Photography',
+              );
+            } catch (e) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text("❌ Failed to share: ${e.toString()}"),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
           },
         ),
       ),

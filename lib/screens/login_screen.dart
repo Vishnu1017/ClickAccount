@@ -12,6 +12,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
   bool isCreating = false;
+  bool _isLoggedIn = false;
   bool _obscurePassword = true;
   late AnimationController _controller;
   // ignore: unused_field
@@ -39,6 +40,7 @@ class _LoginScreenState extends State<LoginScreen>
   @override
   void initState() {
     super.initState();
+    _checkExistingSession();
     _controller = AnimationController(
       duration: const Duration(milliseconds: 500),
       vsync: this,
@@ -105,48 +107,115 @@ class _LoginScreenState extends State<LoginScreen>
       return;
     }
 
-    final user = User(
-      name: fullName,
-      email: email,
-      phone: phone,
-      password: password,
-      role: selectedRole,
-    );
-    await box.add(user);
-    showSuccess("Account created successfully!");
-    toggleMode();
+    try {
+      final user = User(
+        name: fullName,
+        email: email,
+        phone: phone,
+        password: password,
+        role: selectedRole,
+      );
+      await box.add(user);
+
+      // Add this to create session after signup
+      final sessionBox = await Hive.openBox('session');
+      await sessionBox.put('currentUser', email);
+
+      showSuccess("Account created successfully!");
+
+      // Navigate to home after successful signup
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (_, __, ___) => NavBarPage(user: user),
+            transitionsBuilder: (_, animation, __, child) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+          ),
+        );
+      }
+    } catch (e) {
+      showError("Account creation failed. Please try again.");
+    }
   }
 
-  void login() {
-    final identifier = emailController.text.trim(); // Can be email or phone
+  Future<void> login() async {
+    if (_isLoggedIn) return; // Prevent multiple logins
+    _isLoggedIn = true;
+
+    final identifier = emailController.text.trim();
     final password = passwordController.text.trim();
 
     if (identifier.isEmpty || password.isEmpty) {
       showError("Please enter your email/phone and password");
+      _isLoggedIn = false;
       return;
     }
 
-    final box = Hive.box<User>('users');
-    final user = box.values.firstWhere(
-      (u) =>
-          (u.email == identifier || u.phone == identifier) &&
-          u.password == password,
-      orElse:
-          () => User(name: '', email: '', phone: '', password: '', role: ''),
-    );
-
-    if (user.name.isNotEmpty) {
-      Navigator.pushReplacement(
-        context,
-        PageRouteBuilder(
-          pageBuilder: (_, __, ___) => NavBarPage(user: user),
-          transitionsBuilder: (_, animation, __, child) {
-            return FadeTransition(opacity: animation, child: child);
-          },
-        ),
+    try {
+      final box = Hive.box<User>('users');
+      final user = box.values.firstWhere(
+        (u) =>
+            (u.email == identifier || u.phone == identifier) &&
+            u.password == password,
+        orElse:
+            () => User(name: '', email: '', phone: '', password: '', role: ''),
       );
-    } else {
-      showError("Invalid credentials. Please try again.");
+
+      if (user.name.isNotEmpty) {
+        // Save session
+        final sessionBox = await Hive.openBox('session');
+        await sessionBox.put('currentUser', user.email);
+
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (_, __, ___) => NavBarPage(user: user),
+            transitionsBuilder: (_, animation, __, child) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+          ),
+        );
+      } else {
+        showError("Invalid credentials. Please try again.");
+      }
+    } catch (e) {
+      debugPrint('Login error: $e');
+      showError("Login failed. Please try again.");
+    } finally {
+      _isLoggedIn = false;
+    }
+  }
+
+  Future<void> _checkExistingSession() async {
+    try {
+      final sessionBox = await Hive.openBox('session');
+      final currentUserEmail = sessionBox.get('currentUser');
+
+      if (currentUserEmail != null && mounted) {
+        final usersBox = Hive.box<User>('users');
+        final user = usersBox.values.firstWhere(
+          (u) => u.email == currentUserEmail,
+          orElse:
+              () =>
+                  User(name: '', email: '', phone: '', password: '', role: ''),
+        );
+
+        if (user.name.isNotEmpty) {
+          Navigator.pushReplacement(
+            context,
+            PageRouteBuilder(
+              pageBuilder: (_, __, ___) => NavBarPage(user: user),
+              transitionsBuilder: (_, animation, __, child) {
+                return FadeTransition(opacity: animation, child: child);
+              },
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Session check error: $e');
     }
   }
 

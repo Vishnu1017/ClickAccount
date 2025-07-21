@@ -3,7 +3,7 @@ import 'package:hive/hive.dart';
 
 part 'sale.g.dart';
 
-@HiveType(typeId: 65) // 👈 Ensure this matches your main.dart registration
+@HiveType(typeId: 65)
 class Sale extends HiveObject {
   @HiveField(0)
   String customerName;
@@ -27,12 +27,12 @@ class Sale extends HiveObject {
   List<Payment> paymentHistory;
 
   @HiveField(7)
-  String deliveryStatus; // Editing, Delivered, Printed
+  String deliveryStatus;
 
   @HiveField(8)
   String deliveryLink;
 
-  @HiveField(9) // 👈 Add this field for payment mode
+  @HiveField(9)
   String paymentMode;
 
   Sale({
@@ -46,5 +46,21 @@ class Sale extends HiveObject {
     this.deliveryStatus = 'Editing',
     this.deliveryLink = '',
     this.paymentMode = 'Cash',
-  }) : this.paymentHistory = paymentHistory ?? [];
+  }) : paymentHistory = paymentHistory ?? [];
+
+  // ✅ Computed Getters for use in PDF or UI
+
+  double get receivedAmount {
+    return paymentHistory.fold(0.0, (sum, p) => sum + p.amount);
+  }
+
+  double get balanceAmount {
+    return totalAmount - receivedAmount;
+  }
+
+  String get formattedDate {
+    return "${dateTime.day.toString().padLeft(2, '0')}-"
+        "${dateTime.month.toString().padLeft(2, '0')}-"
+        "${dateTime.year}";
+  }
 }

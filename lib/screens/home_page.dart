@@ -1,6 +1,7 @@
 // ignore_for_file: unused_local_variable, unnecessary_null_comparison
 
 import 'package:click_account/models/sale.dart';
+import 'package:click_account/models/user_model.dart';
 import 'package:click_account/screens/DeliveryTrackerPage.dart';
 import 'package:click_account/screens/WhatsAppHelper.dart';
 import 'package:click_account/screens/payment_history_page.dart';
@@ -41,8 +42,14 @@ class _HomePageState extends State<HomePage>
   }
 
   void fetchWelcomeMessage() {
+    final userBox = Hive.box<User>('users');
+
+    // Assuming only one user is logged in or stored at a time
+    final user = userBox.values.isNotEmpty ? userBox.values.first : null;
+
     setState(() {
-      welcomeMessage = "🏠 Welcome back, Vishnu!";
+      welcomeMessage =
+          user != null ? "🏠 Welcome back, \n ${user.name}!" : "🏠 Welcome!";
     });
   }
 
@@ -62,9 +69,11 @@ class _HomePageState extends State<HomePage>
             if (box.isEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 100),
-                child: Text(
-                  welcomeMessage,
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                child: Center(
+                  child: Text(
+                    welcomeMessage,
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
             if (box.isNotEmpty) SizedBox(height: 20),
@@ -859,6 +868,7 @@ class _HomePageState extends State<HomePage>
                                       builder:
                                           (_) => PdfPreviewScreen(
                                             filePath: file.path,
+                                            sale: sale,
                                           ),
                                     ),
                                   );
