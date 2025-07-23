@@ -32,31 +32,17 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
   Map<String, dynamic>? selectedItemDetails;
   List<Map<String, dynamic>> selectedItems = [];
 
-  double get totalQty => selectedItems.length.toDouble();
+  double get totalQty => selectedItems.fold(
+    0.0,
+    (sum, item) => sum + (double.tryParse(item['qty']?.toString() ?? '1')!),
+  );
+
   double get totalDiscount {
-    double discount = 0.0;
-
-    for (final item in selectedItems) {
-      final qty = double.tryParse(item['qty']?.toString() ?? '1') ?? 1;
-      final rawRate = double.tryParse(item['rate']?.toString() ?? '0') ?? 0;
-      final discountPercent =
-          double.tryParse(item['discount']?.toString() ?? '0') ?? 0;
-      final taxPercent = double.tryParse(item['tax']?.toString() ?? '0') ?? 0;
-      final taxType = item['taxType']?.toString() ?? 'Without Tax';
-
-      double rate = rawRate;
-
-      if (taxType == 'With Tax' && taxPercent > 0) {
-        rate = rawRate / (1 + (taxPercent / 100));
-      }
-
-      final itemSubtotal = rate * qty;
-      final discountAmount = itemSubtotal * discountPercent / 100;
-
-      discount += discountAmount;
-    }
-
-    return discount;
+    return selectedItems.fold(0.0, (sum, item) {
+      final discountAmount =
+          double.tryParse(item['discountAmount']?.toString() ?? '0') ?? 0;
+      return sum + discountAmount;
+    });
   }
 
   double get totalTaxAmount {
@@ -67,6 +53,8 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
       final rawRate = double.tryParse(item['rate']?.toString() ?? '0') ?? 0;
       final discountPercent =
           double.tryParse(item['discount']?.toString() ?? '0') ?? 0;
+      final discountAmount =
+          double.tryParse(item['discountAmount']?.toString() ?? '0') ?? 0;
       final taxPercent = double.tryParse(item['tax']?.toString() ?? '0') ?? 0;
       final taxType = item['taxType']?.toString() ?? 'Without Tax';
 
@@ -77,7 +65,6 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
       }
 
       final itemSubtotal = rate * qty;
-      final discountAmount = subtotal * discountPercent / 100;
       final taxableAmount = itemSubtotal - discountAmount;
 
       double taxAmount = 0.0;
@@ -95,30 +82,8 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
     double sum = 0.0;
 
     for (final item in selectedItems) {
-      final qty = double.tryParse(item['qty']?.toString() ?? '1') ?? 1;
-      final rawRate = double.tryParse(item['rate']?.toString() ?? '0') ?? 0;
-      final discountPercent =
-          double.tryParse(item['discount']?.toString() ?? '0') ?? 0;
-      final taxPercent = double.tryParse(item['tax']?.toString() ?? '0') ?? 0;
-      final taxType = item['taxType']?.toString() ?? 'Without Tax';
-
-      double rate = rawRate;
-
-      if (taxType == 'With Tax' && taxPercent > 0) {
-        rate = rawRate / (1 + (taxPercent / 100));
-      }
-
-      final itemSubtotal = rate * qty;
-      final discountAmount = itemSubtotal * discountPercent / 100;
-      final taxableAmount = itemSubtotal - discountAmount;
-      final taxAmount =
-          discountPercent == 100
-              ? 0.0
-              : (taxType == 'With Tax' && taxPercent > 0)
-              ? taxableAmount * taxPercent / 100
-              : 0.0;
-      final totalAmount = taxableAmount + taxAmount;
-
+      final totalAmount =
+          double.tryParse(item['totalAmount']?.toString() ?? '0') ?? 0;
       sum += totalAmount;
     }
 
@@ -156,7 +121,6 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
   }
 
   Future<bool> isPhoneNumberDuplicate() async {
-    // Skip duplicate check if customer was selected from list
     if (isCustomerSelectedFromList) return false;
 
     final saleBox = Hive.box<Sale>('sales');
@@ -174,15 +138,6 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
     );
 
     if (newItem != null && newItem is Map<String, dynamic>) {
-      newItem['tax'] = _parsePercent(newItem['tax']);
-      newItem['discount'] = _parsePercent(newItem['discount']);
-      newItem['qty'] =
-          double.tryParse(newItem['qty']?.toString() ?? '1') ?? 1.0;
-      newItem['rate'] =
-          double.tryParse(newItem['rate']?.toString() ?? '0') ?? 0.0;
-      newItem['itemName'] ??= '';
-      newItem['totalAmount'] ??= 0.0;
-
       setState(() {
         selectedItems.add(newItem);
         productController.text = selectedItems
@@ -270,48 +225,19 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
     );
   }
 
-  double _parsePercent(dynamic value) {
-    if (value == null) return 0.0;
-    final str = value.toString().replaceAll('%', '').trim();
-    return double.tryParse(str) ?? 0.0;
-  }
-
   Widget buildItemCard(int index, Map<String, dynamic> item) {
     final qty = double.tryParse(item['qty']?.toString() ?? '1') ?? 1.0;
-    final rawRate = double.tryParse(item['rate']?.toString() ?? '0') ?? 0.0;
+    final rate = double.tryParse(item['rate']?.toString() ?? '0') ?? 0.0;
     final discountPercent =
         double.tryParse(item['discount']?.toString() ?? '0') ?? 0.0;
+    final discountAmount =
+        double.tryParse(item['discountAmount']?.toString() ?? '0') ?? 0.0;
     final taxPercent = double.tryParse(item['tax']?.toString() ?? '0') ?? 0.0;
     final taxType = item['taxType']?.toString() ?? 'Without Tax';
-
-    double rate = rawRate;
-    double taxAmount = 0.0;
-    double subtotal = 0.0;
-    double discountAmount = 0.0;
-    double totalAmount = 0.0;
-
-    if (taxType == 'With Tax' && taxPercent > 0) {
-      rate = rawRate / (1 + taxPercent / 100);
-      subtotal = rate * qty;
-
-      discountAmount = subtotal * discountPercent / 100;
-      final taxableAmount = subtotal - discountAmount;
-
-      taxAmount =
-          discountAmount >= subtotal ? 0.0 : taxableAmount * taxPercent / 100;
-
-      totalAmount = taxableAmount + taxAmount;
-    } else {
-      rate = rawRate;
-      subtotal = rate * qty;
-
-      discountAmount = subtotal * discountPercent / 100;
-      final taxableAmount = subtotal - discountAmount;
-
-      taxAmount = taxPercent > 0 ? taxableAmount * taxPercent / 100 : 0.0;
-
-      totalAmount = taxableAmount + taxAmount;
-    }
+    final subtotal =
+        double.tryParse(item['subtotal']?.toString() ?? '0') ?? 0.0;
+    final totalAmount =
+        double.tryParse(item['totalAmount']?.toString() ?? '0') ?? 0.0;
 
     return Card(
       elevation: 3,
@@ -352,7 +278,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
             ),
             if (taxPercent > 0)
               Text(
-                "Tax (${taxPercent.toStringAsFixed(2)}%): ₹${taxAmount.toStringAsFixed(2)}",
+                "Tax (${taxPercent.toStringAsFixed(2)}%): ₹${(totalAmount - (subtotal - discountAmount)).toStringAsFixed(2)}",
                 style: TextStyle(color: Colors.blueGrey[700]),
               ),
           ],
@@ -852,7 +778,6 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                       onPressed: () async {
                         if (!_formKey.currentState!.validate()) return;
 
-                        // Check for duplicate phone number only if customer wasn't selected from list
                         if (!isCustomerSelectedFromList) {
                           final isDuplicate = await isPhoneNumberDuplicate();
                           if (isDuplicate) {
@@ -869,7 +794,6 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                           }
                         }
 
-                        // Proceed with saving
                         saveSale();
                       },
                       icon: Icon(Icons.save, color: Colors.white),
