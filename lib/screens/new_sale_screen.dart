@@ -233,6 +233,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
     final discountAmount =
         double.tryParse(item['discountAmount']?.toString() ?? '0') ?? 0.0;
     final taxPercent = double.tryParse(item['tax']?.toString() ?? '0') ?? 0.0;
+    // ignore: unused_local_variable
     final taxType = item['taxType']?.toString() ?? 'Without Tax';
     final subtotal =
         double.tryParse(item['subtotal']?.toString() ?? '0') ?? 0.0;
