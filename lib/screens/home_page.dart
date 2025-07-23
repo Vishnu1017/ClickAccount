@@ -72,6 +72,8 @@ class _HomePageState extends State<HomePage>
                 child: Center(
                   child: Text(
                     welcomeMessage,
+                    textAlign:
+                        TextAlign.center, // This ensures center alignment
                     style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                   ),
                 ),

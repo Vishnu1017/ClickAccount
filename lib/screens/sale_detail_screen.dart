@@ -63,9 +63,6 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
     );
     _selectedMode =
         widget.sale.paymentMode.isNotEmpty ? widget.sale.paymentMode : 'Cash';
-
-    // Add this line to initialize isFullyPaid based on the sale data
-    isFullyPaid = widget.sale.amount == widget.sale.totalAmount;
   }
 
   void saveChanges() async {
