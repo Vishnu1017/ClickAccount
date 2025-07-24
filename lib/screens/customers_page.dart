@@ -187,7 +187,9 @@ class _CustomersPageState extends State<CustomersPage> {
       if (cleanedPhone.length < 10 ||
           !RegExp(r'^[0-9]+$').hasMatch(cleanedPhone)) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Please enter a valid 10-digit phone number")),
+          const SnackBar(
+            content: Text("Please enter a valid 10-digit phone number"),
+          ),
         );
         return;
       }
@@ -211,6 +213,7 @@ class _CustomersPageState extends State<CustomersPage> {
                 "Dear $customerName,\n\nThank you for choosing Shutter Life Photography! 🌟\n\n"
                 "We would truly value your feedback about your recent experience with us. "
                 "Your thoughts help us serve you better!\n\n"
+                "Please leave your review here: https://g.page/r/CZdlwsr8XKiUEBM/review\n\n"
                 "Warm regards,\nThe Shutter Life Team";
             break;
 
@@ -223,25 +226,21 @@ class _CustomersPageState extends State<CustomersPage> {
                 "Limited time offer - book now!";
             break;
 
-          case 'payment_due':
-            if (dueDate != null && amount != null && invoiceNumber != null) {
-              message =
-                  "Dear $customerName,\n\nFriendly reminder from Shutter Life Photography:\n\n"
-                  "📅 Payment Due: ${DateFormat('dd MMM yyyy').format(dueDate)}\n"
-                  "💰 Amount: ₹${amount.toStringAsFixed(2)}\n"
-                  "📋 Invoice #: $invoiceNumber\n\n"
-                  "Payment Methods:\n"
-                  "• UPI: playroll.vish-1@oksbi\n"
-                  "• Bank Transfer (Details attached)\n"
-                  "• Cash (At our studio)\n\n"
-                  "Please confirm once payment is made. Thank you for your prompt attention!\n\n"
-                  "Warm regards,\nAccounts Team\nShutter Life Photography";
-            } else {
-              message =
-                  "Dear $customerName,\n\nThis is a friendly reminder regarding your payment. "
-                  "Please contact us for invoice details.\n\n"
-                  "Warm regards,\nAccounts Team\nShutter Life Photography";
-            }
+          case 'instagram_promo':
+            message =
+                "Hi $customerName! 😊\n\n"
+                "Want to see our latest work? 📸\n"
+                "Check out our Instagram for stunning shots from weddings, baby shoots, maternity, and more! 💖\n"
+                "👉 https://www.instagram.com/shutter_life_photography\n\n"
+                "Let us know what style you love most! 😊";
+            break;
+
+          case 'payment_confirmation':
+            message =
+                "Hi $customerName! 🎉\n\n"
+                "Payment received ✅ & your booking is now locked in! 🥳\n\n"
+                "We can't wait to capture your moments with love and lens! 🎞️📷\n\n"
+                "*– Team Shutter Life Photography*";
             break;
 
           default:
@@ -374,31 +373,71 @@ class _CustomersPageState extends State<CustomersPage> {
                               onPressed: () => _makePhoneCall(phone),
                             ),
                             PopupMenuButton<String>(
-                              icon: Icon(
+                              icon: const Icon(
                                 FontAwesomeIcons.whatsapp,
                                 color: Colors.white,
                               ),
                               itemBuilder:
                                   (context) => [
-                                    PopupMenuItem(
+                                    const PopupMenuItem(
                                       value: 'default',
-                                      child: Text("General Inquiry"),
+                                      child: ListTile(
+                                        leading: Icon(
+                                          Icons.chat,
+                                          color: Colors.blue,
+                                        ),
+                                        title: Text("General Inquiry"),
+                                      ),
                                     ),
-                                    PopupMenuItem(
+                                    const PopupMenuItem(
                                       value: 'followup',
-                                      child: Text("Follow Up"),
+                                      child: ListTile(
+                                        leading: Icon(
+                                          Icons.update,
+                                          color: Colors.orange,
+                                        ),
+                                        title: Text("Follow Up"),
+                                      ),
                                     ),
-                                    PopupMenuItem(
+                                    const PopupMenuItem(
                                       value: 'feedback',
-                                      child: Text("Feedback Request"),
+                                      child: ListTile(
+                                        leading: Icon(
+                                          Icons.feedback,
+                                          color: Colors.purple,
+                                        ),
+                                        title: Text("Feedback Request"),
+                                      ),
                                     ),
-                                    PopupMenuItem(
+                                    const PopupMenuItem(
                                       value: 'promo',
-                                      child: Text("Special Offer"),
+                                      child: ListTile(
+                                        leading: Icon(
+                                          Icons.local_offer,
+                                          color: Colors.red,
+                                        ),
+                                        title: Text("Special Offer"),
+                                      ),
                                     ),
-                                    PopupMenuItem(
-                                      value: 'payment_due',
-                                      child: Text("Payment Due Reminder"),
+                                    const PopupMenuItem(
+                                      value: 'instagram_promo',
+                                      child: ListTile(
+                                        leading: FaIcon(
+                                          FontAwesomeIcons.instagram,
+                                          color: Colors.pink,
+                                        ),
+                                        title: Text("Instagram Promotion"),
+                                      ),
+                                    ),
+                                    const PopupMenuItem(
+                                      value: 'payment_confirmation',
+                                      child: ListTile(
+                                        leading: Icon(
+                                          Icons.verified_rounded,
+                                          color: Colors.green,
+                                        ),
+                                        title: Text("Payment Confirmation"),
+                                      ),
                                     ),
                                   ],
                               onSelected: (purpose) {

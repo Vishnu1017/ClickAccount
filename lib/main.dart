@@ -13,9 +13,59 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  // =============================================
+  // SYNC ERROR PROTECTION
+  // =============================================
+  ErrorWidget.builder = (FlutterErrorDetails details) {
+    _logError(details.exception, details.stack);
+    return Material(
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 50, color: Colors.red),
+            const SizedBox(height: 20),
+            const Text(
+              'UI Rendering Error',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              kDebugMode
+                  ? details.exception.toString()
+                  : 'Please restart the app',
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () => exit(0),
+              child: const Text('Exit App'),
+            ),
+          ],
+        ),
+      ),
+    );
+  };
+
+  // =============================================
+  // EXISTING ERROR HANDLING
+  // =============================================
   runZonedGuarded(
     () async {
       WidgetsFlutterBinding.ensureInitialized();
+
+      // =============================================
+      // NATIVE CRASH PROTECTION
+      // =============================================
+      if (Platform.isAndroid || Platform.isIOS) {
+        try {
+          await const MethodChannel(
+            'crash_handler',
+          ).invokeMethod('setUpNativeCrashHandling');
+        } catch (e) {
+          debugPrint('Native crash handler setup failed: $e');
+        }
+      }
 
       // Set up global error handlers
       FlutterError.onError = (details) {
@@ -36,7 +86,7 @@ void main() {
           SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]),
         ], eagerError: true);
 
-        runApp(const MyApp());
+        runApp(const AppErrorCatcher(child: MyApp()));
       } catch (error, stackTrace) {
         _logError(error, stackTrace);
         _showErrorScreen(error);
@@ -47,6 +97,26 @@ void main() {
       _showErrorScreen(error);
     },
   );
+}
+
+// =============================================
+// NEW ERROR CATCHER WIDGET
+// =============================================
+class AppErrorCatcher extends StatelessWidget {
+  final Widget child;
+
+  const AppErrorCatcher({required this.child, Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      child: Builder(
+        builder: (context) {
+          return child;
+        },
+      ),
+    );
+  }
 }
 
 // === Error Handling Utilities ===
@@ -92,9 +162,12 @@ void _showErrorScreen(Object error) {
   );
 }
 
-// === Your Original Functions (Unmodified) ===
+// === Hive Management Functions ===
 Future<void> _initializeHive() async {
   try {
+    // Clean up any existing boxes if needed
+    // await _deleteAllHiveBoxes();
+
     await Hive.initFlutter();
     final appDocDir = await getApplicationDocumentsDirectory();
     Hive.init(appDocDir.path);
@@ -112,6 +185,19 @@ Future<void> _initializeHive() async {
     rethrow;
   }
 }
+
+// Future<void> _deleteAllHiveBoxes() async {
+//   final List<String> boxNames = ['users', 'sales', 'products', 'payments'];
+
+//   for (var boxName in boxNames) {
+//     if (await Hive.boxExists(boxName)) {
+//       if (Hive.isBoxOpen(boxName)) {
+//         await Hive.box(boxName).close();
+//       }
+//       await Hive.deleteBoxFromDisk(boxName);
+//     }
+//   }
+// }
 
 void _registerAdapters() {
   _registerAdapter<User>(0, UserAdapter());
@@ -136,6 +222,7 @@ Future<Box<T>> _openBoxSafely<T>(String name) async {
   }
 }
 
+// === Other Initialization Functions ===
 Future<void> _initializeDefaultProfileImage() async {
   try {
     final prefs = await SharedPreferences.getInstance();
@@ -153,7 +240,7 @@ Future<void> _initializeDefaultProfileImage() async {
   }
 }
 
-// === Your Original Widget Classes ===
+// === Widget Classes ===
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
