@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
-import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/sale.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -173,14 +172,7 @@ class _CustomersPageState extends State<CustomersPage> {
     if (await canLaunchUrl(uri)) await launchUrl(uri);
   }
 
-  void _openWhatsApp(
-    String phone,
-    String name, {
-    String? purpose,
-    DateTime? dueDate,
-    double? amount,
-    String? invoiceNumber,
-  }) async {
+  void _openWhatsApp(String phone, String name, {String? purpose}) async {
     try {
       final cleanedPhone = phone.replaceAll(' ', '');
 
