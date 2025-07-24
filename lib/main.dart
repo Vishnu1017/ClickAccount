@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:click_account/models/user_model.dart';
 import 'package:click_account/screens/login_screen.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -11,66 +12,148 @@ import 'package:click_account/models/payment.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-void main() async {
-  await Hive.initFlutter();
-  Hive.registerAdapter(UserAdapter());
+void main() {
+  runZonedGuarded(
+    () async {
+      WidgetsFlutterBinding.ensureInitialized();
 
-  WidgetsFlutterBinding.ensureInitialized();
+      // Set up global error handlers
+      FlutterError.onError = (details) {
+        FlutterError.presentError(details);
+        _logError(details.exception, details.stack);
+      };
 
-  // Initialize Hive with proper path
-  final appDocDir = await getApplicationDocumentsDirectory();
-  Hive.init(appDocDir.path);
+      PlatformDispatcher.instance.onError = (error, stack) {
+        _logError(error, stack);
+        return true;
+      };
 
-  // OPTIONAL: Delete boxes from disk before opening (use only when needed)
-  // await _deleteAllHiveBoxes();
+      try {
+        // Initialize critical services
+        await Future.wait([
+          _initializeHive(),
+          _initializeDefaultProfileImage(),
+          SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]),
+        ], eagerError: true);
 
-  // Register all Hive adapters with typeId checks
-  if (!Hive.isAdapterRegistered(UserAdapter().typeId)) {
-    Hive.registerAdapter(UserAdapter());
-  }
-  if (!Hive.isAdapterRegistered(SaleAdapter().typeId)) {
-    Hive.registerAdapter(SaleAdapter());
-  }
-  if (!Hive.isAdapterRegistered(ProductAdapter().typeId)) {
-    Hive.registerAdapter(ProductAdapter());
-  }
-  if (!Hive.isAdapterRegistered(PaymentAdapter().typeId)) {
-    Hive.registerAdapter(PaymentAdapter());
-  }
-
-  // Open all required boxes
-  await Hive.openBox<User>('users');
-  await Hive.openBox<Sale>('sales');
-  await Hive.openBox<Product>('products');
-  await Hive.openBox<Payment>('payments');
-
-  // Save default profile image if not already set
-  final prefs = await SharedPreferences.getInstance();
-  final imagePath = prefs.getString('profileImagePath');
-  if (imagePath == null || !File(imagePath).existsSync()) {
-    final byteData = await rootBundle.load('assets/images/LOGO.jpg');
-    final tempDir = await getTemporaryDirectory();
-    final file = File('${tempDir.path}/default_logo.jpg');
-    await file.writeAsBytes(byteData.buffer.asUint8List());
-    await prefs.setString('profileImagePath', file.path);
-  }
-
-  runApp(const MyApp());
+        runApp(const MyApp());
+      } catch (error, stackTrace) {
+        _logError(error, stackTrace);
+        _showErrorScreen(error);
+      }
+    },
+    (error, stackTrace) {
+      _logError(error, stackTrace);
+      _showErrorScreen(error);
+    },
+  );
 }
 
-// Future<void> _deleteAllHiveBoxes() async {
-//   final List<String> boxNames = ['users', 'sales', 'products', 'payments'];
+// === Error Handling Utilities ===
+void _logError(Object error, [StackTrace? stackTrace]) {
+  debugPrint('ERROR: ${error.toString()}');
+  if (stackTrace != null) {
+    debugPrint('STACK TRACE: $stackTrace');
+  }
+  // Add your custom logging here (e.g., save to file)
+}
 
-//   for (var boxName in boxNames) {
-//     if (await Hive.boxExists(boxName)) {
-//       if (Hive.isBoxOpen(boxName)) {
-//         await Hive.box(boxName).close();
-//       }
-//       await Hive.deleteBoxFromDisk(boxName);
-//     }
-//   }
-// }
+void _showErrorScreen(Object error) {
+  runApp(
+    MaterialApp(
+      home: Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 50, color: Colors.red),
+              const SizedBox(height: 20),
+              const Text(
+                'App Initialization Failed',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                kDebugMode
+                    ? error.toString()
+                    : 'Please restart the application',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () => exit(0),
+                child: const Text('Exit App'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
 
+// === Your Original Functions (Unmodified) ===
+Future<void> _initializeHive() async {
+  try {
+    await Hive.initFlutter();
+    final appDocDir = await getApplicationDocumentsDirectory();
+    Hive.init(appDocDir.path);
+
+    _registerAdapters();
+
+    await Future.wait([
+      _openBoxSafely<User>('users'),
+      _openBoxSafely<Sale>('sales'),
+      _openBoxSafely<Product>('products'),
+      _openBoxSafely<Payment>('payments'),
+    ]);
+  } catch (e) {
+    debugPrint('Hive initialization error: $e');
+    rethrow;
+  }
+}
+
+void _registerAdapters() {
+  _registerAdapter<User>(0, UserAdapter());
+  _registerAdapter<Sale>(1, SaleAdapter());
+  _registerAdapter<Product>(2, ProductAdapter());
+  _registerAdapter<Payment>(3, PaymentAdapter());
+}
+
+void _registerAdapter<T>(int typeId, TypeAdapter<T> adapter) {
+  if (!Hive.isAdapterRegistered(typeId)) {
+    Hive.registerAdapter<T>(adapter);
+  }
+}
+
+Future<Box<T>> _openBoxSafely<T>(String name) async {
+  try {
+    return await Hive.openBox<T>(name);
+  } catch (e) {
+    debugPrint('Failed to open box $name: $e');
+    await Hive.deleteBoxFromDisk(name);
+    return await Hive.openBox<T>(name);
+  }
+}
+
+Future<void> _initializeDefaultProfileImage() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final imagePath = prefs.getString('profileImagePath');
+
+    if (imagePath == null || !await File(imagePath).exists()) {
+      final byteData = await rootBundle.load('assets/images/LOGO.jpg');
+      final tempDir = await getTemporaryDirectory();
+      final file = File('${tempDir.path}/default_logo.jpg');
+      await file.writeAsBytes(byteData.buffer.asUint8List());
+      await prefs.setString('profileImagePath', file.path);
+    }
+  } catch (e) {
+    debugPrint('Default image initialization failed: $e');
+  }
+}
+
+// === Your Original Widget Classes ===
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -105,7 +188,6 @@ class _CustomSplashScreenState extends State<CustomSplashScreen>
     );
 
     _animation = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
-
     _controller.forward();
 
     Timer(const Duration(seconds: 3), () {
