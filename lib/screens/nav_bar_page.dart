@@ -41,7 +41,7 @@ class _NavBarPageState extends State<NavBarPage>
     DashboardPage(),
     CustomersPage(),
     ProductsPage(),
-    ProfilePage(user: widget.user), // ✅ Now widget.user works
+    ProfilePage(user: widget.user),
   ];
 
   @override
@@ -92,66 +92,72 @@ class _NavBarPageState extends State<NavBarPage>
     return Align(
       alignment: Alignment.bottomCenter,
       child: Padding(
-        padding: const EdgeInsets.only(bottom: 2.0),
+        padding: EdgeInsets.only(bottom: 16.0, left: 16.0, right: 16.0),
         child: SlideTransition(
           position: _slideAnimation,
           child: FadeTransition(
             opacity: _fadeAnimation,
-            child: Container(
-              width: MediaQuery.of(context).size.width * 0.85,
-              height: 55,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(28),
-                gradient: LinearGradient(
-                  colors: [Color(0xFF1A237E), Color(0xFF00BCD4)],
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
+            child: SizedBox(
+              width: double.infinity,
+              child: Container(
+                constraints: BoxConstraints(maxWidth: 500),
+                height: 55,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(28),
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF1A237E), Color(0xFF00BCD4)],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                  ),
                 ),
-              ),
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => NewSaleScreen()),
-                  );
-                },
-                icon: Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      colors: [Colors.white, Colors.white70],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    border: Border.all(
-                      color: Colors.deepPurple.shade100,
-                      width: 2,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.white.withOpacity(0.3),
-                        blurRadius: 5,
-                        offset: Offset(0, 2),
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => NewSaleScreen()),
+                    );
+                  },
+                  icon: Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: [Colors.white, Colors.white70],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
-                    ],
+                      border: Border.all(
+                        color: Colors.deepPurple.shade100,
+                        width: 2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.white.withOpacity(0.3),
+                          blurRadius: 5,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    padding: EdgeInsets.all(5),
+                    child: Icon(
+                      Icons.currency_rupee,
+                      color: Color(0xFF1A237E),
+                      size: 20,
+                    ),
                   ),
-                  padding: EdgeInsets.all(5),
-                  child: Icon(
-                    Icons.currency_rupee,
-                    color: Color(0xFF1A237E),
-                    size: 20,
+                  label: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      labelText,
+                      style: TextStyle(color: Colors.white, fontSize: 16),
+                    ),
                   ),
-                ),
-                label: Text(
-                  labelText,
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  shadowColor: Colors.transparent,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(28),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(28),
+                    ),
                   ),
                 ),
               ),
@@ -168,57 +174,63 @@ class _NavBarPageState extends State<NavBarPage>
     return Align(
       alignment: Alignment.bottomCenter,
       child: Padding(
-        padding: const EdgeInsets.only(bottom: 0.0),
+        padding: EdgeInsets.only(bottom: 16.0, left: 16.0, right: 16.0),
         child: SlideTransition(
           position: _slideAnimation,
           child: FadeTransition(
             opacity: _fadeAnimation,
-            child: Container(
-              width: MediaQuery.of(context).size.width * 0.85,
-              height: 55,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(28),
-                gradient: LinearGradient(
-                  colors: [Color(0xFF1A237E), Color(0xFF00BCD4)],
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
+            child: SizedBox(
+              width: double.infinity,
+              child: Container(
+                constraints: BoxConstraints(maxWidth: 500),
+                height: 55,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(28),
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF1A237E), Color(0xFF00BCD4)],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                  ),
                 ),
-              ),
-              child: ElevatedButton.icon(
-                icon: Icon(
-                  Icons.add_box_rounded,
-                  color: Colors.white,
-                  size: 26,
-                ),
-                label: Text(
-                  'Add Packages',
-                  style: TextStyle(
+                child: ElevatedButton.icon(
+                  icon: Icon(
+                    Icons.add_box_rounded,
                     color: Colors.white,
-                    fontWeight: FontWeight.bold,
+                    size: 26,
                   ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  shadowColor: Colors.transparent,
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(28),
+                  label: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      'Add Packages',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(28),
+                    ),
+                  ),
+                  onPressed: () async {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => SelectItemsScreen()),
+                    );
+
+                    if (result != null && result['itemName'] != null) {
+                      final itemName = result['itemName'];
+                      final rate = result['rate'] ?? 0.0;
+
+                      ProductStore().add(itemName, rate);
+                      setState(() {});
+                    }
+                  },
                 ),
-                onPressed: () async {
-                  final result = await Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => SelectItemsScreen()),
-                  );
-
-                  if (result != null && result['itemName'] != null) {
-                    final itemName = result['itemName'];
-                    final rate = result['rate'] ?? 0.0;
-
-                    ProductStore().add(itemName, rate);
-                    setState(() {});
-                  }
-                },
               ),
             ),
           ),
@@ -232,12 +244,15 @@ class _NavBarPageState extends State<NavBarPage>
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
-        title: Text(
-          _titles[_currentIndex],
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 32,
+        title: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            _titles[_currentIndex],
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 32,
+            ),
           ),
         ),
         centerTitle: true,
@@ -258,6 +273,7 @@ class _NavBarPageState extends State<NavBarPage>
                   Padding(
                     padding: const EdgeInsets.only(right: 10.0, bottom: 10),
                     child: Container(
+                      constraints: BoxConstraints(maxWidth: 150),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(32),
                         gradient: LinearGradient(
@@ -287,8 +303,8 @@ class _NavBarPageState extends State<NavBarPage>
                           },
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
+                              horizontal: 12,
+                              vertical: 8,
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
@@ -298,14 +314,16 @@ class _NavBarPageState extends State<NavBarPage>
                                   color: Colors.white,
                                   size: 18,
                                 ),
-                                SizedBox(width: 10),
-                                Text(
-                                  "Calendar",
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 15,
-                                    letterSpacing: 0.6,
+                                SizedBox(width: 6),
+                                Flexible(
+                                  child: Text(
+                                    "Calendar",
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 14,
+                                      letterSpacing: 0.6,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -318,15 +336,27 @@ class _NavBarPageState extends State<NavBarPage>
                 ]
                 : null,
       ),
-      body: Stack(
-        children: [
-          _pages[_currentIndex],
-          _buildAddSaleButton(),
-          _buildAddItemButton(),
-        ],
+      body: SafeArea(
+        child: Stack(
+          children: [
+            _pages[_currentIndex],
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Column(
+                children: [_buildAddSaleButton(), _buildAddItemButton()],
+              ),
+            ),
+          ],
+        ),
       ),
       bottomNavigationBar: Container(
-        margin: EdgeInsets.all(12),
+        margin: EdgeInsets.symmetric(
+          horizontal: MediaQuery.of(context).size.width * 0.05,
+          vertical: 8,
+        ),
+        constraints: BoxConstraints(maxWidth: 500),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
@@ -338,43 +368,66 @@ class _NavBarPageState extends State<NavBarPage>
             ),
           ],
         ),
-        child: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: (int newIndex) async {
-            setState(() {
-              _currentIndex = newIndex;
-              _animationController.reset();
-              _animationController.forward();
-            });
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: BottomNavigationBar(
+            currentIndex: _currentIndex,
+            onTap: (int newIndex) async {
+              setState(() {
+                _currentIndex = newIndex;
+                _animationController.reset();
+                _animationController.forward();
+              });
 
-            if (newIndex == 3) {
-              await Future.delayed(Duration(milliseconds: 100));
-              setState(() {});
-            }
-          },
-          backgroundColor: Colors.transparent,
-          type: BottomNavigationBarType.fixed,
-          elevation: 0,
-          selectedItemColor: Color(0xFF1A237E),
-          unselectedItemColor: Colors.grey,
-          showSelectedLabels: true,
-          showUnselectedLabels: false,
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.dashboard),
-              label: 'Dashboard',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.group),
-              label: 'Customers',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.inventory),
-              label: 'Packages',
-            ),
-            BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-          ],
+              if (newIndex == 3) {
+                await Future.delayed(Duration(milliseconds: 100));
+                setState(() {});
+              }
+            },
+            backgroundColor: Colors.transparent,
+            type: BottomNavigationBarType.fixed,
+            elevation: 0,
+            selectedItemColor: Color(0xFF1A237E),
+            unselectedItemColor: Colors.grey,
+            showSelectedLabels: false,
+            showUnselectedLabels: false,
+            items: [
+              BottomNavigationBarItem(
+                icon: Icon(
+                  _currentIndex == 0 ? Icons.home : Icons.home_outlined,
+                ),
+                label: '',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(
+                  _currentIndex == 1
+                      ? Icons.dashboard
+                      : Icons.dashboard_outlined,
+                ),
+                label: '',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(
+                  _currentIndex == 2 ? Icons.group : Icons.group_outlined,
+                ),
+                label: '',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(
+                  _currentIndex == 3
+                      ? Icons.inventory
+                      : Icons.inventory_2_outlined,
+                ),
+                label: '',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(
+                  _currentIndex == 4 ? Icons.person : Icons.person_outline,
+                ),
+                label: '',
+              ),
+            ],
+          ),
         ),
       ),
     );
