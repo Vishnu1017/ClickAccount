@@ -21,12 +21,8 @@ class NavBarPage extends StatefulWidget {
   State<NavBarPage> createState() => _NavBarPageState();
 }
 
-class _NavBarPageState extends State<NavBarPage>
-    with SingleTickerProviderStateMixin {
+class _NavBarPageState extends State<NavBarPage> {
   int _currentIndex = 0;
-  late AnimationController _animationController;
-  late Animation<Offset> _slideAnimation;
-  late Animation<double> _fadeAnimation;
 
   final List<String> _titles = [
     "Home",
@@ -43,37 +39,6 @@ class _NavBarPageState extends State<NavBarPage>
     ProductsPage(),
     ProfilePage(user: widget.user),
   ];
-
-  @override
-  void initState() {
-    super.initState();
-
-    _animationController = AnimationController(
-      vsync: this,
-      duration: Duration(milliseconds: 500),
-    );
-
-    _slideAnimation = Tween<Offset>(
-      begin: Offset(0, 1),
-      end: Offset(0, 0),
-    ).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeOutBack),
-    );
-
-    _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeIn),
-    );
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _animationController.forward();
-    });
-  }
-
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
-  }
 
   Widget _buildAddSaleButton() {
     if (![_currentIndex].contains(0) &&
@@ -93,72 +58,66 @@ class _NavBarPageState extends State<NavBarPage>
       alignment: Alignment.bottomCenter,
       child: Padding(
         padding: EdgeInsets.only(bottom: 16.0, left: 16.0, right: 16.0),
-        child: SlideTransition(
-          position: _slideAnimation,
-          child: FadeTransition(
-            opacity: _fadeAnimation,
-            child: SizedBox(
-              width: double.infinity,
-              child: Container(
-                constraints: BoxConstraints(maxWidth: 500),
-                height: 55,
+        child: SizedBox(
+          width: double.infinity,
+          child: Container(
+            constraints: BoxConstraints(maxWidth: 500),
+            height: 55,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(28),
+              gradient: LinearGradient(
+                colors: [Color(0xFF1A237E), Color(0xFF00BCD4)],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              ),
+            ),
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => NewSaleScreen()),
+                );
+              },
+              icon: Container(
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(28),
+                  shape: BoxShape.circle,
                   gradient: LinearGradient(
-                    colors: [Color(0xFF1A237E), Color(0xFF00BCD4)],
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
+                    colors: [Colors.white, Colors.white70],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
+                  border: Border.all(
+                    color: Colors.deepPurple.shade100,
+                    width: 2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.white.withOpacity(0.3),
+                      blurRadius: 5,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
                 ),
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => NewSaleScreen()),
-                    );
-                  },
-                  icon: Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        colors: [Colors.white, Colors.white70],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      border: Border.all(
-                        color: Colors.deepPurple.shade100,
-                        width: 2,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.white.withOpacity(0.3),
-                          blurRadius: 5,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    padding: EdgeInsets.all(5),
-                    child: Icon(
-                      Icons.currency_rupee,
-                      color: Color(0xFF1A237E),
-                      size: 20,
-                    ),
-                  ),
-                  label: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      labelText,
-                      style: TextStyle(color: Colors.white, fontSize: 16),
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    shadowColor: Colors.transparent,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(28),
-                    ),
-                  ),
+                padding: EdgeInsets.all(5),
+                child: Icon(
+                  Icons.currency_rupee,
+                  color: Color(0xFF1A237E),
+                  size: 20,
+                ),
+              ),
+              label: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  labelText,
+                  style: TextStyle(color: Colors.white, fontSize: 16),
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(28),
                 ),
               ),
             ),
@@ -175,63 +134,53 @@ class _NavBarPageState extends State<NavBarPage>
       alignment: Alignment.bottomCenter,
       child: Padding(
         padding: EdgeInsets.only(bottom: 16.0, left: 16.0, right: 16.0),
-        child: SlideTransition(
-          position: _slideAnimation,
-          child: FadeTransition(
-            opacity: _fadeAnimation,
-            child: SizedBox(
-              width: double.infinity,
-              child: Container(
-                constraints: BoxConstraints(maxWidth: 500),
-                height: 55,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(28),
-                  gradient: LinearGradient(
-                    colors: [Color(0xFF1A237E), Color(0xFF00BCD4)],
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                  ),
-                ),
-                child: ElevatedButton.icon(
-                  icon: Icon(
-                    Icons.add_box_rounded,
+        child: SizedBox(
+          width: double.infinity,
+          child: Container(
+            constraints: BoxConstraints(maxWidth: 500),
+            height: 55,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(28),
+              gradient: LinearGradient(
+                colors: [Color(0xFF1A237E), Color(0xFF00BCD4)],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              ),
+            ),
+            child: ElevatedButton.icon(
+              icon: Icon(Icons.add_box_rounded, color: Colors.white, size: 26),
+              label: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  'Add Packages',
+                  style: TextStyle(
                     color: Colors.white,
-                    size: 26,
+                    fontWeight: FontWeight.bold,
                   ),
-                  label: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      'Add Packages',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    shadowColor: Colors.transparent,
-                    padding: EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(28),
-                    ),
-                  ),
-                  onPressed: () async {
-                    final result = await Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => SelectItemsScreen()),
-                    );
-
-                    if (result != null && result['itemName'] != null) {
-                      final itemName = result['itemName'];
-                      final rate = result['rate'] ?? 0.0;
-
-                      ProductStore().add(itemName, rate);
-                      setState(() {});
-                    }
-                  },
                 ),
               ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                padding: EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(28),
+                ),
+              ),
+              onPressed: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => SelectItemsScreen()),
+                );
+
+                if (result != null && result['itemName'] != null) {
+                  final itemName = result['itemName'];
+                  final rate = result['rate'] ?? 0.0;
+
+                  ProductStore().add(itemName, rate);
+                  setState(() {});
+                }
+              },
             ),
           ),
         ),
@@ -339,7 +288,13 @@ class _NavBarPageState extends State<NavBarPage>
       body: SafeArea(
         child: Stack(
           children: [
-            _pages[_currentIndex],
+            AnimatedSwitcher(
+              duration: Duration(milliseconds: 300),
+              child: _pages[_currentIndex],
+              transitionBuilder: (Widget child, Animation<double> animation) {
+                return FadeTransition(opacity: animation, child: child);
+              },
+            ),
             Positioned(
               bottom: 0,
               left: 0,
@@ -375,10 +330,7 @@ class _NavBarPageState extends State<NavBarPage>
             onTap: (int newIndex) async {
               setState(() {
                 _currentIndex = newIndex;
-                _animationController.reset();
-                _animationController.forward();
               });
-
               if (newIndex == 3) {
                 await Future.delayed(Duration(milliseconds: 100));
                 setState(() {});
@@ -393,37 +345,28 @@ class _NavBarPageState extends State<NavBarPage>
             showUnselectedLabels: false,
             items: [
               BottomNavigationBarItem(
-                icon: Icon(
-                  _currentIndex == 0 ? Icons.home : Icons.home_outlined,
-                ),
+                icon: Icon(Icons.home_outlined),
+                activeIcon: Icon(Icons.home),
                 label: '',
               ),
               BottomNavigationBarItem(
-                icon: Icon(
-                  _currentIndex == 1
-                      ? Icons.dashboard
-                      : Icons.dashboard_outlined,
-                ),
+                icon: Icon(Icons.dashboard_outlined),
+                activeIcon: Icon(Icons.dashboard),
                 label: '',
               ),
               BottomNavigationBarItem(
-                icon: Icon(
-                  _currentIndex == 2 ? Icons.group : Icons.group_outlined,
-                ),
+                icon: Icon(Icons.group_outlined),
+                activeIcon: Icon(Icons.group),
                 label: '',
               ),
               BottomNavigationBarItem(
-                icon: Icon(
-                  _currentIndex == 3
-                      ? Icons.inventory
-                      : Icons.inventory_2_outlined,
-                ),
+                icon: Icon(Icons.inventory_2_outlined),
+                activeIcon: Icon(Icons.inventory),
                 label: '',
               ),
               BottomNavigationBarItem(
-                icon: Icon(
-                  _currentIndex == 4 ? Icons.person : Icons.person_outline,
-                ),
+                icon: Icon(Icons.person_outline),
+                activeIcon: Icon(Icons.person),
                 label: '',
               ),
             ],

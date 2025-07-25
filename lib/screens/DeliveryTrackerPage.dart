@@ -52,7 +52,6 @@ class _DeliveryTrackerPageState extends State<DeliveryTrackerPage> {
             : 'Link not available';
     final phone = widget.sale.phoneNumber.replaceAll(' ', '');
 
-    // ONLY ADDITION: Phone number validation (10 digits minimum)
     if (phone.length < 10 || !RegExp(r'^[0-9]+$').hasMatch(phone)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Please enter a valid 10-digit phone number")),
@@ -79,11 +78,9 @@ class _DeliveryTrackerPageState extends State<DeliveryTrackerPage> {
           "Shutter Life Photography";
     }
 
-    // BOTH URL FORMATS (original + new with country code)
     final url1 = "https://wa.me/$phone?text=${Uri.encodeComponent(message)}";
     final url2 = "https://wa.me/91$phone?text=${Uri.encodeComponent(message)}";
 
-    // Try both URLs
     canLaunchUrl(Uri.parse(url1)).then((canLaunch) {
       if (canLaunch) {
         launchUrl(Uri.parse(url1), mode: LaunchMode.externalApplication);
@@ -99,6 +96,11 @@ class _DeliveryTrackerPageState extends State<DeliveryTrackerPage> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isSmallScreen = screenWidth < 600;
+    final isPortrait = screenHeight > screenWidth;
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: PreferredSize(
@@ -122,7 +124,7 @@ class _DeliveryTrackerPageState extends State<DeliveryTrackerPage> {
               style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
-                fontSize: 20,
+                fontSize: isSmallScreen ? 18 : 20,
               ),
             ),
           ),
@@ -138,214 +140,155 @@ class _DeliveryTrackerPageState extends State<DeliveryTrackerPage> {
           ),
         ),
         child: Center(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(24),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
-              child: Container(
-                margin: EdgeInsets.symmetric(horizontal: 20, vertical: 100),
-                padding: EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: Colors.white30, width: 1.5),
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: EdgeInsets.only(
+                top: MediaQuery.of(context).padding.top + kToolbarHeight + 20,
+                bottom: isSmallScreen ? 12 : 20,
+                left: isSmallScreen ? 12 : 20,
+                right: isSmallScreen ? 12 : 20,
+              ),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: isSmallScreen ? double.infinity : 600,
                 ),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // 🎯 Stepper Timeline
-                      MediaQuery.removePadding(
-                        context: context,
-                        removeTop: true,
-                        child: Theme(
-                          data: Theme.of(context).copyWith(
-                            colorScheme: ColorScheme.light(
-                              primary: Colors.white,
-                              onSurface: Colors.white54,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+                    child: Container(
+                      padding: EdgeInsets.all(isSmallScreen ? 16 : 20),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: Colors.white30, width: 1.5),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Stepper Timeline - Responsive version
+                          _buildResponsiveStepper(isSmallScreen, isPortrait),
+                          SizedBox(height: isSmallScreen ? 10 : 20),
+
+                          // Status Dropdown
+                          DropdownButtonFormField<String>(
+                            value: _selectedStatus,
+                            decoration: InputDecoration(
+                              labelText: 'Delivery Status',
+                              labelStyle: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                                fontSize: isSmallScreen ? 14 : 16,
+                              ),
+                              filled: true,
+                              fillColor: Colors.white.withOpacity(0.05),
+                              contentPadding: EdgeInsets.symmetric(
+                                vertical: isSmallScreen ? 14 : 18,
+                                horizontal: isSmallScreen ? 12 : 16,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide(
+                                  color: Colors.white.withOpacity(0.2),
+                                  width: 1.2,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide(
+                                  color: Colors.white,
+                                  width: 1.5,
+                                ),
+                              ),
                             ),
-                          ),
-                          child: Stepper(
-                            currentStep: getCurrentStepIndex(),
-                            controlsBuilder: (context, _) => SizedBox.shrink(),
-                            physics: NeverScrollableScrollPhysics(),
-                            steps:
+                            dropdownColor: Colors.white,
+                            iconEnabledColor: Colors.white,
+                            icon: Icon(
+                              Icons.keyboard_arrow_down_rounded,
+                              size: isSmallScreen ? 24 : 28,
+                            ),
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: isSmallScreen ? 14 : 16,
+                            ),
+                            items:
                                 statuses.map((status) {
-                                  final index = statuses.indexOf(status);
-                                  return Step(
-                                    title: Text(
+                                  return DropdownMenuItem<String>(
+                                    value: status,
+                                    child: Text(
                                       status,
                                       style: TextStyle(
+                                        color: Colors.black,
                                         fontWeight: FontWeight.w700,
-                                        color:
-                                            index <= getCurrentStepIndex()
-                                                ? Colors.white
-                                                : Colors.white60,
+                                        fontSize: isSmallScreen ? 13 : 14,
                                       ),
                                     ),
-                                    content: SizedBox.shrink(),
-                                    isActive: index <= getCurrentStepIndex(),
-                                    state:
-                                        index < getCurrentStepIndex()
-                                            ? StepState.complete
-                                            : index == getCurrentStepIndex()
-                                            ? StepState.editing
-                                            : StepState.indexed,
                                   );
                                 }).toList(),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 10),
-                      // 🔽 Status Dropdown
-                      DropdownButtonFormField<String>(
-                        value: _selectedStatus,
-                        decoration: InputDecoration(
-                          labelText: 'Delivery Status',
-                          labelStyle: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          filled: true,
-                          fillColor: Colors.white.withOpacity(0.05),
-                          contentPadding: EdgeInsets.symmetric(
-                            vertical: 18,
-                            horizontal: 16,
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide(
-                              color: Colors.white.withOpacity(0.2),
-                              width: 1.2,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide(
-                              color: Colors.white,
-                              width: 1.5,
-                            ),
-                          ),
-                        ),
-                        dropdownColor: Colors.white,
-                        iconEnabledColor: Colors.white,
-                        icon: Icon(Icons.keyboard_arrow_down_rounded, size: 28),
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                        items:
-                            statuses.map((status) {
-                              return DropdownMenuItem<String>(
-                                value: status,
-                                child: Text(
+                            selectedItemBuilder: (BuildContext context) {
+                              return statuses.map((status) {
+                                return Text(
                                   status,
                                   style: TextStyle(
-                                    color: Colors.black,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 14,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: isSmallScreen ? 14 : 16,
                                   ),
-                                ),
-                              );
-                            }).toList(),
-                        selectedItemBuilder: (BuildContext context) {
-                          return statuses.map((status) {
-                            return Text(
-                              status,
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            );
-                          }).toList();
-                        },
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedStatus = value!;
-                          });
-                        },
-                      ),
-                      SizedBox(height: 20),
+                                );
+                              }).toList();
+                            },
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedStatus = value!;
+                              });
+                            },
+                          ),
+                          SizedBox(height: isSmallScreen ? 15 : 20),
 
-                      // 🔗 Link Field
-                      TextFormField(
-                        controller: _linkController,
-                        style: TextStyle(color: Colors.white),
-                        decoration: InputDecoration(
-                          labelText: 'Google Drive / Download Link',
-                          labelStyle: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          filled: true,
-                          fillColor: Colors.white.withOpacity(0.05),
-                          contentPadding: EdgeInsets.symmetric(
-                            vertical: 18,
-                            horizontal: 16,
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide(
-                              color: Colors.white.withOpacity(0.2),
-                              width: 1.2,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide(
+                          // Link Field
+                          TextFormField(
+                            controller: _linkController,
+                            style: TextStyle(
                               color: Colors.white,
-                              width: 1.5,
+                              fontSize: isSmallScreen ? 14 : 16,
                             ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 30),
-                      // Buttons
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: _saveDeliveryDetails,
-                              icon: Icon(Icons.save, color: Colors.white),
-                              label: Text(
-                                "Save",
-                                style: TextStyle(color: Colors.white),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Color(0xFF1A237E),
-                                padding: EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: 12),
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: _sendWhatsApp,
-                              icon: FaIcon(
-                                FontAwesomeIcons.whatsapp,
+                            decoration: InputDecoration(
+                              labelText: 'Google Drive / Download Link',
+                              labelStyle: TextStyle(
                                 color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                                fontSize: isSmallScreen ? 14 : 16,
                               ),
-                              label: Text(
-                                "WhatsApp",
-                                style: TextStyle(color: Colors.white),
+                              filled: true,
+                              fillColor: Colors.white.withOpacity(0.05),
+                              contentPadding: EdgeInsets.symmetric(
+                                vertical: isSmallScreen ? 14 : 18,
+                                horizontal: isSmallScreen ? 12 : 16,
                               ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green.shade700,
-                                padding: EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide(
+                                  color: Colors.white.withOpacity(0.2),
+                                  width: 1.2,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide(
+                                  color: Colors.white,
+                                  width: 1.5,
                                 ),
                               ),
                             ),
                           ),
+                          SizedBox(height: isSmallScreen ? 20 : 30),
+
+                          // Responsive Buttons
+                          _buildResponsiveButtons(isSmallScreen),
                         ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -353,6 +296,159 @@ class _DeliveryTrackerPageState extends State<DeliveryTrackerPage> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildResponsiveStepper(bool isSmallScreen, bool isPortrait) {
+    if (isSmallScreen && !isPortrait) {
+      // Horizontal stepper for landscape on small screens
+      return SizedBox(
+        height: 100,
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          itemCount: statuses.length,
+          itemBuilder: (context, index) {
+            return Container(
+              width: 150,
+              padding: EdgeInsets.all(8),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color:
+                          index <= getCurrentStepIndex()
+                              ? Colors.white
+                              : Colors.white.withOpacity(0.3),
+                    ),
+                    child:
+                        index < getCurrentStepIndex()
+                            ? Icon(Icons.check, size: 16, color: Colors.black)
+                            : null,
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    statuses[index],
+                    style: TextStyle(
+                      color:
+                          index <= getCurrentStepIndex()
+                              ? Colors.white
+                              : Colors.white60,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      );
+    } else {
+      // Vertical stepper for most cases
+      return MediaQuery.removePadding(
+        context: context,
+        removeTop: true,
+        child: Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: Colors.white,
+              onSurface: Colors.white54,
+            ),
+          ),
+          child: Stepper(
+            currentStep: getCurrentStepIndex(),
+            controlsBuilder: (context, _) => SizedBox.shrink(),
+            physics: NeverScrollableScrollPhysics(),
+            steps:
+                statuses.map((status) {
+                  final index = statuses.indexOf(status);
+                  return Step(
+                    title: Text(
+                      status,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color:
+                            index <= getCurrentStepIndex()
+                                ? Colors.white
+                                : Colors.white60,
+                        fontSize: isSmallScreen ? 14 : 16,
+                      ),
+                    ),
+                    content: SizedBox.shrink(),
+                    isActive: index <= getCurrentStepIndex(),
+                    state:
+                        index < getCurrentStepIndex()
+                            ? StepState.complete
+                            : index == getCurrentStepIndex()
+                            ? StepState.editing
+                            : StepState.indexed,
+                  );
+                }).toList(),
+          ),
+        ),
+      );
+    }
+  }
+
+  Widget _buildResponsiveButtons(bool isSmallScreen) {
+    return Row(
+      children: [
+        Expanded(
+          child: ElevatedButton.icon(
+            onPressed: _saveDeliveryDetails,
+            icon: Icon(
+              Icons.save,
+              color: Colors.white,
+              size: isSmallScreen ? 18 : 24,
+            ),
+            label: Text(
+              "Save",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: isSmallScreen ? 14 : 16,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Color(0xFF1A237E),
+              padding: EdgeInsets.symmetric(vertical: isSmallScreen ? 12 : 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+          ),
+        ),
+        SizedBox(width: isSmallScreen ? 8 : 12),
+        Expanded(
+          child: ElevatedButton.icon(
+            onPressed: _sendWhatsApp,
+            icon: FaIcon(
+              FontAwesomeIcons.whatsapp,
+              color: Colors.white,
+              size: isSmallScreen ? 18 : 20,
+            ),
+            label: Text(
+              "WhatsApp",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: isSmallScreen ? 14 : 16,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green.shade700,
+              padding: EdgeInsets.symmetric(vertical: isSmallScreen ? 12 : 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
