@@ -21,7 +21,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
   late TextEditingController amountController;
   late TextEditingController totalAmountController;
   bool isFullyPaid = false;
-  String _selectedMode = 'Cash'; // default fallback
+  String _selectedMode = 'Cash';
   final List<String> _paymentModes = [
     'Cash',
     'UPI',
@@ -30,6 +30,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
     'Cheque',
     'Wallet',
   ];
+
   IconData _getIconForMode(String mode) {
     switch (mode) {
       case 'Cash':
@@ -63,39 +64,32 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
     );
     _selectedMode =
         widget.sale.paymentMode.isNotEmpty ? widget.sale.paymentMode : 'Cash';
+    isFullyPaid = widget.sale.amount >= widget.sale.totalAmount;
   }
 
   void saveChanges() async {
     final box = Hive.box<Sale>('sales');
-
-    // Create a new Payment object from current inputs
     final newPayment = Payment(
       amount: double.tryParse(amountController.text) ?? 0,
       date: DateTime.now(),
       mode: _selectedMode,
     );
 
-    // Build the updated Sale with the new payment prepended to the old ones
     final updatedSale = Sale(
       customerName: customerController.text,
       phoneNumber: phoneController.text,
       productName: productController.text,
-      amount: newPayment.amount, // ✅ Store received amount
+      amount: newPayment.amount,
       totalAmount: double.tryParse(totalAmountController.text) ?? 0,
-      dateTime: widget.sale.dateTime, // ✅ Preserve original date
-      paymentMode: _selectedMode, // ✅ Save current selected mode
+      dateTime: widget.sale.dateTime,
+      paymentMode: _selectedMode,
       deliveryStatus: widget.sale.deliveryStatus,
       deliveryLink: widget.sale.deliveryLink,
-      paymentHistory: [
-        newPayment, // ✅ New payment at the top
-        ...widget.sale.paymentHistory, // ✅ Preserve existing history
-      ],
+      paymentHistory: [newPayment, ...widget.sale.paymentHistory],
     );
 
-    // Save updated sale at correct index in Hive
     await box.putAt(widget.index, updatedSale);
 
-    // Optionally show success feedback
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text("✅ Sale updated successfully!"),
@@ -106,7 +100,6 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
       ),
     );
 
-    // Close the screen after short delay
     await Future.delayed(Duration(milliseconds: 500));
     Navigator.pop(context);
   }
@@ -204,7 +197,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                 ),
                 SizedBox(height: 30),
 
-                // 🧾 Summary Section
+                // Fixed Checkbox Section
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -233,70 +226,123 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          children: [
-                            Checkbox(
-                              value: isFullyPaid,
-                              onChanged: (val) {
-                                setState(() {
-                                  isFullyPaid = val!;
-                                  if (isFullyPaid) {
-                                    amountController.text =
-                                        totalAmountController.text;
-                                  } else {
-                                    amountController.clear();
-                                  }
-                                });
-                              },
-                            ),
-                            Text(
-                              "Received",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                                color: Colors.black87,
-                              ),
-                            ),
-                          ],
-                        ),
-                        isFullyPaid
-                            ? Text(
-                              "₹ ${(double.tryParse(totalAmountController.text) ?? 0).toStringAsFixed(2)}",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                                color: Colors.green[700],
-                              ),
-                            )
-                            : Container(
-                              width: 100,
-                              height: 40,
-                              child: TextFormField(
-                                controller: amountController,
-                                keyboardType: TextInputType.number,
-                                textAlign: TextAlign.end,
-                                decoration: InputDecoration(
-                                  hintText: "Enter",
-                                  hintStyle: TextStyle(
-                                    color: Colors.green.shade400,
-                                  ),
-                                  prefixIcon: Icon(
-                                    Icons.currency_rupee,
-                                    color: Colors.green.shade700,
-                                  ),
-                                  border: InputBorder.none,
-                                  contentPadding: EdgeInsets.symmetric(
-                                    vertical: 12,
+                        GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              isFullyPaid = !isFullyPaid;
+                              if (isFullyPaid) {
+                                amountController.text =
+                                    totalAmountController.text;
+                              } else {
+                                amountController.clear();
+                              }
+                            });
+                          },
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // Clickable Checkbox Only
+                              MouseRegion(
+                                cursor: SystemMouseCursors.click,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      isFullyPaid = !isFullyPaid;
+                                      if (isFullyPaid) {
+                                        amountController.text =
+                                            totalAmountController.text;
+                                      } else {
+                                        amountController.clear();
+                                      }
+                                    });
+                                  },
+                                  child: AnimatedContainer(
+                                    duration: Duration(milliseconds: 200),
+                                    width: 24,
+                                    height: 24,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(4),
+                                      border: Border.all(
+                                        color:
+                                            isFullyPaid
+                                                ? Colors.green
+                                                : Colors.grey,
+                                        width: 1.5,
+                                      ),
+                                      color:
+                                          isFullyPaid
+                                              ? Colors.green
+                                              : Colors.transparent,
+                                    ),
+                                    child:
+                                        isFullyPaid
+                                            ? Icon(
+                                              Icons.check,
+                                              size: 18,
+                                              color: Colors.white,
+                                            )
+                                            : null,
                                   ),
                                 ),
+                              ),
+                              SizedBox(width: 8),
+                              // Non-clickable Text Label
+                              Text(
+                                "Received",
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 14,
-                                  color: Colors.green[700],
+                                  color: Colors.black87,
                                 ),
-                                onChanged: (_) => setState(() {}),
                               ),
-                            ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          width: 100, // Fixed width to match both states
+                          height: 40, // Fixed height to match both states
+                          alignment:
+                              Alignment.centerRight, // Consistent alignment
+                          child:
+                              isFullyPaid
+                                  ? Text(
+                                    "₹ ${(double.tryParse(totalAmountController.text) ?? 0).toStringAsFixed(2)}",
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                      color: Colors.green[700],
+                                    ),
+                                    textAlign:
+                                        TextAlign.end, // Align text to end
+                                  )
+                                  : TextFormField(
+                                    controller: amountController,
+                                    keyboardType: TextInputType.number,
+                                    textAlign: TextAlign.end,
+                                    decoration: InputDecoration(
+                                      isDense: true, // Reduces internal padding
+                                      hintText: "Enter",
+                                      hintStyle: TextStyle(
+                                        color: Colors.green.shade400,
+                                      ),
+                                      prefixIcon: Icon(
+                                        Icons.currency_rupee,
+                                        color: Colors.green.shade700,
+                                        size: 20, // Consistent icon size
+                                      ),
+                                      border: InputBorder.none,
+                                      contentPadding: EdgeInsets.symmetric(
+                                        vertical: 12,
+                                      ),
+                                    ),
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                      color: Colors.green[700],
+                                    ),
+                                    onChanged: (_) => setState(() {}),
+                                  ),
+                        ),
                       ],
                     ),
                     Divider(),
@@ -411,7 +457,6 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
 
                 SizedBox(height: 30),
 
-                // 💾 Save Button
                 Container(
                   width: double.infinity,
                   decoration: BoxDecoration(

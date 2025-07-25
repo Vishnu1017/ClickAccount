@@ -471,7 +471,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
       amount: newPayment.amount,
       totalAmount: double.tryParse(totalAmountController.text) ?? 0,
       dateTime: selectedDate,
-      deliveryStatus: 'Editing',
+      deliveryStatus: 'All Non Editing Images',
       paymentHistory: [newPayment],
     );
 

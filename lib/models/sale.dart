@@ -43,7 +43,7 @@ class Sale extends HiveObject {
     required this.phoneNumber,
     required this.totalAmount,
     List<Payment>? paymentHistory,
-    this.deliveryStatus = 'Editing',
+    this.deliveryStatus = 'All Non Editing Images',
     this.deliveryLink = '',
     this.paymentMode = 'Cash',
   }) : paymentHistory = paymentHistory ?? [];
