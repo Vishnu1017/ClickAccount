@@ -168,17 +168,24 @@ class _NavBarPageState extends State<NavBarPage> {
                 ),
               ),
               onPressed: () async {
-                final result = await Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => SelectItemsScreen()),
-                );
+                bool continueAdding = true;
 
-                if (result != null && result['itemName'] != null) {
-                  final itemName = result['itemName'];
-                  final rate = result['rate'] ?? 0.0;
+                while (continueAdding) {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => SelectItemsScreen()),
+                  );
 
-                  ProductStore().add(itemName, rate);
-                  setState(() {});
+                  if (result != null && result['itemName'] != null) {
+                    final itemName = result['itemName'];
+                    final rate = result['rate'] ?? 0.0;
+
+                    ProductStore().add(itemName, rate);
+                    setState(() {});
+                  }
+
+                  // Decide if user tapped "Save & New"
+                  continueAdding = result != null && result['continue'] == true;
                 }
               },
             ),
