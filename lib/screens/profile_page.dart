@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:hive/hive.dart';
@@ -12,7 +11,7 @@ import 'login_screen.dart';
 class ProfilePage extends StatefulWidget {
   final User user;
 
-  const ProfilePage({Key? key, required this.user}) : super(key: key);
+  const ProfilePage({super.key, required this.user});
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();

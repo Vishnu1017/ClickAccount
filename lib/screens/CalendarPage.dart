@@ -5,6 +5,8 @@ import 'package:click_account/models/sale.dart';
 import 'package:hive/hive.dart';
 
 class CalendarPage extends StatefulWidget {
+  const CalendarPage({super.key});
+
   @override
   _CalendarPageState createState() => _CalendarPageState();
 }

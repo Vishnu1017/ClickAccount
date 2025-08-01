@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:click_account/models/user_model.dart';
 import 'package:click_account/screens/nav_bar_page.dart';
-import 'package:flutter/animation.dart';
 
 class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
   @override
   _LoginScreenState createState() => _LoginScreenState();
 }

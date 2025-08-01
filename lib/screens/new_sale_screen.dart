@@ -700,7 +700,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                     .asMap()
                     .entries
                     .map((entry) => buildItemCard(entry.key, entry.value))
-                    .toList(),
+                    ,
                 Divider(),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,

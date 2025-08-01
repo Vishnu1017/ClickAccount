@@ -19,6 +19,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+
   @override
   State<HomePage> createState() => _HomePageState();
 }
@@ -230,20 +232,13 @@ class _HomePageState extends State<HomePage>
                                     alignment: Alignment.centerRight,
                                     child: Builder(
                                       builder: (context) {
-                                        final bool isFullyPaid =
-                                            sale.amount >= sale.totalAmount;
-                                        final bool isPartiallyPaid =
-                                            sale.amount > 0 &&
-                                            sale.amount < sale.totalAmount;
+                                        final bool isFullyPaid = sale.amount >= sale.totalAmount;
+                                        final bool isPartiallyPaid = sale.amount > 0 && sale.amount < sale.totalAmount;
                                         final bool isUnpaid = sale.amount == 0;
 
-                                        final bool isDueOver7Days =
-                                            isUnpaid &&
+                                        final bool isDueOver7Days = isUnpaid &&
                                             sale.dateTime != null &&
-                                            DateTime.now()
-                                                    .difference(sale.dateTime)
-                                                    .inDays >
-                                                7;
+                                            DateTime.now().difference(sale.dateTime).inDays > 7;
 
                                         String label = '';
                                         Color badgeColor = Colors.orange[700]!;
@@ -258,23 +253,29 @@ class _HomePageState extends State<HomePage>
                                           label = "SALE : DUE";
                                           badgeColor = Colors.orange[700]!;
 
-                                          final due =
-                                              sale.totalAmount - sale.amount;
-                                          final phone =
-                                              sale.phoneNumber
-                                                  .replaceAll('+91', '')
-                                                  .trim();
-                                          final msg =
-                                              "Hello ${sale.customerName}, your payment of ₹${due.toStringAsFixed(2)} is overdue for more than 7 days. Please make the payment at the earliest. - Shutter Life Photography";
-                                          if (phone != null &&
-                                              phone.isNotEmpty) {
-                                            WidgetsBinding.instance
-                                                .addPostFrameCallback((_) {
-                                                  WhatsAppHelper.sendWhatsAppMessage(
-                                                    phone: phone,
-                                                    message: msg,
-                                                  );
-                                                });
+                                          final due = sale.totalAmount - sale.amount;
+                                          final phone = sale.phoneNumber.trim();
+
+                                          final cleanedPhone = phone.replaceAll(RegExp(r'[^0-9]'), '');
+
+                                          if (cleanedPhone.length == 10 ||
+                                              (cleanedPhone.length == 12 && cleanedPhone.startsWith('91'))) {
+                                            final effectivePhone = cleanedPhone.length == 12
+                                                ? cleanedPhone.substring(2)
+                                                : cleanedPhone;
+
+                                            final msg =
+                                                "Hello ${sale.customerName}, your payment of ₹${due.toStringAsFixed(2)} is overdue for more than 7 days. Please make the payment at the earliest. - Shutter Life Photography";
+
+                                            // Use a delayed microtask to avoid triggering during widget build
+                                            Future.microtask(() {
+                                              WhatsAppHelper.sendWhatsAppMessage(
+                                                phone: effectivePhone,
+                                                message: msg,
+                                              );
+                                            });
+                                          } else {
+                                            debugPrint('Invalid phone number: $phone');
                                           }
                                         } else {
                                           label = "SALE : PARTIAL";
@@ -285,19 +286,13 @@ class _HomePageState extends State<HomePage>
                                           alignment: Alignment.centerRight,
                                           child: Container(
                                             margin: EdgeInsets.only(top: 6),
-                                            padding: EdgeInsets.symmetric(
-                                              horizontal: 12,
-                                              vertical: 5,
-                                            ),
+                                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                                             decoration: BoxDecoration(
                                               color: badgeColor,
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
+                                              borderRadius: BorderRadius.circular(12),
                                               boxShadow: [
                                                 BoxShadow(
-                                                  color: badgeColor.withOpacity(
-                                                    0.3,
-                                                  ),
+                                                  color: badgeColor.withOpacity(0.3),
                                                   blurRadius: 4,
                                                   offset: Offset(0, 2),
                                                 ),
@@ -632,7 +627,7 @@ class _HomePageState extends State<HomePage>
                                                             ),
                                                           ),
                                                           pw.Text(
-                                                            '${sale.customerName}',
+                                                            sale.customerName,
                                                           ),
                                                           pw.Text(
                                                             'Contact No.: ${sale.phoneNumber}',

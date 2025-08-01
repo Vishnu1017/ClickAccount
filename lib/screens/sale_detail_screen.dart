@@ -8,7 +8,7 @@ class SaleDetailScreen extends StatefulWidget {
   final Sale sale;
   final int index;
 
-  const SaleDetailScreen({required this.sale, required this.index});
+  const SaleDetailScreen({super.key, required this.sale, required this.index});
 
   @override
   State<SaleDetailScreen> createState() => _SaleDetailScreenState();

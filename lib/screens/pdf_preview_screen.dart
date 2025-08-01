@@ -8,7 +8,7 @@ class PdfPreviewScreen extends StatelessWidget {
   final String filePath;
   final Sale sale;
 
-  const PdfPreviewScreen({required this.filePath, required this.sale});
+  const PdfPreviewScreen({super.key, required this.filePath, required this.sale});
 
   @override
   Widget build(BuildContext context) {

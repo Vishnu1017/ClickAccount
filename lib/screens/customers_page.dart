@@ -1,10 +1,18 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/sale.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class CustomersPage extends StatefulWidget {
+  const CustomersPage({super.key});
+
   @override
   State<CustomersPage> createState() => _CustomersPageState();
 }
@@ -40,6 +48,142 @@ class _CustomersPageState extends State<CustomersPage> {
     setState(() => customers = uniqueList);
   }
 
+  // Inside your _CustomersPageState class
+  Future<void> generateAndShareAgreementPDF(String customerName) async {
+    final pdf = pw.Document();
+    final currentDate = DateFormat('MMMM dd, yyyy').format(DateTime.now());
+
+    // Checkboxes
+    checkbox(String label) => pw.Row(
+          children: [
+            pw.Container(
+              width: 12,
+              height: 12,
+              decoration: pw.BoxDecoration(border: pw.Border.all()),
+            ),
+            pw.SizedBox(width: 8),
+            pw.Text(label),
+          ],
+        );
+
+    pdf.addPage(
+      pw.Page(
+        margin: pw.EdgeInsets.all(32),
+        build:
+            (pw.Context context) => pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Center(
+                  child: pw.Text(
+                    'PHOTOGRAPHY USAGE RELEASE AGREEMENT',
+                    style: pw.TextStyle(
+                      fontSize: 20,
+                      fontWeight: pw.FontWeight.bold,
+                      decoration: pw.TextDecoration.underline,
+                    ),
+                  ),
+                ),
+                pw.SizedBox(height: 20),
+
+                pw.Text('This agreement is made on $currentDate between:'),
+                pw.SizedBox(height: 12),
+                pw.Text('PHOTOGRAPHER: Vishnu Chandan'),
+                pw.Text('BUSINESS: Shutter Life Photography'),
+                pw.Text('CLIENT: $customerName'),
+                pw.Divider(thickness: 1.2),
+                pw.SizedBox(height: 20),
+
+                pw.Text(
+                  '1. USAGE RIGHTS',
+                  style: pw.TextStyle(
+                    fontWeight: pw.FontWeight.bold,
+                    fontSize: 14,
+                    decoration: pw.TextDecoration.underline,
+                  ),
+                ),
+                pw.SizedBox(height: 8),
+                pw.Text(
+                  'The client grants permission to the photographer to use photographs in the following formats:',
+                ),
+                pw.SizedBox(height: 10),
+                checkbox('Instagram'),
+                pw.SizedBox(height: 5),
+                checkbox('Facebook'),
+                pw.SizedBox(height: 5),
+                checkbox('Website / Portfolio'),
+                pw.SizedBox(height: 5),
+                checkbox('Marketing Materials (posters, flyers, etc.)'),
+                pw.SizedBox(height: 5),
+                checkbox(
+                  'Other Social Media (please specify): ____________________',
+                ),
+
+                pw.SizedBox(height: 20),
+
+                pw.Text(
+                  '2. RESTRICTIONS',
+                  style: pw.TextStyle(
+                    fontWeight: pw.FontWeight.bold,
+                    fontSize: 14,
+                    decoration: pw.TextDecoration.underline,
+                  ),
+                ),
+                pw.SizedBox(height: 8),
+                pw.Text(
+                  'Photographer agrees NOT to use photographs for the following:',
+                ),
+                pw.Bullet(text: 'Defamatory, explicit, or harmful content'),
+                pw.Bullet(text: 'Political or religious endorsements'),
+
+                pw.SizedBox(height: 20),
+
+                pw.Text(
+                  '3. CLIENT ACKNOWLEDGEMENT',
+                  style: pw.TextStyle(
+                    fontWeight: pw.FontWeight.bold,
+                    fontSize: 14,
+                    decoration: pw.TextDecoration.underline,
+                  ),
+                ),
+                pw.SizedBox(height: 10),
+                pw.Text(
+                  'I, the undersigned client, confirm that I have read and understood this release agreement.',
+                ),
+                pw.SizedBox(height: 20),
+                pw.Text('Name: ________________________________'),
+                pw.SizedBox(height: 10),
+                pw.Text('Signature: _____________________________'),
+                pw.SizedBox(height: 10),
+                pw.Text('Date: _________________________________'),
+
+                pw.Spacer(),
+
+                pw.Divider(),
+                pw.Center(
+                  child: pw.Text(
+                    'Thank you for choosing Shutter Life Photography!',
+                    style: pw.TextStyle(
+                      fontStyle: pw.FontStyle.italic,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+      ),
+    );
+
+    final dir = await getTemporaryDirectory();
+    final fileName =
+        'PHOTOGRAPHY_USAGE_RELEASE_AGREEMENT_${customerName.replaceAll(' ', '_')}.pdf';
+    final file = File('${dir.path}/$fileName');
+    await file.writeAsBytes(await pdf.save());
+
+    await Share.shareXFiles([
+      XFile(file.path),
+    ], text: 'Photography Usage Release Agreement for $customerName');
+  }
+
   Future<bool> _confirmDelete(int index) async {
     return await showDialog<bool>(
           context: context,
@@ -71,22 +215,34 @@ class _CustomersPageState extends State<CustomersPage> {
                       padding,
                       padding,
                     ),
-                    title: Row(
-                      children: [
-                        Icon(Icons.warning, color: Colors.red, size: iconSize),
-                        SizedBox(width: isSmallScreen ? 8 : 12),
-                        Text(
-                          "Confirm Deletion",
-                          style: TextStyle(
-                            fontSize: fontSize,
-                            fontWeight: FontWeight.bold,
+                    title: SizedBox(
+                      width: double.infinity, // Make the Row take full width
+                      child: Row(
+                        mainAxisAlignment:
+                            MainAxisAlignment
+                                .center, // Center the children horizontally
+                        children: [
+                          Icon(
+                            Icons.warning,
+                            color: Colors.red,
+                            size: iconSize,
                           ),
-                        ),
-                      ],
+                          SizedBox(width: isSmallScreen ? 8 : 12),
+                          Text(
+                            "Confirm Deletion",
+                            style: TextStyle(
+                              fontSize: fontSize,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                     content: Text(
                       "Delete all sales by ${customers[index]['name']}?",
                       style: TextStyle(fontSize: fontSize - 2),
+                      textAlign:
+                          TextAlign.center, // Also center the content text
                     ),
                     actionsPadding: EdgeInsets.symmetric(
                       horizontal: padding,
@@ -168,8 +324,20 @@ class _CustomersPageState extends State<CustomersPage> {
   }
 
   void _makePhoneCall(String phone) async {
-    final uri = Uri.parse('tel:$phone');
-    if (await canLaunchUrl(uri)) await launchUrl(uri);
+    // Clean the phone number - remove all non-digit characters
+    String cleanedPhone = phone.replaceAll(RegExp(r'[^0-9+]'), '');
+
+    // Add +91 prefix if it's a 10-digit Indian number without country code
+    if (!cleanedPhone.startsWith('+') && cleanedPhone.length == 10) {
+      cleanedPhone = '+91$cleanedPhone';
+    }
+
+    final uri = Uri.parse('tel:$cleanedPhone');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    } else {
+      throw 'Could not launch $uri';
+    }
   }
 
   void _openWhatsApp(String phone, String name, {String? purpose}) async {
@@ -431,10 +599,22 @@ class _CustomersPageState extends State<CustomersPage> {
                                         title: Text("Payment Confirmation"),
                                       ),
                                     ),
+                                    const PopupMenuItem(
+                                      value: 'release_agreement_pdf',
+                                      child: ListTile(
+                                        leading: Icon(
+                                          Icons.picture_as_pdf,
+                                          color: Colors.teal,
+                                        ),
+                                        title: Text(
+                                          "Send Release Agreement PDF",
+                                        ),
+                                      ),
+                                    ),
                                   ],
                               onSelected: (purpose) {
-                                if (purpose == 'default') {
-                                  _openWhatsApp(phone, name);
+                                if (purpose == 'release_agreement_pdf') {
+                                  generateAndShareAgreementPDF(name);
                                 } else {
                                   _openWhatsApp(phone, name, purpose: purpose);
                                 }

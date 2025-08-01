@@ -7,6 +7,8 @@ import 'package:hive/hive.dart';
 import '../models/sale.dart';
 
 class DashboardPage extends StatefulWidget {
+  const DashboardPage({super.key});
+
   @override
   State<DashboardPage> createState() => _DashboardPageState();
 }
@@ -337,7 +339,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         controller: _scrollController,
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: Container(
+                          child: SizedBox(
                             width: chartWidth,
                             child: LineChart(
                               LineChartData(

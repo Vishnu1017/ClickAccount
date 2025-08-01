@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 class PaymentHistoryPage extends StatelessWidget {
   final Sale sale;
 
-  PaymentHistoryPage({required this.sale});
+  const PaymentHistoryPage({super.key, required this.sale});
 
   @override
   Widget build(BuildContext context) {

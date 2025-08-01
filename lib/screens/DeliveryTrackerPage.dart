@@ -7,7 +7,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 class DeliveryTrackerPage extends StatefulWidget {
   final Sale sale;
 
-  const DeliveryTrackerPage({required this.sale});
+  const DeliveryTrackerPage({super.key, required this.sale});
 
   @override
   State<DeliveryTrackerPage> createState() => _DeliveryTrackerPageState();

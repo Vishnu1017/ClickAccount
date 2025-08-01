@@ -189,7 +189,12 @@ class _CustomSplashScreenState extends State<CustomSplashScreen>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Image.asset('assets/images/logo.PNG', width: 130),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(
+                    12,
+                  ), // Adjust the radius as needed
+                  child: Image.asset('assets/images/logo.PNG', width: 130),
+                ),
                 const SizedBox(height: 20),
                 const Text(
                   "Click Account",

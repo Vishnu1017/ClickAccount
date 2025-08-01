@@ -4,6 +4,8 @@ import 'package:click_account/models/product.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 class ProductsPage extends StatefulWidget {
+  const ProductsPage({super.key});
+
   @override
   State<ProductsPage> createState() => _ProductsPageState();
 }
@@ -141,22 +143,38 @@ class _ProductsPageState extends State<ProductsPage> {
                       padding,
                       padding,
                     ),
-                    title: Row(
-                      children: [
-                        Icon(Icons.warning, color: Colors.red, size: iconSize),
-                        SizedBox(width: isSmallScreen ? 8 : 12),
-                        Text(
-                          "Confirm Deletion",
-                          style: TextStyle(
-                            fontSize: fontSize,
-                            fontWeight: FontWeight.bold,
+                    title: Center(
+                      // Centers the entire Row horizontally
+                      child: Row(
+                        mainAxisAlignment:
+                            MainAxisAlignment
+                                .center, // Centers children inside Row
+                        mainAxisSize:
+                            MainAxisSize
+                                .min, // Prevents Row from expanding unnecessarily
+                        children: [
+                          Icon(
+                            Icons.warning,
+                            color: Colors.red,
+                            size: iconSize,
                           ),
-                        ),
-                      ],
+                          SizedBox(width: isSmallScreen ? 8 : 12),
+                          Text(
+                            "Confirm Deletion",
+                            style: TextStyle(
+                              fontSize: fontSize,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    content: Text(
-                      "Are you sure you want to delete this Package?",
-                      style: TextStyle(fontSize: fontSize - 2),
+                    content: Center(
+                      // Centers the text content
+                      child: Text(
+                        "Are you sure you want to delete this Package?",
+                        style: TextStyle(fontSize: fontSize - 2),
+                      ),
                     ),
                     actionsPadding: EdgeInsets.symmetric(
                       horizontal: padding,

@@ -15,7 +15,7 @@ import 'select_items_screen.dart';
 
 class NavBarPage extends StatefulWidget {
   final User user;
-  const NavBarPage({Key? key, required this.user}) : super(key: key);
+  const NavBarPage({super.key, required this.user});
 
   @override
   State<NavBarPage> createState() => _NavBarPageState();
@@ -379,7 +379,7 @@ class _NavBarPageState extends State<NavBarPage> {
 
 class SelectItemsScreenWithCallback extends StatelessWidget {
   final Function(String) onItemSaved;
-  const SelectItemsScreenWithCallback({required this.onItemSaved});
+  const SelectItemsScreenWithCallback({super.key, required this.onItemSaved});
 
   @override
   Widget build(BuildContext context) {

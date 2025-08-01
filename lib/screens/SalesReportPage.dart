@@ -907,6 +907,8 @@ class _SalesReportPageState extends State<SalesReportPage> {
 }
 
 class CustomXlsIcon extends StatelessWidget {
+  const CustomXlsIcon({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Container(

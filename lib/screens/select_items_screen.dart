@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 class SelectItemsScreen extends StatefulWidget {
   final Function(String)? onItemSaved;
 
-  SelectItemsScreen({this.onItemSaved});
+  const SelectItemsScreen({super.key, this.onItemSaved});
 
   @override
   _SelectItemsScreenState createState() => _SelectItemsScreenState();
