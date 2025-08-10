@@ -262,37 +262,21 @@ class _HomePageState extends State<HomePage>
 
                                           final due =
                                               sale.totalAmount - sale.amount;
-                                          final phone = sale.phoneNumber.trim();
-
-                                          final cleanedPhone = phone.replaceAll(
-                                            RegExp(r'[^0-9]'),
-                                            '',
-                                          );
-
-                                          if (cleanedPhone.length == 10 ||
-                                              (cleanedPhone.length == 12 &&
-                                                  cleanedPhone.startsWith(
-                                                    '91',
-                                                  ))) {
-                                            final effectivePhone =
-                                                cleanedPhone.length == 12
-                                                    ? cleanedPhone.substring(2)
-                                                    : cleanedPhone;
-
-                                            final msg =
-                                                "Hello ${sale.customerName}, your payment of ₹${due.toStringAsFixed(2)} is overdue for more than 7 days. Please make the payment at the earliest. - Shutter Life Photography";
-
-                                            // Use a delayed microtask to avoid triggering during widget build
-                                            Future.microtask(() {
-                                              WhatsAppHelper.sendWhatsAppMessage(
-                                                phone: effectivePhone,
-                                                message: msg,
-                                              );
-                                            });
-                                          } else {
-                                            debugPrint(
-                                              'Invalid phone number: $phone',
-                                            );
+                                          final phone =
+                                              sale.phoneNumber
+                                                  .replaceAll('+91', '')
+                                                  .trim();
+                                          final msg =
+                                              "Hello ${sale.customerName}, your payment of ₹${due.toStringAsFixed(2)} is overdue for more than 7 days. Please make the payment at the earliest. - Shutter Life Photography";
+                                          if (phone != null &&
+                                              phone.isNotEmpty) {
+                                            WidgetsBinding.instance
+                                                .addPostFrameCallback((_) {
+                                                  WhatsAppHelper.sendWhatsAppMessage(
+                                                    phone: phone,
+                                                    message: msg,
+                                                  );
+                                                });
                                           }
                                         } else {
                                           label = "SALE : PARTIAL";

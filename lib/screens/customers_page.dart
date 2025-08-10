@@ -55,16 +55,16 @@ class _CustomersPageState extends State<CustomersPage> {
 
     // Checkboxes
     checkbox(String label) => pw.Row(
-          children: [
-            pw.Container(
-              width: 12,
-              height: 12,
-              decoration: pw.BoxDecoration(border: pw.Border.all()),
-            ),
-            pw.SizedBox(width: 8),
-            pw.Text(label),
-          ],
-        );
+      children: [
+        pw.Container(
+          width: 12,
+          height: 12,
+          decoration: pw.BoxDecoration(border: pw.Border.all()),
+        ),
+        pw.SizedBox(width: 8),
+        pw.Text(label),
+      ],
+    );
 
     pdf.addPage(
       pw.Page(
@@ -537,81 +537,76 @@ class _CustomersPageState extends State<CustomersPage> {
                                 FontAwesomeIcons.whatsapp,
                                 color: Colors.white,
                               ),
-                              itemBuilder:
-                                  (context) => [
-                                    const PopupMenuItem(
-                                      value: 'default',
-                                      child: ListTile(
-                                        leading: Icon(
-                                          Icons.chat,
-                                          color: Colors.blue,
-                                        ),
-                                        title: Text("General Inquiry"),
-                                      ),
+                              itemBuilder: (context) {
+                                final width = MediaQuery.of(context).size.width;
+                                final isSmallScreen = width < 400;
+
+                                return [
+                                  PopupMenuItem(
+                                    value: 'default',
+                                    child: _buildPopupItem(
+                                      icon: Icons.chat,
+                                      color: Colors.blue,
+                                      text: "General Inquiry",
+                                      isSmallScreen: isSmallScreen,
                                     ),
-                                    const PopupMenuItem(
-                                      value: 'followup',
-                                      child: ListTile(
-                                        leading: Icon(
-                                          Icons.update,
-                                          color: Colors.orange,
-                                        ),
-                                        title: Text("Follow Up"),
-                                      ),
+                                  ),
+                                  PopupMenuItem(
+                                    value: 'followup',
+                                    child: _buildPopupItem(
+                                      icon: Icons.update,
+                                      color: Colors.orange,
+                                      text: "Follow Up",
+                                      isSmallScreen: isSmallScreen,
                                     ),
-                                    const PopupMenuItem(
-                                      value: 'feedback',
-                                      child: ListTile(
-                                        leading: Icon(
-                                          Icons.feedback,
-                                          color: Colors.purple,
-                                        ),
-                                        title: Text("Feedback Request"),
-                                      ),
+                                  ),
+                                  PopupMenuItem(
+                                    value: 'feedback',
+                                    child: _buildPopupItem(
+                                      icon: Icons.feedback,
+                                      color: Colors.purple,
+                                      text: "Feedback Request",
+                                      isSmallScreen: isSmallScreen,
                                     ),
-                                    const PopupMenuItem(
-                                      value: 'promo',
-                                      child: ListTile(
-                                        leading: Icon(
-                                          Icons.local_offer,
-                                          color: Colors.red,
-                                        ),
-                                        title: Text("Special Offer"),
-                                      ),
+                                  ),
+                                  PopupMenuItem(
+                                    value: 'promo',
+                                    child: _buildPopupItem(
+                                      icon: Icons.local_offer,
+                                      color: Colors.red,
+                                      text: "Special Offer",
+                                      isSmallScreen: isSmallScreen,
                                     ),
-                                    const PopupMenuItem(
-                                      value: 'instagram_promo',
-                                      child: ListTile(
-                                        leading: FaIcon(
-                                          FontAwesomeIcons.instagram,
-                                          color: Colors.pink,
-                                        ),
-                                        title: Text("Instagram Promotion"),
-                                      ),
+                                  ),
+                                  PopupMenuItem(
+                                    value: 'instagram_promo',
+                                    child: _buildPopupItem(
+                                      faIcon: FontAwesomeIcons.instagram,
+                                      color: Colors.pink,
+                                      text: "Instagram Promotion",
+                                      isSmallScreen: isSmallScreen,
                                     ),
-                                    const PopupMenuItem(
-                                      value: 'payment_confirmation',
-                                      child: ListTile(
-                                        leading: Icon(
-                                          Icons.verified_rounded,
-                                          color: Colors.green,
-                                        ),
-                                        title: Text("Payment Confirmation"),
-                                      ),
+                                  ),
+                                  PopupMenuItem(
+                                    value: 'payment_confirmation',
+                                    child: _buildPopupItem(
+                                      icon: Icons.verified_rounded,
+                                      color: Colors.green,
+                                      text: "Payment Confirmation",
+                                      isSmallScreen: isSmallScreen,
                                     ),
-                                    const PopupMenuItem(
-                                      value: 'release_agreement_pdf',
-                                      child: ListTile(
-                                        leading: Icon(
-                                          Icons.picture_as_pdf,
-                                          color: Colors.teal,
-                                        ),
-                                        title: Text(
-                                          "Send Release Agreement PDF",
-                                        ),
-                                      ),
+                                  ),
+                                  PopupMenuItem(
+                                    value: 'release_agreement_pdf',
+                                    child: _buildPopupItem(
+                                      icon: Icons.picture_as_pdf,
+                                      color: Colors.teal,
+                                      text: "Send Release Agreement PDF",
+                                      isSmallScreen: isSmallScreen,
                                     ),
-                                  ],
+                                  ),
+                                ];
+                              },
                               onSelected: (purpose) {
                                 if (purpose == 'release_agreement_pdf') {
                                   generateAndShareAgreementPDF(name);
@@ -627,6 +622,32 @@ class _CustomersPageState extends State<CustomersPage> {
                   );
                 },
               ),
+    );
+  }
+
+  Widget _buildPopupItem({
+    IconData? icon,
+    IconData? faIcon,
+    required Color color,
+    required String text,
+    required bool isSmallScreen,
+  }) {
+    return Row(
+      children: [
+        faIcon != null
+            ? FaIcon(faIcon, color: color, size: isSmallScreen ? 16 : 20)
+            : Icon(icon, color: color, size: isSmallScreen ? 18 : 22),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              fontSize: isSmallScreen ? 12 : 14,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
