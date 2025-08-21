@@ -438,13 +438,13 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
           SizedBox(height: 15),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 15),
+            padding: const EdgeInsets.symmetric(horizontal: 24),
             child: FloatingActionButton.extended(
               onPressed: _navigateToSalesReport,
               label: const Text(
                 'View Sales Insights',
                 style: TextStyle(
-                  fontSize: 18,
+                  fontSize: 14,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),

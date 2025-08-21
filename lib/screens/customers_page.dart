@@ -19,11 +19,21 @@ class CustomersPage extends StatefulWidget {
 
 class _CustomersPageState extends State<CustomersPage> {
   List<Map<String, String>> customers = [];
+  List<Map<String, String>> filteredCustomers = [];
+  final TextEditingController _searchController = TextEditingController();
+  FocusNode _searchFocusNode = FocusNode();
+  bool _isSearchExpanded = false;
 
   @override
   void initState() {
     super.initState();
     fetchUniqueCustomers();
+    _searchFocusNode.addListener(() {
+      setState(() {
+        _isSearchExpanded =
+            _searchFocusNode.hasFocus || _searchController.text.isNotEmpty;
+      });
+    });
   }
 
   void fetchUniqueCustomers() {
@@ -45,15 +55,103 @@ class _CustomersPageState extends State<CustomersPage> {
       }
     }
 
-    setState(() => customers = uniqueList);
+    setState(() {
+      customers = uniqueList;
+      filteredCustomers = List.from(uniqueList);
+    });
   }
 
-  // Inside your _CustomersPageState class
+  Widget _buildAnimatedSearchBar() {
+    return AnimatedContainer(
+      duration: Duration(milliseconds: 300),
+      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      height: _isSearchExpanded ? 50 : 50,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: Offset(0, 3),
+          ),
+        ],
+        border: Border.all(
+          color:
+              _isSearchExpanded
+                  ? Colors.indigo.withOpacity(0.3)
+                  : Colors.transparent,
+          width: 1.5,
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(left: 20, right: 10),
+              child: TextField(
+                controller: _searchController,
+                focusNode: _searchFocusNode,
+                decoration: InputDecoration(
+                  hintText: 'Search customers...',
+                  hintStyle: TextStyle(color: Colors.grey[600]),
+                  border: InputBorder.none,
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    if (value.isEmpty) {
+                      filteredCustomers = List.from(customers);
+                    } else {
+                      filteredCustomers =
+                          customers.where((customer) {
+                            final name = customer['name']?.toLowerCase() ?? '';
+                            final phone =
+                                customer['phone']?.toLowerCase() ?? '';
+                            final query = value.toLowerCase();
+                            return name.contains(query) ||
+                                phone.contains(query);
+                          }).toList();
+                    }
+                  });
+                },
+              ),
+            ),
+          ),
+          AnimatedSwitcher(
+            duration: Duration(milliseconds: 200),
+            child:
+                _searchController.text.isEmpty
+                    ? IconButton(
+                      icon: Icon(Icons.search, color: Colors.indigo),
+                      onPressed: () {
+                        _searchFocusNode.requestFocus();
+                      },
+                    )
+                    : IconButton(
+                      icon: Icon(Icons.close, color: Colors.grey),
+                      onPressed: () {
+                        _searchController.clear();
+                        _searchFocusNode.unfocus();
+                        setState(() {
+                          filteredCustomers = List.from(customers);
+                          _isSearchExpanded = false;
+                        });
+                      },
+                    ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // All your existing methods remain unchanged below this point
+  // (generateAndShareAgreementPDF, _confirmDelete, _deleteCustomer,
+  // _makePhoneCall, _openWhatsApp, _buildPopupItem, etc.)
+
   Future<void> generateAndShareAgreementPDF(String customerName) async {
     final pdf = pw.Document();
     final currentDate = DateFormat('MMMM dd, yyyy').format(DateTime.now());
 
-    // Checkboxes
     checkbox(String label) => pw.Row(
       children: [
         pw.Container(
@@ -239,7 +337,7 @@ class _CustomersPageState extends State<CustomersPage> {
                       ),
                     ),
                     content: Text(
-                      "Delete all sales by ${customers[index]['name']}?",
+                      "Delete all sales by ${filteredCustomers[index]['name']}?",
                       style: TextStyle(fontSize: fontSize - 2),
                       textAlign:
                           TextAlign.center, // Also center the content text
@@ -304,7 +402,7 @@ class _CustomersPageState extends State<CustomersPage> {
 
   void _deleteCustomer(int index) async {
     final box = Hive.box<Sale>('sales');
-    final customerToDelete = customers[index];
+    final customerToDelete = filteredCustomers[index];
     final toRemove = <int>[];
 
     for (var i = 0; i < box.length; i++) {
@@ -429,202 +527,6 @@ class _CustomersPageState extends State<CustomersPage> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Color(0xFFF4F6FA),
-      body:
-          customers.isEmpty
-              ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.person_off, size: 80, color: Colors.grey[400]),
-                    SizedBox(height: 16),
-                    Text(
-                      "No Customers Yet",
-                      style: TextStyle(
-                        fontSize: 20,
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              )
-              : ListView.builder(
-                padding: EdgeInsets.all(16),
-                itemCount: customers.length,
-                itemBuilder: (context, index) {
-                  final customer = customers[index];
-                  final name = customer['name'] ?? '';
-                  final phone = customer['phone'] ?? '';
-                  final initials =
-                      name
-                          .split(' ')
-                          .map((e) => e.isNotEmpty ? e[0] : '')
-                          .join()
-                          .toUpperCase();
-
-                  return Dismissible(
-                    key: Key(name + index.toString()),
-                    direction: DismissDirection.endToStart,
-                    confirmDismiss: (_) => _confirmDelete(index),
-                    onDismissed: (_) => _deleteCustomer(index),
-                    background: Container(
-                      alignment: Alignment.centerRight,
-                      padding: EdgeInsets.symmetric(horizontal: 20),
-                      margin: EdgeInsets.only(bottom: 14),
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(Icons.delete, color: Colors.white, size: 30),
-                    ),
-                    child: Container(
-                      margin: EdgeInsets.only(bottom: 14),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Color(0xFF00BCD4), Color(0xFF1A237E)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(10),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black12,
-                            blurRadius: 10,
-                            offset: Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: ListTile(
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        leading: CircleAvatar(
-                          backgroundColor: Colors.white,
-                          child: Text(
-                            initials,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF1A237E),
-                            ),
-                          ),
-                        ),
-                        title: Text(
-                          name,
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        subtitle: Text(
-                          phone,
-                          style: TextStyle(color: Colors.white70, fontSize: 14),
-                        ),
-                        trailing: Wrap(
-                          spacing: 0,
-                          children: [
-                            IconButton(
-                              icon: Icon(Icons.phone, color: Colors.white),
-                              onPressed: () => _makePhoneCall(phone),
-                            ),
-                            PopupMenuButton<String>(
-                              icon: const Icon(
-                                FontAwesomeIcons.whatsapp,
-                                color: Colors.white,
-                              ),
-                              itemBuilder: (context) {
-                                final width = MediaQuery.of(context).size.width;
-                                final isSmallScreen = width < 400;
-
-                                return [
-                                  PopupMenuItem(
-                                    value: 'default',
-                                    child: _buildPopupItem(
-                                      icon: Icons.chat,
-                                      color: Colors.blue,
-                                      text: "General Inquiry",
-                                      isSmallScreen: isSmallScreen,
-                                    ),
-                                  ),
-                                  PopupMenuItem(
-                                    value: 'followup',
-                                    child: _buildPopupItem(
-                                      icon: Icons.update,
-                                      color: Colors.orange,
-                                      text: "Follow Up",
-                                      isSmallScreen: isSmallScreen,
-                                    ),
-                                  ),
-                                  PopupMenuItem(
-                                    value: 'feedback',
-                                    child: _buildPopupItem(
-                                      icon: Icons.feedback,
-                                      color: Colors.purple,
-                                      text: "Feedback Request",
-                                      isSmallScreen: isSmallScreen,
-                                    ),
-                                  ),
-                                  PopupMenuItem(
-                                    value: 'promo',
-                                    child: _buildPopupItem(
-                                      icon: Icons.local_offer,
-                                      color: Colors.red,
-                                      text: "Special Offer",
-                                      isSmallScreen: isSmallScreen,
-                                    ),
-                                  ),
-                                  PopupMenuItem(
-                                    value: 'instagram_promo',
-                                    child: _buildPopupItem(
-                                      faIcon: FontAwesomeIcons.instagram,
-                                      color: Colors.pink,
-                                      text: "Instagram Promotion",
-                                      isSmallScreen: isSmallScreen,
-                                    ),
-                                  ),
-                                  PopupMenuItem(
-                                    value: 'payment_confirmation',
-                                    child: _buildPopupItem(
-                                      icon: Icons.verified_rounded,
-                                      color: Colors.green,
-                                      text: "Payment Confirmation",
-                                      isSmallScreen: isSmallScreen,
-                                    ),
-                                  ),
-                                  PopupMenuItem(
-                                    value: 'release_agreement_pdf',
-                                    child: _buildPopupItem(
-                                      icon: Icons.picture_as_pdf,
-                                      color: Colors.teal,
-                                      text: "Send Release Agreement PDF",
-                                      isSmallScreen: isSmallScreen,
-                                    ),
-                                  ),
-                                ];
-                              },
-                              onSelected: (purpose) {
-                                if (purpose == 'release_agreement_pdf') {
-                                  generateAndShareAgreementPDF(name);
-                                } else {
-                                  _openWhatsApp(phone, name, purpose: purpose);
-                                }
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-    );
-  }
-
   Widget _buildPopupItem({
     IconData? icon,
     IconData? faIcon,
@@ -648,6 +550,230 @@ class _CustomersPageState extends State<CustomersPage> {
           ),
         ),
       ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Color(0xFFF4F6FA),
+      body: Column(
+        children: [
+          _buildAnimatedSearchBar(),
+          Expanded(
+            child:
+                filteredCustomers.isEmpty
+                    ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.search_off,
+                            size: 80,
+                            color: Colors.grey[400],
+                          ),
+                          SizedBox(height: 16),
+                          Text(
+                            _searchController.text.isEmpty
+                                ? "No Customers Yet"
+                                : "No matching customers found",
+                            style: TextStyle(
+                              fontSize: 20,
+                              color: Colors.grey[600],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                    : ListView.builder(
+                      padding: EdgeInsets.only(left: 16, right: 16, bottom: 16),
+                      itemCount: filteredCustomers.length,
+                      itemBuilder: (context, index) {
+                        final customer = filteredCustomers[index];
+                        final name = customer['name'] ?? '';
+                        final phone = customer['phone'] ?? '';
+                        final initials =
+                            name
+                                .split(' ')
+                                .map((e) => e.isNotEmpty ? e[0] : '')
+                                .join()
+                                .toUpperCase();
+
+                        return Dismissible(
+                          key: Key(name + index.toString()),
+                          direction: DismissDirection.endToStart,
+                          confirmDismiss: (_) => _confirmDelete(index),
+                          onDismissed: (_) => _deleteCustomer(index),
+                          background: Container(
+                            alignment: Alignment.centerRight,
+                            padding: EdgeInsets.symmetric(horizontal: 20),
+                            margin: EdgeInsets.only(bottom: 14),
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(
+                              Icons.delete,
+                              color: Colors.white,
+                              size: 30,
+                            ),
+                          ),
+                          child: Container(
+                            margin: EdgeInsets.only(bottom: 14),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [Color(0xFF00BCD4), Color(0xFF1A237E)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(10),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black12,
+                                  blurRadius: 10,
+                                  offset: Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: ListTile(
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              leading: CircleAvatar(
+                                backgroundColor: Colors.white,
+                                child: Text(
+                                  initials,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF1A237E),
+                                  ),
+                                ),
+                              ),
+                              title: Text(
+                                name,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              subtitle: Text(
+                                phone,
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              trailing: Wrap(
+                                spacing: 0,
+                                children: [
+                                  IconButton(
+                                    icon: Icon(
+                                      Icons.phone,
+                                      color: Colors.white,
+                                    ),
+                                    onPressed: () => _makePhoneCall(phone),
+                                  ),
+                                  PopupMenuButton<String>(
+                                    icon: const Icon(
+                                      FontAwesomeIcons.whatsapp,
+                                      color: Colors.white,
+                                    ),
+                                    itemBuilder: (context) {
+                                      final width =
+                                          MediaQuery.of(context).size.width;
+                                      final isSmallScreen = width < 400;
+
+                                      return [
+                                        PopupMenuItem(
+                                          value: 'default',
+                                          child: _buildPopupItem(
+                                            icon: Icons.chat,
+                                            color: Colors.blue,
+                                            text: "General Inquiry",
+                                            isSmallScreen: isSmallScreen,
+                                          ),
+                                        ),
+                                        PopupMenuItem(
+                                          value: 'followup',
+                                          child: _buildPopupItem(
+                                            icon: Icons.update,
+                                            color: Colors.orange,
+                                            text: "Follow Up",
+                                            isSmallScreen: isSmallScreen,
+                                          ),
+                                        ),
+                                        PopupMenuItem(
+                                          value: 'feedback',
+                                          child: _buildPopupItem(
+                                            icon: Icons.feedback,
+                                            color: Colors.purple,
+                                            text: "Feedback Request",
+                                            isSmallScreen: isSmallScreen,
+                                          ),
+                                        ),
+                                        PopupMenuItem(
+                                          value: 'promo',
+                                          child: _buildPopupItem(
+                                            icon: Icons.local_offer,
+                                            color: Colors.red,
+                                            text: "Special Offer",
+                                            isSmallScreen: isSmallScreen,
+                                          ),
+                                        ),
+                                        PopupMenuItem(
+                                          value: 'instagram_promo',
+                                          child: _buildPopupItem(
+                                            faIcon: FontAwesomeIcons.instagram,
+                                            color: Colors.pink,
+                                            text: "Instagram Promotion",
+                                            isSmallScreen: isSmallScreen,
+                                          ),
+                                        ),
+                                        PopupMenuItem(
+                                          value: 'payment_confirmation',
+                                          child: _buildPopupItem(
+                                            icon: Icons.verified_rounded,
+                                            color: Colors.green,
+                                            text: "Payment Confirmation",
+                                            isSmallScreen: isSmallScreen,
+                                          ),
+                                        ),
+                                        PopupMenuItem(
+                                          value: 'release_agreement_pdf',
+                                          child: _buildPopupItem(
+                                            icon: Icons.picture_as_pdf,
+                                            color: Colors.teal,
+                                            text: "Send Release Agreement PDF",
+                                            isSmallScreen: isSmallScreen,
+                                          ),
+                                        ),
+                                      ];
+                                    },
+                                    onSelected: (purpose) {
+                                      if (purpose == 'release_agreement_pdf') {
+                                        generateAndShareAgreementPDF(name);
+                                      } else {
+                                        _openWhatsApp(
+                                          phone,
+                                          name,
+                                          purpose: purpose,
+                                        );
+                                      }
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+          ),
+        ],
+      ),
     );
   }
 }
