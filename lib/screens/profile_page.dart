@@ -373,17 +373,6 @@ class _ProfilePageState extends State<ProfilePage> {
                                     color: Colors.white,
                                     size: 20,
                                   ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    side: BorderSide(
-                                      color: Colors.white.withOpacity(0.2),
-                                      width: 1,
-                                    ),
-                                  ),
-                                  color: Colors.blueGrey[800]?.withOpacity(
-                                    0.95,
-                                  ),
-                                  elevation: 8,
                                   shadowColor: Colors.black.withOpacity(0.3),
                                   onSelected: (value) {
                                     if (value == 'edit') {
