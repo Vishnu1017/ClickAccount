@@ -438,7 +438,7 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
           SizedBox(height: 15),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
+            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 8),
             child: FloatingActionButton.extended(
               onPressed: _navigateToSalesReport,
               label: const Text(
@@ -449,7 +449,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   color: Colors.white,
                 ),
               ),
-              icon: const Icon(Icons.data_usage, color: Colors.white, size: 26),
+              icon: const Icon(Icons.data_usage, color: Colors.white, size: 22),
               backgroundColor: Colors.blueAccent.shade400,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(30.0),

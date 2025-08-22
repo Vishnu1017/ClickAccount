@@ -26,7 +26,6 @@ class _ProfilePageState extends State<ProfilePage> {
   File? _profileImage;
   final picker = ImagePicker();
   bool _isImageLoading = false;
-  // ignore: prefer_final_fields
   bool _isImageSaved = false;
   bool _isEditing = false;
 
@@ -87,7 +86,7 @@ class _ProfilePageState extends State<ProfilePage> {
       debugPrint('Session verification error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Session error. Please login again.')),
+          const SnackBar(content: Text('Session error. Please login again.')),
         );
         await _logout();
       }
@@ -99,14 +98,26 @@ class _ProfilePageState extends State<ProfilePage> {
     final prefs = await SharedPreferences.getInstance();
     final path = prefs.getString('${widget.user.email}_profileImagePath');
 
-    if (path != null) {
+    if (path != null && path.isNotEmpty) {
       final file = File(path);
-      if (await file.exists()) {
-        setState(() {
-          _profileImage = file;
-          _isImageSaved = true;
-        });
-      } else {
+      // Check if file exists and is readable
+      try {
+        final exists = await file.exists();
+        if (exists) {
+          setState(() {
+            _profileImage = file;
+            _isImageSaved = true;
+          });
+        } else {
+          // Remove invalid path from storage
+          await prefs.remove('${widget.user.email}_profileImagePath');
+          setState(() {
+            _profileImage = null;
+            _isImageSaved = false;
+          });
+        }
+      } catch (e) {
+        debugPrint('Error loading image: $e');
         setState(() {
           _profileImage = null;
           _isImageSaved = false;
@@ -122,12 +133,12 @@ class _ProfilePageState extends State<ProfilePage> {
     setState(() => _isImageLoading = false);
   }
 
-  // Modify your _pickImage function to:
   Future<void> _pickImage() async {
     try {
       final status = await Permission.photos.request();
 
       if (!status.isGranted) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Permission denied. Please allow access to gallery.'),
@@ -138,7 +149,12 @@ class _ProfilePageState extends State<ProfilePage> {
 
       setState(() => _isImageLoading = true);
 
-      final picked = await picker.pickImage(source: ImageSource.gallery);
+      final picked = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 80,
+        maxWidth: 800,
+      );
+
       if (picked == null) {
         setState(() => _isImageLoading = false);
         return;
@@ -146,18 +162,27 @@ class _ProfilePageState extends State<ProfilePage> {
 
       final file = File(picked.path);
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(
-        '${widget.user.email}_profileImagePath',
-        picked.path,
-      );
 
+      // Save the path to shared preferences
+      await prefs.setString('${widget.user.email}_profileImagePath', file.path);
+
+      if (!mounted) return;
       setState(() {
         _profileImage = file;
         _isImageLoading = false;
         _isImageSaved = true;
       });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Profile image updated successfully!'),
+          backgroundColor: Colors.green,
+        ),
+      );
     } catch (e) {
+      debugPrint('Image picking error: $e');
       setState(() => _isImageLoading = false);
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error picking image: ${e.toString()}')),
       );
@@ -179,7 +204,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _saveProfile() async {
     final box = Hive.box<User>('users');
     final userKey = box.keys.firstWhere(
-      (key) => box.get(key)!.email == widget.user.email,
+      (key) => box.get(key)?.email == widget.user.email,
       orElse: () => null,
     );
 
@@ -202,6 +227,7 @@ class _ProfilePageState extends State<ProfilePage> {
         _isEditing = false;
       });
 
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Profile updated successfully!'),
@@ -213,13 +239,9 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _logout() async {
     if (_isLoggingOut) return; // Prevent multiple calls
-    _isLoggingOut = true;
+    setState(() => _isLoggingOut = true);
 
     try {
-      // Clear profile image
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('${widget.user.email}_profileImagePath');
-
       // Clear session
       final sessionBox = await Hive.openBox('session');
       await sessionBox.clear();
@@ -235,36 +257,57 @@ class _ProfilePageState extends State<ProfilePage> {
       debugPrint('Logout error: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Logout failed. Please try again.')),
+        const SnackBar(content: Text('Logout failed. Please try again.')),
       );
     } finally {
-      _isLoggingOut = false;
+      setState(() => _isLoggingOut = false);
     }
   }
 
   Future<void> deleteCurrentUser(String email) async {
-    final box = Hive.box<User>('users');
-    final userKey = box.keys.firstWhere(
-      (key) => box.get(key)!.email == email,
-      orElse: () => null,
-    );
+    try {
+      final box = Hive.box<User>('users');
+      final userKey = box.keys.firstWhere(
+        (key) => box.get(key)?.email == email,
+        orElse: () => null,
+      );
 
-    if (userKey != null) {
-      await box.delete(userKey);
+      if (userKey != null) {
+        // Remove profile image from storage
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove('${widget.user.email}_profileImagePath');
+
+        await box.delete(userKey);
+
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Account deleted successfully!"),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => LoginScreen()),
+        );
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("User not found"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Delete user error: $e');
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Account deleted successfully!"),
-          backgroundColor: Colors.green,
+        const SnackBar(
+          content: Text("Error deleting account"),
+          backgroundColor: Colors.red,
         ),
-      );
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => LoginScreen()),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("User not found"), backgroundColor: Colors.red),
       );
     }
   }
@@ -411,10 +454,10 @@ class _ProfilePageState extends State<ProfilePage> {
                                   alignment: Alignment.bottomRight,
                                   children: [
                                     _isImageLoading
-                                        ? const CircleAvatar(
+                                        ? CircleAvatar(
                                           radius: 50,
                                           child: Padding(
-                                            padding: EdgeInsets.all(16.0),
+                                            padding: const EdgeInsets.all(16.0),
                                             child: CircularProgressIndicator(
                                               color: Colors.white,
                                             ),
@@ -443,6 +486,27 @@ class _ProfilePageState extends State<ProfilePage> {
                                                           isSmallScreen
                                                               ? 100
                                                               : 120,
+                                                      errorBuilder: (
+                                                        context,
+                                                        error,
+                                                        stackTrace,
+                                                      ) {
+                                                        return Text(
+                                                          name.isNotEmpty
+                                                              ? name[0]
+                                                                  .toUpperCase()
+                                                              : 'U',
+                                                          style: TextStyle(
+                                                            fontSize:
+                                                                isSmallScreen
+                                                                    ? 36
+                                                                    : 42,
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                            color: Colors.white,
+                                                          ),
+                                                        );
+                                                      },
                                                     ),
                                                   )
                                                   : Text(

@@ -1,23 +1,21 @@
 plugins {
     id("com.android.application")
-    // START: FlutterFire Configuration
     id("com.google.gms.google-services")
-    // END: FlutterFire Configuration
     id("kotlin-android")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
 
 android {
     namespace = "com.example.click_account"
-    compileSdk = 35
+    compileSdk = 36
     ndkVersion = "27.0.12077973"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-        isCoreLibraryDesugaringEnabled = true
+        coreLibraryDesugaringEnabled = true // ✅ Correct property name
     }
+
 
     kotlinOptions {
         jvmTarget = "17"
@@ -25,11 +23,12 @@ android {
 
     defaultConfig {
         applicationId = "com.example.click_account"
-        minSdk = 23
-        targetSdk = 33 // ✅ Fixed here
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
+        minSdkVersion(24) // ✅ Use proper Kotlin syntax here
+        targetSdk = 33
+        versionCode = 1
+        versionName = "1.0.0"
     }
+
 
     buildTypes {
         release {
@@ -43,6 +42,5 @@ flutter {
 }
 
 dependencies {
-    // ✅ Required for flutter_local_notifications and other Java 8+ APIs
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

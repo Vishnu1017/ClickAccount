@@ -112,6 +112,39 @@ class _HomePageState extends State<HomePage>
     });
   }
 
+  Future<String> _getCurrentUserEmailFromHive() async {
+    try {
+      // Open the users box if not already open
+      final usersBox = await Hive.openBox<User>('users');
+
+      // Get the current user from your session or state management
+      // This depends on how you're managing the current user in your app
+
+      // Option 1: If you have a session box with current user email
+      final sessionBox = await Hive.openBox('session');
+      final currentUserEmail = sessionBox.get('currentUserEmail');
+
+      if (currentUserEmail != null) {
+        return currentUserEmail;
+      }
+
+      // Option 2: If you have only one user in the box
+      if (usersBox.isNotEmpty) {
+        final user = usersBox.values.first;
+        return user.email;
+      }
+
+      // Option 3: If you're passing user context somehow
+      // You might need to modify this based on your app's architecture
+
+      // Fallback: Return empty string if no user found
+      return '';
+    } catch (e) {
+      debugPrint('Error getting user email from Hive: $e');
+      return '';
+    }
+  }
+
   void fetchWelcomeMessage() {
     final userBox = Hive.box<User>('users');
 
@@ -488,10 +521,10 @@ class _HomePageState extends State<HomePage>
                         margin: EdgeInsets.symmetric(
                           horizontal:
                               isVerySmallScreen
-                                  ? 8
+                                  ? 13
                                   : isSmallScreen
-                                  ? 10
-                                  : 22,
+                                  ? 15
+                                  : 27,
                           vertical: isVerySmallScreen ? 6 : 8,
                         ),
                         shape: RoundedRectangleBorder(
@@ -1061,941 +1094,643 @@ class _HomePageState extends State<HomePage>
                                           ),
                                         );
 
-                                        // Check if balance is zero
-                                        if (balanceAmount == 0) {
-                                          // Skip the dialog and generate PDF without QR code
-                                          final prefs =
-                                              await SharedPreferences.getInstance();
-                                          final profileImagePath = prefs
-                                              .getString('profileImagePath');
-                                          pw.MemoryImage? headerImage;
-
-                                          if (profileImagePath != null) {
-                                            final profileFile = File(
-                                              profileImagePath,
+                                        // Ask user for editable amount before QR generation
+                                        final TextEditingController
+                                        _amountController =
+                                            TextEditingController(
+                                              text: balanceAmount
+                                                  .toStringAsFixed(2),
                                             );
-                                            if (await profileFile.exists()) {
-                                              final imageBytes =
-                                                  await profileFile
-                                                      .readAsBytes();
-                                              headerImage = pw.MemoryImage(
-                                                imageBytes,
-                                              );
-                                            }
-                                          }
 
-                                          pdf.addPage(
-                                            pw.Page(
-                                              build:
-                                                  (
-                                                    pw.Context context,
-                                                  ) => pw.Container(
-                                                    decoration: pw.BoxDecoration(
-                                                      border: pw.Border.all(
-                                                        color: PdfColors.black,
-                                                        width: 2,
-                                                      ),
-                                                      borderRadius: pw
-                                                          .BorderRadius.circular(
-                                                        6,
-                                                      ),
-                                                    ),
-                                                    padding: pw.EdgeInsets.all(
-                                                      16,
-                                                    ),
-                                                    child: pw.Column(
-                                                      crossAxisAlignment:
-                                                          pw
-                                                              .CrossAxisAlignment
-                                                              .start,
-                                                      children: [
-                                                        pw.Row(
-                                                          crossAxisAlignment:
-                                                              pw
-                                                                  .CrossAxisAlignment
-                                                                  .start,
-                                                          children: [
-                                                            if (headerImage !=
-                                                                null)
-                                                              pw.Container(
-                                                                width: 60,
-                                                                height: 60,
-                                                                child: pw.Image(
-                                                                  headerImage,
-                                                                ),
-                                                              ),
-                                                            if (headerImage !=
-                                                                null)
-                                                              pw.SizedBox(
-                                                                width: 16,
-                                                              ),
-                                                            pw.Column(
-                                                              crossAxisAlignment:
-                                                                  pw
-                                                                      .CrossAxisAlignment
-                                                                      .start,
-                                                              children: [
-                                                                pw.Text(
-                                                                  'Shutter Life Photography',
-                                                                  style: pw.TextStyle(
-                                                                    fontSize:
-                                                                        22,
-                                                                    fontWeight:
-                                                                        pw
-                                                                            .FontWeight
-                                                                            .bold,
-                                                                  ),
-                                                                ),
-                                                                pw.SizedBox(
-                                                                  height: 4,
-                                                                ),
-                                                                pw.Text(
-                                                                  'Phone Number: +91 63601 20253',
-                                                                ),
-                                                                pw.Text(
-                                                                  'Email: shutterlifephotography10@gmail.com',
-                                                                ),
-                                                              ],
-                                                            ),
-                                                          ],
-                                                        ),
-                                                        pw.SizedBox(height: 12),
-                                                        pw.Divider(),
-                                                        pw.Center(
-                                                          child: pw.Text(
-                                                            'Tax Invoice',
-                                                            style: pw.TextStyle(
-                                                              fontSize: 18,
-                                                              fontWeight:
-                                                                  pw
-                                                                      .FontWeight
-                                                                      .bold,
-                                                              color:
-                                                                  PdfColors
-                                                                      .indigo,
-                                                            ),
-                                                          ),
-                                                        ),
-                                                        pw.SizedBox(height: 12),
-                                                        pw.Row(
-                                                          crossAxisAlignment:
-                                                              pw
-                                                                  .CrossAxisAlignment
-                                                                  .start,
-                                                          children: [
-                                                            pw.Expanded(
-                                                              flex: 2,
-                                                              child: pw.Column(
-                                                                crossAxisAlignment:
-                                                                    pw
-                                                                        .CrossAxisAlignment
-                                                                        .start,
-                                                                children: [
-                                                                  pw.Text(
-                                                                    'Bill To',
-                                                                    style: pw.TextStyle(
-                                                                      fontWeight:
-                                                                          pw.FontWeight.bold,
-                                                                    ),
-                                                                  ),
-                                                                  pw.Text(
-                                                                    sale.customerName,
-                                                                  ),
-                                                                  pw.Text(
-                                                                    'Contact No.: ${sale.phoneNumber}',
-                                                                  ),
-                                                                  pw.SizedBox(
-                                                                    height: 12,
-                                                                  ),
-                                                                  pw.Text(
-                                                                    'Terms And Conditions',
-                                                                    style: pw.TextStyle(
-                                                                      fontWeight:
-                                                                          pw.FontWeight.bold,
-                                                                    ),
-                                                                  ),
-                                                                  pw.Text(
-                                                                    'Thank you for doing business with us.',
-                                                                  ),
-                                                                  // No QR code section since balance is zero
-                                                                ],
-                                                              ),
-                                                            ),
-                                                            pw.SizedBox(
-                                                              width: 20,
-                                                            ),
-                                                            pw.Expanded(
-                                                              flex: 2,
-                                                              child: pw.Column(
-                                                                crossAxisAlignment:
-                                                                    pw
-                                                                        .CrossAxisAlignment
-                                                                        .start,
-                                                                children: [
-                                                                  pw.Text(
-                                                                    'Invoice Details',
-                                                                    style: pw.TextStyle(
-                                                                      fontWeight:
-                                                                          pw.FontWeight.bold,
-                                                                    ),
-                                                                  ),
-                                                                  pw.Text(
-                                                                    'Invoice No.: #$invoiceNumber',
-                                                                  ),
-                                                                  pw.Text(
-                                                                    'Date: ${DateFormat('dd-MM-yyyy').format(sale.dateTime)}',
-                                                                  ),
-                                                                  pw.SizedBox(
-                                                                    height: 8,
-                                                                  ),
-                                                                  pw.Table(
-                                                                    border: pw
-                                                                        .TableBorder.all(
-                                                                      color:
-                                                                          PdfColors
-                                                                              .grey300,
-                                                                    ),
-                                                                    columnWidths: {
-                                                                      0: pw.FlexColumnWidth(
-                                                                        3,
-                                                                      ),
-                                                                      1: pw.FlexColumnWidth(
-                                                                        2,
-                                                                      ),
-                                                                    },
-                                                                    children: [
-                                                                      pw.TableRow(
-                                                                        decoration: pw.BoxDecoration(
-                                                                          color:
-                                                                              PdfColors.indigo100,
-                                                                        ),
-                                                                        children: [
-                                                                          pw.Padding(
-                                                                            padding: pw.EdgeInsets.all(
-                                                                              6,
-                                                                            ),
-                                                                            child: pw.Text(
-                                                                              'Total',
-                                                                              style: pw.TextStyle(
-                                                                                fontWeight:
-                                                                                    pw.FontWeight.bold,
-                                                                              ),
-                                                                            ),
-                                                                          ),
-                                                                          pw.Padding(
-                                                                            padding: pw.EdgeInsets.all(
-                                                                              6,
-                                                                            ),
-                                                                            child: pw.Text(
-                                                                              '₹ ${sale.totalAmount.toStringAsFixed(2)}',
-                                                                              style: pw.TextStyle(
-                                                                                font:
-                                                                                    rupeeFont,
-                                                                              ),
-                                                                            ),
-                                                                          ),
-                                                                        ],
-                                                                      ),
-                                                                      pw.TableRow(
-                                                                        children: [
-                                                                          pw.Padding(
-                                                                            padding: pw.EdgeInsets.all(
-                                                                              6,
-                                                                            ),
-                                                                            child: pw.Text(
-                                                                              'Received',
-                                                                            ),
-                                                                          ),
-                                                                          pw.Padding(
-                                                                            padding: pw.EdgeInsets.all(
-                                                                              6,
-                                                                            ),
-                                                                            child: pw.Text(
-                                                                              '₹ ${sale.amount.toStringAsFixed(2)}',
-                                                                              style: pw.TextStyle(
-                                                                                font:
-                                                                                    rupeeFont,
-                                                                              ),
-                                                                            ),
-                                                                          ),
-                                                                        ],
-                                                                      ),
-                                                                      pw.TableRow(
-                                                                        children: [
-                                                                          pw.Padding(
-                                                                            padding: pw.EdgeInsets.all(
-                                                                              6,
-                                                                            ),
-                                                                            child: pw.Text(
-                                                                              'Balance',
-                                                                            ),
-                                                                          ),
-                                                                          pw.Padding(
-                                                                            padding: pw.EdgeInsets.all(
-                                                                              6,
-                                                                            ),
-                                                                            child: pw.Text(
-                                                                              '₹ ${balanceAmount.toStringAsFixed(2)}',
-                                                                              style: pw.TextStyle(
-                                                                                font:
-                                                                                    rupeeFont,
-                                                                              ),
-                                                                            ),
-                                                                          ),
-                                                                        ],
-                                                                      ),
-                                                                      pw.TableRow(
-                                                                        children: [
-                                                                          pw.Padding(
-                                                                            padding: pw.EdgeInsets.all(
-                                                                              6,
-                                                                            ),
-                                                                            child: pw.Text(
-                                                                              'Payment Mode',
-                                                                            ),
-                                                                          ),
-                                                                          pw.Padding(
-                                                                            padding: pw.EdgeInsets.all(
-                                                                              6,
-                                                                            ),
-                                                                            child: pw.Text(
-                                                                              sale.paymentMode,
-                                                                            ),
-                                                                          ),
-                                                                        ],
-                                                                      ),
-                                                                    ],
-                                                                  ),
-                                                                ],
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                        pw.SizedBox(height: 16),
-                                                        pw.Align(
-                                                          alignment:
-                                                              pw
-                                                                  .Alignment
-                                                                  .centerRight,
-                                                          child: pw.Text(
-                                                            'For: Shutter Life Photography',
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                            ),
-                                          );
+                                        final enteredAmount = await showDialog<
+                                          double?
+                                        >(
+                                          context: scaffoldContext,
+                                          builder: (context) {
+                                            final controller =
+                                                TextEditingController(
+                                                  text: balanceAmount
+                                                      .toStringAsFixed(2),
+                                                );
 
-                                          final output =
-                                              await getTemporaryDirectory();
-                                          final file = File(
-                                            "${output.path}/invoice_$invoiceNumber.pdf",
-                                          );
-                                          await file.writeAsBytes(
-                                            await pdf.save(),
-                                          );
+                                            final screenWidth =
+                                                MediaQuery.of(
+                                                  context,
+                                                ).size.width;
 
-                                          Navigator.push(
-                                            scaffoldContext,
-                                            MaterialPageRoute(
-                                              builder:
-                                                  (_) => PdfPreviewScreen(
-                                                    filePath: file.path,
-                                                    sale: sale,
-                                                  ),
-                                            ),
-                                          );
-                                        } else {
-                                          // Original code with dialog for non-zero balance
-                                          final TextEditingController
-                                          _amountController =
-                                              TextEditingController(
-                                                text: balanceAmount
-                                                    .toStringAsFixed(2),
-                                              );
-
-                                          final enteredAmount = await showDialog<
-                                            double?
-                                          >(
-                                            context: scaffoldContext,
-                                            builder: (context) {
-                                              final controller =
-                                                  TextEditingController(
-                                                    text: balanceAmount
-                                                        .toStringAsFixed(2),
-                                                  );
-                                              return Dialog(
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(16),
+                                            return Dialog(
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(16),
+                                              ),
+                                              child: ConstrainedBox(
+                                                constraints: BoxConstraints(
+                                                  maxWidth:
+                                                      screenWidth < 400
+                                                          ? screenWidth * 0.9
+                                                          : 400,
                                                 ),
-                                                child: Column(
-                                                  mainAxisSize:
-                                                      MainAxisSize.min,
-                                                  children: [
-                                                    // Header
-                                                    Container(
-                                                      width: double.infinity,
-                                                      decoration: BoxDecoration(
-                                                        color:
-                                                            Colors.deepPurple,
-                                                        borderRadius:
-                                                            BorderRadius.vertical(
-                                                              top:
-                                                                  Radius.circular(
-                                                                    16,
-                                                                  ),
-                                                            ),
-                                                      ),
-                                                      padding:
-                                                          EdgeInsets.symmetric(
-                                                            vertical: 20,
-                                                          ),
-                                                      child: Column(
-                                                        children: [
-                                                          Icon(
-                                                            Icons
-                                                                .qr_code_2_rounded,
-                                                            size: 40,
-                                                            color: Colors.white,
-                                                          ),
-                                                          SizedBox(height: 8),
-                                                          Text(
-                                                            'Customize UPI Amount',
-                                                            style: TextStyle(
-                                                              fontSize: 20,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w600,
-                                                              color:
-                                                                  Colors.white,
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                    // Body
-                                                    Padding(
-                                                      padding:
-                                                          const EdgeInsets.symmetric(
-                                                            horizontal: 20,
-                                                            vertical: 20,
-                                                          ),
-                                                      child: Column(
-                                                        children: [
-                                                          Text(
-                                                            "Enter the amount you want to show in the UPI QR. Leave it empty if the customer should enter manually.",
-                                                            style: TextStyle(
-                                                              fontSize: 14,
-                                                              color:
-                                                                  Colors
-                                                                      .black87,
-                                                            ),
-                                                            textAlign:
-                                                                TextAlign
-                                                                    .center,
-                                                          ),
-                                                          SizedBox(height: 16),
-                                                          TextField(
-                                                            controller:
-                                                                controller,
-                                                            keyboardType:
-                                                                TextInputType.numberWithOptions(
-                                                                  decimal: true,
+                                                child: SingleChildScrollView(
+                                                  child: Padding(
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                          bottom: 16,
+                                                        ),
+                                                    child: Column(
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
+                                                      children: [
+                                                        // Header
+                                                        Container(
+                                                          width:
+                                                              double.infinity,
+                                                          decoration: BoxDecoration(
+                                                            color:
+                                                                Colors
+                                                                    .deepPurple,
+                                                            borderRadius:
+                                                                BorderRadius.vertical(
+                                                                  top:
+                                                                      Radius.circular(
+                                                                        16,
+                                                                      ),
                                                                 ),
-                                                            decoration: InputDecoration(
-                                                              labelText:
-                                                                  'Amount (₹)',
-                                                              prefixIcon: Icon(
-                                                                Icons
-                                                                    .currency_rupee,
-                                                              ),
-                                                              border: OutlineInputBorder(
-                                                                borderRadius:
-                                                                    BorderRadius.circular(
-                                                                      10,
-                                                                    ),
-                                                              ),
-                                                              filled: true,
-                                                              fillColor:
-                                                                  Colors
-                                                                      .grey[100],
-                                                            ),
                                                           ),
-                                                          SizedBox(height: 24),
-                                                          Row(
-                                                            mainAxisAlignment:
-                                                                MainAxisAlignment
-                                                                    .end,
+                                                          padding:
+                                                              EdgeInsets.symmetric(
+                                                                vertical: 20,
+                                                              ),
+                                                          child: Column(
                                                             children: [
-                                                              TextButton(
-                                                                child: Text(
-                                                                  'Cancel',
-                                                                  style: TextStyle(
-                                                                    color:
-                                                                        Colors
-                                                                            .grey[700],
-                                                                  ),
-                                                                ),
-                                                                onPressed:
-                                                                    () => Navigator.pop(
-                                                                      context,
-                                                                      null,
-                                                                    ),
+                                                              Icon(
+                                                                Icons
+                                                                    .qr_code_2_rounded,
+                                                                size: 40,
+                                                                color:
+                                                                    Colors
+                                                                        .white,
                                                               ),
                                                               SizedBox(
-                                                                width: 10,
+                                                                height: 8,
                                                               ),
-                                                              ElevatedButton(
-                                                                style: ElevatedButton.styleFrom(
-                                                                  backgroundColor:
+                                                              Text(
+                                                                'Customize UPI Amount',
+                                                                style: TextStyle(
+                                                                  fontSize: 20,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w600,
+                                                                  color:
                                                                       Colors
-                                                                          .deepPurple,
-                                                                  shape: RoundedRectangleBorder(
+                                                                          .white,
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+
+                                                        // Body
+                                                        Padding(
+                                                          padding:
+                                                              const EdgeInsets.symmetric(
+                                                                horizontal: 20,
+                                                                vertical: 20,
+                                                              ),
+                                                          child: Column(
+                                                            children: [
+                                                              Text(
+                                                                "Enter the amount you want to show in the UPI QR. Leave it empty if the customer should enter manually.",
+                                                                style: TextStyle(
+                                                                  fontSize: 14,
+                                                                  color:
+                                                                      Colors
+                                                                          .black87,
+                                                                ),
+                                                                textAlign:
+                                                                    TextAlign
+                                                                        .center,
+                                                              ),
+                                                              SizedBox(
+                                                                height: 16,
+                                                              ),
+                                                              TextField(
+                                                                controller:
+                                                                    controller,
+                                                                keyboardType:
+                                                                    TextInputType.numberWithOptions(
+                                                                      decimal:
+                                                                          true,
+                                                                    ),
+                                                                decoration: InputDecoration(
+                                                                  labelText:
+                                                                      'Amount (₹)',
+                                                                  prefixIcon: Icon(
+                                                                    Icons
+                                                                        .currency_rupee,
+                                                                  ),
+                                                                  border: OutlineInputBorder(
                                                                     borderRadius:
                                                                         BorderRadius.circular(
                                                                           10,
                                                                         ),
                                                                   ),
-                                                                  padding:
-                                                                      EdgeInsets.symmetric(
+                                                                  filled: true,
+                                                                  fillColor:
+                                                                      Colors
+                                                                          .grey[100],
+                                                                ),
+                                                              ),
+                                                              SizedBox(
+                                                                height: 24,
+                                                              ),
+                                                              Row(
+                                                                mainAxisAlignment:
+                                                                    MainAxisAlignment
+                                                                        .end,
+                                                                children: [
+                                                                  TextButton(
+                                                                    child: Text(
+                                                                      'Cancel',
+                                                                      style: TextStyle(
+                                                                        color:
+                                                                            Colors.grey[700],
+                                                                      ),
+                                                                    ),
+                                                                    onPressed:
+                                                                        () => Navigator.pop(
+                                                                          context,
+                                                                          null,
+                                                                        ),
+                                                                  ),
+                                                                  SizedBox(
+                                                                    width: 10,
+                                                                  ),
+                                                                  ElevatedButton(
+                                                                    style: ElevatedButton.styleFrom(
+                                                                      backgroundColor:
+                                                                          Colors
+                                                                              .deepPurple,
+                                                                      shape: RoundedRectangleBorder(
+                                                                        borderRadius:
+                                                                            BorderRadius.circular(
+                                                                              10,
+                                                                            ),
+                                                                      ),
+                                                                      padding: EdgeInsets.symmetric(
                                                                         horizontal:
                                                                             24,
                                                                         vertical:
                                                                             12,
                                                                       ),
-                                                                ),
-                                                                onPressed: () {
-                                                                  final input =
-                                                                      controller
-                                                                          .text
-                                                                          .trim();
-                                                                  final parsed =
-                                                                      double.tryParse(
-                                                                        input,
+                                                                    ),
+                                                                    onPressed: () {
+                                                                      final input =
+                                                                          controller
+                                                                              .text
+                                                                              .trim();
+                                                                      final parsed =
+                                                                          double.tryParse(
+                                                                            input,
+                                                                          );
+                                                                      Navigator.pop(
+                                                                        context,
+                                                                        (input.isEmpty ||
+                                                                                parsed ==
+                                                                                    null ||
+                                                                                parsed <=
+                                                                                    0)
+                                                                            ? null
+                                                                            : parsed,
                                                                       );
-                                                                  if (input
-                                                                          .isEmpty ||
-                                                                      parsed ==
-                                                                          null ||
-                                                                      parsed <=
-                                                                          0) {
-                                                                    Navigator.pop(
-                                                                      context,
-                                                                      null,
-                                                                    );
-                                                                  } else {
-                                                                    Navigator.pop(
-                                                                      context,
-                                                                      parsed,
-                                                                    );
-                                                                  }
-                                                                },
-                                                                child: Text(
-                                                                  'Generate QR',
-                                                                  style: TextStyle(
-                                                                    color:
-                                                                        Colors
-                                                                            .white,
-                                                                    fontSize:
-                                                                        15,
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .bold,
+                                                                    },
+                                                                    child: Text(
+                                                                      'Generate QR',
+                                                                      style: TextStyle(
+                                                                        color:
+                                                                            Colors.white,
+                                                                        fontSize:
+                                                                            15,
+                                                                        fontWeight:
+                                                                            FontWeight.bold,
+                                                                      ),
+                                                                    ),
                                                                   ),
+                                                                ],
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        );
+
+                                        final qrData =
+                                            enteredAmount != null
+                                                ? 'upi://pay?pa=playroll.vish-1@oksbi&pn=Vishnu&am=${enteredAmount.toStringAsFixed(2)}&cu=INR'
+                                                : 'upi://pay?pa=playroll.vish-1@oksbi&pn=Vishnu&cu=INR';
+
+                                        final qrImage = pw.Barcode.qrCode()
+                                            .toSvg(
+                                              qrData,
+                                              width: 120,
+                                              height: 120,
+                                            );
+
+                                        final prefs =
+                                            await SharedPreferences.getInstance();
+
+                                        // FIX: Get the current user's email from Hive
+                                        final currentUserEmail =
+                                            await _getCurrentUserEmailFromHive();
+
+                                        final profileImagePath = prefs.getString(
+                                          '${currentUserEmail}_profileImagePath',
+                                        );
+                                        pw.MemoryImage? headerImage;
+
+                                        if (profileImagePath != null) {
+                                          final profileFile = File(
+                                            profileImagePath,
+                                          );
+                                          if (await profileFile.exists()) {
+                                            final imageBytes =
+                                                await profileFile.readAsBytes();
+                                            headerImage = pw.MemoryImage(
+                                              imageBytes,
+                                            );
+                                          }
+                                        }
+
+                                        pdf.addPage(
+                                          pw.Page(
+                                            build:
+                                                (
+                                                  pw.Context context,
+                                                ) => pw.Container(
+                                                  decoration: pw.BoxDecoration(
+                                                    border: pw.Border.all(
+                                                      color: PdfColors.black,
+                                                      width: 2,
+                                                    ),
+                                                    borderRadius: pw
+                                                        .BorderRadius.circular(
+                                                      6,
+                                                    ),
+                                                  ),
+                                                  padding: pw.EdgeInsets.all(
+                                                    16,
+                                                  ),
+                                                  child: pw.Column(
+                                                    crossAxisAlignment:
+                                                        pw
+                                                            .CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      pw.Row(
+                                                        crossAxisAlignment:
+                                                            pw
+                                                                .CrossAxisAlignment
+                                                                .start,
+                                                        children: [
+                                                          if (headerImage !=
+                                                              null)
+                                                            pw.Container(
+                                                              width: 60,
+                                                              height: 60,
+                                                              child: pw.Image(
+                                                                headerImage,
+                                                                fit:
+                                                                    pw
+                                                                        .BoxFit
+                                                                        .cover,
+                                                              ),
+                                                            ),
+                                                          if (headerImage !=
+                                                              null)
+                                                            pw.SizedBox(
+                                                              width: 16,
+                                                            ),
+                                                          pw.Column(
+                                                            crossAxisAlignment:
+                                                                pw
+                                                                    .CrossAxisAlignment
+                                                                    .start,
+                                                            children: [
+                                                              pw.Text(
+                                                                'Shutter Life Photography',
+                                                                style: pw.TextStyle(
+                                                                  fontSize: 22,
+                                                                  fontWeight:
+                                                                      pw
+                                                                          .FontWeight
+                                                                          .bold,
                                                                 ),
+                                                              ),
+                                                              pw.SizedBox(
+                                                                height: 4,
+                                                              ),
+                                                              pw.Text(
+                                                                'Phone Number: +91 63601 20253',
+                                                              ),
+                                                              pw.Text(
+                                                                'Email: shutterlifephotography10@gmail.com',
                                                               ),
                                                             ],
                                                           ),
                                                         ],
                                                       ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              );
-                                            },
-                                          );
-
-                                          final qrData =
-                                              enteredAmount != null
-                                                  ? 'upi://pay?pa=playroll.vish-1@oksbi&pn=Vishnu&am=${enteredAmount.toStringAsFixed(2)}&cu=INR'
-                                                  : 'upi://pay?pa=playroll.vish-1@oksbi&pn=Vishnu&cu=INR';
-                                          final qrImage = pw.Barcode.qrCode()
-                                              .toSvg(
-                                                qrData,
-                                                width: 120,
-                                                height: 120,
-                                              );
-
-                                          final prefs =
-                                              await SharedPreferences.getInstance();
-                                          final profileImagePath = prefs
-                                              .getString('profileImagePath');
-                                          pw.MemoryImage? headerImage;
-                                          if (profileImagePath != null) {
-                                            final profileFile = File(
-                                              profileImagePath,
-                                            );
-                                            if (await profileFile.exists()) {
-                                              final imageBytes =
-                                                  await profileFile
-                                                      .readAsBytes();
-                                              headerImage = pw.MemoryImage(
-                                                imageBytes,
-                                              );
-                                            }
-                                          }
-
-                                          pdf.addPage(
-                                            pw.Page(
-                                              build:
-                                                  (
-                                                    pw.Context context,
-                                                  ) => pw.Container(
-                                                    decoration: pw.BoxDecoration(
-                                                      border: pw.Border.all(
-                                                        color: PdfColors.black,
-                                                        width: 2,
+                                                      pw.SizedBox(height: 12),
+                                                      pw.Divider(),
+                                                      pw.Center(
+                                                        child: pw.Text(
+                                                          'Tax Invoice',
+                                                          style: pw.TextStyle(
+                                                            fontSize: 18,
+                                                            fontWeight:
+                                                                pw
+                                                                    .FontWeight
+                                                                    .bold,
+                                                            color:
+                                                                PdfColors
+                                                                    .indigo,
+                                                          ),
+                                                        ),
                                                       ),
-                                                      borderRadius: pw
-                                                          .BorderRadius.circular(
-                                                        6,
-                                                      ),
-                                                    ),
-                                                    padding: pw.EdgeInsets.all(
-                                                      16,
-                                                    ),
-                                                    child: pw.Column(
-                                                      crossAxisAlignment:
-                                                          pw
-                                                              .CrossAxisAlignment
-                                                              .start,
-                                                      children: [
-                                                        pw.Row(
-                                                          crossAxisAlignment:
-                                                              pw
-                                                                  .CrossAxisAlignment
-                                                                  .start,
-                                                          children: [
-                                                            if (headerImage !=
-                                                                null)
-                                                              pw.Container(
-                                                                width: 60,
-                                                                height: 60,
-                                                                child: pw.Image(
-                                                                  headerImage,
-                                                                ),
-                                                              ),
-                                                            if (headerImage !=
-                                                                null)
-                                                              pw.SizedBox(
-                                                                width: 16,
-                                                              ),
-                                                            pw.Column(
+                                                      pw.SizedBox(height: 12),
+                                                      pw.Row(
+                                                        crossAxisAlignment:
+                                                            pw
+                                                                .CrossAxisAlignment
+                                                                .start,
+                                                        children: [
+                                                          pw.Expanded(
+                                                            flex: 2,
+                                                            child: pw.Column(
                                                               crossAxisAlignment:
                                                                   pw
                                                                       .CrossAxisAlignment
                                                                       .start,
                                                               children: [
                                                                 pw.Text(
-                                                                  'Shutter Life Photography',
+                                                                  'Bill To',
                                                                   style: pw.TextStyle(
-                                                                    fontSize:
-                                                                        22,
                                                                     fontWeight:
                                                                         pw
                                                                             .FontWeight
                                                                             .bold,
                                                                   ),
                                                                 ),
+                                                                pw.Text(
+                                                                  sale.customerName,
+                                                                ),
+                                                                pw.Text(
+                                                                  'Contact No.: ${sale.phoneNumber}',
+                                                                ),
                                                                 pw.SizedBox(
-                                                                  height: 4,
+                                                                  height: 12,
                                                                 ),
                                                                 pw.Text(
-                                                                  'Phone Number: +91 63601 20253',
+                                                                  'Terms And Conditions',
+                                                                  style: pw.TextStyle(
+                                                                    fontWeight:
+                                                                        pw
+                                                                            .FontWeight
+                                                                            .bold,
+                                                                  ),
                                                                 ),
                                                                 pw.Text(
-                                                                  'Email: shutterlifephotography10@gmail.com',
+                                                                  'Thank you for doing business with us.',
+                                                                ),
+                                                                if (balanceAmount >
+                                                                    0) ...[
+                                                                  pw.SizedBox(
+                                                                    height: 20,
+                                                                  ),
+                                                                  pw.Center(
+                                                                    child: pw.SvgImage(
+                                                                      svg:
+                                                                          qrImage,
+                                                                    ),
+                                                                  ),
+                                                                  pw.SizedBox(
+                                                                    height: 6,
+                                                                  ),
+                                                                  pw.Center(
+                                                                    child: pw.Text(
+                                                                      "Scan to Pay UPI",
+                                                                      style: pw.TextStyle(
+                                                                        fontSize:
+                                                                            16,
+                                                                        fontWeight:
+                                                                            pw.FontWeight.bold,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ],
+                                                            ),
+                                                          ),
+                                                          pw.SizedBox(
+                                                            width: 20,
+                                                          ),
+                                                          pw.Expanded(
+                                                            flex: 2,
+                                                            child: pw.Column(
+                                                              crossAxisAlignment:
+                                                                  pw
+                                                                      .CrossAxisAlignment
+                                                                      .start,
+                                                              children: [
+                                                                pw.Text(
+                                                                  'Invoice Details',
+                                                                  style: pw.TextStyle(
+                                                                    fontWeight:
+                                                                        pw
+                                                                            .FontWeight
+                                                                            .bold,
+                                                                  ),
+                                                                ),
+                                                                pw.Text(
+                                                                  'Invoice No.: #$invoiceNumber',
+                                                                ),
+                                                                pw.Text(
+                                                                  'Date: ${DateFormat('dd-MM-yyyy').format(sale.dateTime)}',
+                                                                ),
+                                                                pw.SizedBox(
+                                                                  height: 8,
+                                                                ),
+                                                                pw.Table(
+                                                                  border: pw
+                                                                      .TableBorder.all(
+                                                                    color:
+                                                                        PdfColors
+                                                                            .grey300,
+                                                                  ),
+                                                                  columnWidths: {
+                                                                    0: pw.FlexColumnWidth(
+                                                                      3,
+                                                                    ),
+                                                                    1: pw.FlexColumnWidth(
+                                                                      2,
+                                                                    ),
+                                                                  },
+                                                                  children: [
+                                                                    pw.TableRow(
+                                                                      decoration:
+                                                                          pw.BoxDecoration(
+                                                                            color:
+                                                                                PdfColors.indigo100,
+                                                                          ),
+                                                                      children: [
+                                                                        pw.Padding(
+                                                                          padding: pw
+                                                                              .EdgeInsets.all(
+                                                                            6,
+                                                                          ),
+                                                                          child: pw.Text(
+                                                                            'Total',
+                                                                            style: pw.TextStyle(
+                                                                              fontWeight:
+                                                                                  pw.FontWeight.bold,
+                                                                            ),
+                                                                          ),
+                                                                        ),
+                                                                        pw.Padding(
+                                                                          padding: pw
+                                                                              .EdgeInsets.all(
+                                                                            6,
+                                                                          ),
+                                                                          child: pw.Text(
+                                                                            '₹ ${sale.totalAmount.toStringAsFixed(2)}',
+                                                                            style: pw.TextStyle(
+                                                                              font:
+                                                                                  rupeeFont,
+                                                                            ),
+                                                                          ),
+                                                                        ),
+                                                                      ],
+                                                                    ),
+                                                                    pw.TableRow(
+                                                                      children: [
+                                                                        pw.Padding(
+                                                                          padding: pw
+                                                                              .EdgeInsets.all(
+                                                                            6,
+                                                                          ),
+                                                                          child: pw.Text(
+                                                                            'Received',
+                                                                          ),
+                                                                        ),
+                                                                        pw.Padding(
+                                                                          padding: pw
+                                                                              .EdgeInsets.all(
+                                                                            6,
+                                                                          ),
+                                                                          child: pw.Text(
+                                                                            '₹ ${sale.amount.toStringAsFixed(2)}',
+                                                                            style: pw.TextStyle(
+                                                                              font:
+                                                                                  rupeeFont,
+                                                                            ),
+                                                                          ),
+                                                                        ),
+                                                                      ],
+                                                                    ),
+                                                                    pw.TableRow(
+                                                                      children: [
+                                                                        pw.Padding(
+                                                                          padding: pw
+                                                                              .EdgeInsets.all(
+                                                                            6,
+                                                                          ),
+                                                                          child: pw.Text(
+                                                                            'Balance',
+                                                                          ),
+                                                                        ),
+                                                                        pw.Padding(
+                                                                          padding: pw
+                                                                              .EdgeInsets.all(
+                                                                            6,
+                                                                          ),
+                                                                          child: pw.Text(
+                                                                            '₹ ${balanceAmount.toStringAsFixed(2)}',
+                                                                            style: pw.TextStyle(
+                                                                              font:
+                                                                                  rupeeFont,
+                                                                            ),
+                                                                          ),
+                                                                        ),
+                                                                      ],
+                                                                    ),
+                                                                    pw.TableRow(
+                                                                      children: [
+                                                                        pw.Padding(
+                                                                          padding: pw
+                                                                              .EdgeInsets.all(
+                                                                            6,
+                                                                          ),
+                                                                          child: pw.Text(
+                                                                            'Payment Mode',
+                                                                          ),
+                                                                        ),
+                                                                        pw.Padding(
+                                                                          padding: pw
+                                                                              .EdgeInsets.all(
+                                                                            6,
+                                                                          ),
+                                                                          child: pw.Text(
+                                                                            sale.paymentMode,
+                                                                          ),
+                                                                        ),
+                                                                      ],
+                                                                    ),
+                                                                  ],
                                                                 ),
                                                               ],
                                                             ),
-                                                          ],
-                                                        ),
-                                                        pw.SizedBox(height: 12),
-                                                        pw.Divider(),
-                                                        pw.Center(
-                                                          child: pw.Text(
-                                                            'Tax Invoice',
-                                                            style: pw.TextStyle(
-                                                              fontSize: 18,
-                                                              fontWeight:
-                                                                  pw
-                                                                      .FontWeight
-                                                                      .bold,
-                                                              color:
-                                                                  PdfColors
-                                                                      .indigo,
-                                                            ),
                                                           ),
+                                                        ],
+                                                      ),
+                                                      pw.SizedBox(height: 16),
+                                                      pw.Align(
+                                                        alignment:
+                                                            pw
+                                                                .Alignment
+                                                                .centerRight,
+                                                        child: pw.Text(
+                                                          'For: Shutter Life Photography',
                                                         ),
-                                                        pw.SizedBox(height: 12),
-                                                        pw.Row(
-                                                          crossAxisAlignment:
-                                                              pw
-                                                                  .CrossAxisAlignment
-                                                                  .start,
-                                                          children: [
-                                                            pw.Expanded(
-                                                              flex: 2,
-                                                              child: pw.Column(
-                                                                crossAxisAlignment:
-                                                                    pw
-                                                                        .CrossAxisAlignment
-                                                                        .start,
-                                                                children: [
-                                                                  pw.Text(
-                                                                    'Bill To',
-                                                                    style: pw.TextStyle(
-                                                                      fontWeight:
-                                                                          pw.FontWeight.bold,
-                                                                    ),
-                                                                  ),
-                                                                  pw.Text(
-                                                                    sale.customerName,
-                                                                  ),
-                                                                  pw.Text(
-                                                                    'Contact No.: ${sale.phoneNumber}',
-                                                                  ),
-                                                                  pw.SizedBox(
-                                                                    height: 12,
-                                                                  ),
-                                                                  pw.Text(
-                                                                    'Terms And Conditions',
-                                                                    style: pw.TextStyle(
-                                                                      fontWeight:
-                                                                          pw.FontWeight.bold,
-                                                                    ),
-                                                                  ),
-                                                                  pw.Text(
-                                                                    'Thank you for doing business with us.',
-                                                                  ),
-                                                                  if (balanceAmount >
-                                                                      0) ...[
-                                                                    pw.SizedBox(
-                                                                      height:
-                                                                          20,
-                                                                    ),
-                                                                    pw.Center(
-                                                                      child: pw.SvgImage(
-                                                                        svg:
-                                                                            qrImage,
-                                                                      ),
-                                                                    ),
-                                                                    pw.SizedBox(
-                                                                      height: 6,
-                                                                    ),
-                                                                    pw.Center(
-                                                                      child: pw.Text(
-                                                                        "Scan to Pay UPI",
-                                                                        style: pw.TextStyle(
-                                                                          fontSize:
-                                                                              16,
-                                                                          fontWeight:
-                                                                              pw.FontWeight.bold,
-                                                                        ),
-                                                                      ),
-                                                                    ),
-                                                                  ],
-                                                                ],
-                                                              ),
-                                                            ),
-                                                            pw.SizedBox(
-                                                              width: 20,
-                                                            ),
-                                                            pw.Expanded(
-                                                              flex: 2,
-                                                              child: pw.Column(
-                                                                crossAxisAlignment:
-                                                                    pw
-                                                                        .CrossAxisAlignment
-                                                                        .start,
-                                                                children: [
-                                                                  pw.Text(
-                                                                    'Invoice Details',
-                                                                    style: pw.TextStyle(
-                                                                      fontWeight:
-                                                                          pw.FontWeight.bold,
-                                                                    ),
-                                                                  ),
-                                                                  pw.Text(
-                                                                    'Invoice No.: #$invoiceNumber',
-                                                                  ),
-                                                                  pw.Text(
-                                                                    'Date: ${DateFormat('dd-MM-yyyy').format(sale.dateTime)}',
-                                                                  ),
-                                                                  pw.SizedBox(
-                                                                    height: 8,
-                                                                  ),
-                                                                  pw.Table(
-                                                                    border: pw
-                                                                        .TableBorder.all(
-                                                                      color:
-                                                                          PdfColors
-                                                                              .grey300,
-                                                                    ),
-                                                                    columnWidths: {
-                                                                      0: pw.FlexColumnWidth(
-                                                                        3,
-                                                                      ),
-                                                                      1: pw.FlexColumnWidth(
-                                                                        2,
-                                                                      ),
-                                                                    },
-                                                                    children: [
-                                                                      pw.TableRow(
-                                                                        decoration: pw.BoxDecoration(
-                                                                          color:
-                                                                              PdfColors.indigo100,
-                                                                        ),
-                                                                        children: [
-                                                                          pw.Padding(
-                                                                            padding: pw.EdgeInsets.all(
-                                                                              6,
-                                                                            ),
-                                                                            child: pw.Text(
-                                                                              'Total',
-                                                                              style: pw.TextStyle(
-                                                                                fontWeight:
-                                                                                    pw.FontWeight.bold,
-                                                                              ),
-                                                                            ),
-                                                                          ),
-                                                                          pw.Padding(
-                                                                            padding: pw.EdgeInsets.all(
-                                                                              6,
-                                                                            ),
-                                                                            child: pw.Text(
-                                                                              '₹ ${sale.totalAmount.toStringAsFixed(2)}',
-                                                                              style: pw.TextStyle(
-                                                                                font:
-                                                                                    rupeeFont,
-                                                                              ),
-                                                                            ),
-                                                                          ),
-                                                                        ],
-                                                                      ),
-                                                                      pw.TableRow(
-                                                                        children: [
-                                                                          pw.Padding(
-                                                                            padding: pw.EdgeInsets.all(
-                                                                              6,
-                                                                            ),
-                                                                            child: pw.Text(
-                                                                              'Received',
-                                                                            ),
-                                                                          ),
-                                                                          pw.Padding(
-                                                                            padding: pw.EdgeInsets.all(
-                                                                              6,
-                                                                            ),
-                                                                            child: pw.Text(
-                                                                              '₹ ${sale.amount.toStringAsFixed(2)}',
-                                                                              style: pw.TextStyle(
-                                                                                font:
-                                                                                    rupeeFont,
-                                                                              ),
-                                                                            ),
-                                                                          ),
-                                                                        ],
-                                                                      ),
-                                                                      pw.TableRow(
-                                                                        children: [
-                                                                          pw.Padding(
-                                                                            padding: pw.EdgeInsets.all(
-                                                                              6,
-                                                                            ),
-                                                                            child: pw.Text(
-                                                                              'Balance',
-                                                                            ),
-                                                                          ),
-                                                                          pw.Padding(
-                                                                            padding: pw.EdgeInsets.all(
-                                                                              6,
-                                                                            ),
-                                                                            child: pw.Text(
-                                                                              '₹ ${balanceAmount.toStringAsFixed(2)}',
-                                                                              style: pw.TextStyle(
-                                                                                font:
-                                                                                    rupeeFont,
-                                                                              ),
-                                                                            ),
-                                                                          ),
-                                                                        ],
-                                                                      ),
-                                                                      pw.TableRow(
-                                                                        children: [
-                                                                          pw.Padding(
-                                                                            padding: pw.EdgeInsets.all(
-                                                                              6,
-                                                                            ),
-                                                                            child: pw.Text(
-                                                                              'Payment Mode',
-                                                                            ),
-                                                                          ),
-                                                                          pw.Padding(
-                                                                            padding: pw.EdgeInsets.all(
-                                                                              6,
-                                                                            ),
-                                                                            child: pw.Text(
-                                                                              sale.paymentMode,
-                                                                            ),
-                                                                          ),
-                                                                        ],
-                                                                      ),
-                                                                    ],
-                                                                  ),
-                                                                ],
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                        pw.SizedBox(height: 16),
-                                                        pw.Align(
-                                                          alignment:
-                                                              pw
-                                                                  .Alignment
-                                                                  .centerRight,
-                                                          child: pw.Text(
-                                                            'For: Shutter Life Photography',
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
+                                                      ),
+                                                    ],
                                                   ),
-                                            ),
-                                          );
+                                                ),
+                                          ),
+                                        );
 
-                                          final output =
-                                              await getTemporaryDirectory();
-                                          final file = File(
-                                            "${output.path}/invoice_$invoiceNumber.pdf",
-                                          );
-                                          await file.writeAsBytes(
-                                            await pdf.save(),
-                                          );
+                                        final output =
+                                            await getTemporaryDirectory();
+                                        final file = File(
+                                          "${output.path}/invoice_$invoiceNumber.pdf",
+                                        );
+                                        await file.writeAsBytes(
+                                          await pdf.save(),
+                                        );
 
-                                          Navigator.push(
-                                            scaffoldContext,
-                                            MaterialPageRoute(
-                                              builder:
-                                                  (_) => PdfPreviewScreen(
-                                                    filePath: file.path,
-                                                    sale: sale,
-                                                  ),
-                                            ),
-                                          );
-                                        }
+                                        Navigator.push(
+                                          scaffoldContext,
+                                          MaterialPageRoute(
+                                            builder:
+                                                (_) => PdfPreviewScreen(
+                                                  filePath: file.path,
+                                                  sale: sale,
+                                                ),
+                                          ),
+                                        );
                                       } else if (value == 'payment_history') {
                                         Navigator.push(
                                           scaffoldContext,
@@ -2422,12 +2157,263 @@ class _HomePageState extends State<HomePage>
                                           );
                                         }
                                       } else if (value == 'share_pdf') {
-                                        final pdf = pw.Document();
-
+                                        // Calculate balance
                                         final balanceAmount =
                                             (sale.totalAmount - sale.amount)
                                                 .clamp(0, double.infinity);
 
+                                        // Get amount from user if balance is > 0
+                                        num enteredAmount = balanceAmount;
+                                        if (balanceAmount > 0) {
+                                          final entered = await showDialog<
+                                            double?
+                                          >(
+                                            context: scaffoldContext,
+                                            builder: (context) {
+                                              final controller =
+                                                  TextEditingController(
+                                                    text: balanceAmount
+                                                        .toStringAsFixed(2),
+                                                  );
+
+                                              return LayoutBuilder(
+                                                builder: (
+                                                  context,
+                                                  constraints,
+                                                ) {
+                                                  final screenWidth =
+                                                      MediaQuery.of(
+                                                        context,
+                                                      ).size.width;
+                                                  final maxWidth =
+                                                      screenWidth < 400
+                                                          ? screenWidth * 0.9
+                                                          : 400.0;
+
+                                                  return Dialog(
+                                                    insetPadding:
+                                                        const EdgeInsets.symmetric(
+                                                          horizontal: 16,
+                                                          vertical: 24,
+                                                        ),
+                                                    shape: RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            16,
+                                                          ),
+                                                    ),
+                                                    child: ConstrainedBox(
+                                                      constraints:
+                                                          BoxConstraints(
+                                                            maxWidth: maxWidth,
+                                                          ),
+                                                      child: SingleChildScrollView(
+                                                        child: Padding(
+                                                          padding:
+                                                              const EdgeInsets.only(
+                                                                bottom: 16,
+                                                              ),
+                                                          child: Column(
+                                                            mainAxisSize:
+                                                                MainAxisSize
+                                                                    .min,
+                                                            children: [
+                                                              // Header
+                                                              Container(
+                                                                width:
+                                                                    double
+                                                                        .infinity,
+                                                                decoration: BoxDecoration(
+                                                                  color:
+                                                                      Colors
+                                                                          .deepPurple,
+                                                                  borderRadius:
+                                                                      const BorderRadius.vertical(
+                                                                        top: Radius.circular(
+                                                                          16,
+                                                                        ),
+                                                                      ),
+                                                                ),
+                                                                padding:
+                                                                    const EdgeInsets.symmetric(
+                                                                      vertical:
+                                                                          20,
+                                                                    ),
+                                                                child: Column(
+                                                                  children: const [
+                                                                    Icon(
+                                                                      Icons
+                                                                          .qr_code_2_rounded,
+                                                                      size: 40,
+                                                                      color:
+                                                                          Colors
+                                                                              .white,
+                                                                    ),
+                                                                    SizedBox(
+                                                                      height: 8,
+                                                                    ),
+                                                                    Text(
+                                                                      'Customize UPI Amount',
+                                                                      style: TextStyle(
+                                                                        fontSize:
+                                                                            20,
+                                                                        fontWeight:
+                                                                            FontWeight.w600,
+                                                                        color:
+                                                                            Colors.white,
+                                                                      ),
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                              ),
+
+                                                              // Body
+                                                              Padding(
+                                                                padding:
+                                                                    const EdgeInsets.symmetric(
+                                                                      horizontal:
+                                                                          20,
+                                                                      vertical:
+                                                                          20,
+                                                                    ),
+                                                                child: Column(
+                                                                  children: [
+                                                                    const Text(
+                                                                      "Enter the amount you want to show in the UPI QR. Leave it empty if the customer should enter manually.",
+                                                                      style: TextStyle(
+                                                                        fontSize:
+                                                                            14,
+                                                                        color:
+                                                                            Colors.black87,
+                                                                      ),
+                                                                      textAlign:
+                                                                          TextAlign
+                                                                              .center,
+                                                                    ),
+                                                                    const SizedBox(
+                                                                      height:
+                                                                          16,
+                                                                    ),
+                                                                    TextField(
+                                                                      controller:
+                                                                          controller,
+                                                                      keyboardType: const TextInputType.numberWithOptions(
+                                                                        decimal:
+                                                                            true,
+                                                                      ),
+                                                                      decoration: InputDecoration(
+                                                                        labelText:
+                                                                            'Amount (₹)',
+                                                                        prefixIcon: const Icon(
+                                                                          Icons
+                                                                              .currency_rupee,
+                                                                        ),
+                                                                        border: OutlineInputBorder(
+                                                                          borderRadius: BorderRadius.circular(
+                                                                            10,
+                                                                          ),
+                                                                        ),
+                                                                        filled:
+                                                                            true,
+                                                                        fillColor:
+                                                                            Colors.grey[100],
+                                                                      ),
+                                                                    ),
+                                                                    const SizedBox(
+                                                                      height:
+                                                                          24,
+                                                                    ),
+                                                                    Row(
+                                                                      mainAxisAlignment:
+                                                                          MainAxisAlignment
+                                                                              .end,
+                                                                      children: [
+                                                                        TextButton(
+                                                                          child: Text(
+                                                                            'Cancel',
+                                                                            style: TextStyle(
+                                                                              color:
+                                                                                  Colors.grey[700],
+                                                                            ),
+                                                                          ),
+                                                                          onPressed:
+                                                                              () => Navigator.pop(
+                                                                                context,
+                                                                                null,
+                                                                              ),
+                                                                        ),
+                                                                        const SizedBox(
+                                                                          width:
+                                                                              10,
+                                                                        ),
+                                                                        ElevatedButton(
+                                                                          style: ElevatedButton.styleFrom(
+                                                                            backgroundColor:
+                                                                                Colors.deepPurple,
+                                                                            shape: RoundedRectangleBorder(
+                                                                              borderRadius: BorderRadius.circular(
+                                                                                10,
+                                                                              ),
+                                                                            ),
+                                                                            padding: const EdgeInsets.symmetric(
+                                                                              horizontal:
+                                                                                  24,
+                                                                              vertical:
+                                                                                  12,
+                                                                            ),
+                                                                          ),
+                                                                          onPressed: () {
+                                                                            final input =
+                                                                                controller.text.trim();
+                                                                            final parsed = double.tryParse(
+                                                                              input,
+                                                                            );
+                                                                            Navigator.pop(
+                                                                              context,
+                                                                              (input.isEmpty ||
+                                                                                      parsed ==
+                                                                                          null ||
+                                                                                      parsed <=
+                                                                                          0)
+                                                                                  ? null
+                                                                                  : parsed,
+                                                                            );
+                                                                          },
+                                                                          child: const Text(
+                                                                            'Generate QR',
+                                                                            style: TextStyle(
+                                                                              color:
+                                                                                  Colors.white,
+                                                                              fontSize:
+                                                                                  15,
+                                                                              fontWeight:
+                                                                                  FontWeight.bold,
+                                                                            ),
+                                                                          ),
+                                                                        ),
+                                                                      ],
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  );
+                                                },
+                                              );
+                                            },
+                                          );
+
+                                          if (entered != null) {
+                                            enteredAmount = entered;
+                                          }
+                                        }
+
+                                        // Create PDF
+                                        final pdf = pw.Document();
                                         final rupeeFont = pw.Font.ttf(
                                           await rootBundle.load(
                                             'assets/fonts/Roboto-Regular.ttf',
@@ -2435,19 +2421,19 @@ class _HomePageState extends State<HomePage>
                                         );
 
                                         final qrData =
-                                            'upi://pay?pa=playroll.vish-1@oksbi&pn=Vishnu&am=${balanceAmount.toStringAsFixed(2)}&cu=INR';
-
-                                        final qrImage = pw.Barcode.qrCode()
-                                            .toSvg(
-                                              qrData,
-                                              width: 120,
-                                              height: 120,
-                                            );
+                                            'upi://pay?pa=playroll.vish-1@oksbi&pn=Vishnu&am=${enteredAmount.toStringAsFixed(2)}&cu=INR';
 
                                         final prefs =
                                             await SharedPreferences.getInstance();
-                                        final profileImagePath = prefs
-                                            .getString('profileImagePath');
+
+                                        // Get current user email from Hive
+                                        final currentUserEmail =
+                                            await _getCurrentUserEmailFromHive();
+
+                                        // Use email-specific key for profile image
+                                        final profileImagePath = prefs.getString(
+                                          '${currentUserEmail}_profileImagePath',
+                                        );
                                         pw.MemoryImage? headerImage;
 
                                         if (profileImagePath != null) {
@@ -2599,15 +2585,21 @@ class _HomePageState extends State<HomePage>
                                                                 pw.Text(
                                                                   'Thank you for doing business with us.',
                                                                 ),
-                                                                if (balanceAmount >
+                                                                if (enteredAmount >
                                                                     0) ...[
                                                                   pw.SizedBox(
                                                                     height: 20,
                                                                   ),
                                                                   pw.Center(
-                                                                    child: pw.SvgImage(
-                                                                      svg:
-                                                                          qrImage,
+                                                                    child: pw.BarcodeWidget(
+                                                                      data:
+                                                                          qrData,
+                                                                      barcode:
+                                                                          pw.Barcode.qrCode(),
+                                                                      width:
+                                                                          120,
+                                                                      height:
+                                                                          120,
                                                                     ),
                                                                   ),
                                                                   pw.SizedBox(

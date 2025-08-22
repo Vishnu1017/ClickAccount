@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:click_account/models/sale.dart';
+import 'package:click_account/models/user_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -9,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:hive/hive.dart'; // Add this import
 
 enum DateRangePreset {
   today,
@@ -31,6 +33,40 @@ class SalesReportPage extends StatefulWidget {
 class _SalesReportPageState extends State<SalesReportPage> {
   DateTimeRange? selectedRange;
   DateRangePreset? selectedPreset;
+
+  // Add this function to get current user email from Hive
+  Future<String> _getCurrentUserEmailFromHive() async {
+    try {
+      // Open the users box if not already open
+      final usersBox = await Hive.openBox<User>('users');
+
+      // Get the current user from your session or state management
+      // This depends on how you're managing the current user in your app
+
+      // Option 1: If you have a session box with current user email
+      final sessionBox = await Hive.openBox('session');
+      final currentUserEmail = sessionBox.get('currentUserEmail');
+
+      if (currentUserEmail != null) {
+        return currentUserEmail;
+      }
+
+      // Option 2: If you have only one user in the box
+      if (usersBox.isNotEmpty) {
+        final user = usersBox.values.first;
+        return user.email;
+      }
+
+      // Option 3: If you're passing user context somehow
+      // You might need to modify this based on your app's architecture
+
+      // Fallback: Return empty string if no user found
+      return '';
+    } catch (e) {
+      debugPrint('Error getting user email from Hive: $e');
+      return '';
+    }
+  }
 
   @override
   void initState() {
@@ -128,7 +164,14 @@ class _SalesReportPageState extends State<SalesReportPage> {
     final fontData = await rootBundle.load('assets/fonts/Roboto-Regular.ttf');
     final ttf = pw.Font.ttf(fontData.buffer.asByteData());
     final prefs = await SharedPreferences.getInstance();
-    final profileImagePath = prefs.getString('profileImagePath');
+
+    // Get current user email from Hive
+    final currentUserEmail = await _getCurrentUserEmailFromHive();
+
+    // Use email-specific key for profile image
+    final profileImagePath = prefs.getString(
+      '${currentUserEmail}_profileImagePath',
+    );
 
     pw.MemoryImage? headerImage;
 
