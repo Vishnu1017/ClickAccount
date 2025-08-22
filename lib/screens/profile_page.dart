@@ -367,84 +367,72 @@ class _ProfilePageState extends State<ProfilePage> {
                             children: [
                               Align(
                                 alignment: Alignment.topRight,
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(
-                                      color: Colors.white30,
+                                child: PopupMenuButton<String>(
+                                  icon: const Icon(
+                                    FontAwesomeIcons.ellipsisV,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    side: BorderSide(
+                                      color: Colors.white.withOpacity(0.2),
                                       width: 1,
                                     ),
                                   ),
-                                  child: PopupMenuButton<String>(
-                                    icon: const Icon(
-                                      FontAwesomeIcons.ellipsisV,
-                                      color: Colors.white,
-                                      size: 24,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      side: BorderSide(
-                                        color: Colors.white.withOpacity(0.2),
-                                        width: 1,
-                                      ),
-                                    ),
-                                    color: Colors.blueGrey[800]?.withOpacity(
-                                      0.95,
-                                    ),
-                                    elevation: 8,
-                                    shadowColor: Colors.black.withOpacity(0.3),
-                                    onSelected: (value) {
-                                      if (value == 'edit') {
-                                        _toggleEditing();
-                                      }
-                                    },
-                                    itemBuilder: (BuildContext context) {
-                                      return [
-                                        PopupMenuItem<String>(
-                                          value: 'edit',
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 4,
-                                              vertical: 4,
-                                            ),
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Container(
-                                                  padding: const EdgeInsets.all(
-                                                    6,
-                                                  ),
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.blueAccent
-                                                        .withOpacity(0.2),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          8,
-                                                        ),
-                                                  ),
-                                                  child: const Icon(
-                                                    Icons.edit,
-                                                    color: Colors.blueAccent,
-                                                    size: 20,
-                                                  ),
+                                  color: Colors.blueGrey[800]?.withOpacity(
+                                    0.95,
+                                  ),
+                                  elevation: 8,
+                                  shadowColor: Colors.black.withOpacity(0.3),
+                                  onSelected: (value) {
+                                    if (value == 'edit') {
+                                      _toggleEditing();
+                                    }
+                                  },
+                                  itemBuilder: (BuildContext context) {
+                                    return [
+                                      PopupMenuItem<String>(
+                                        value: 'edit',
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 4,
+                                            vertical: 4,
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Container(
+                                                padding: const EdgeInsets.all(
+                                                  6,
                                                 ),
-                                                const SizedBox(width: 12),
-                                                const Text(
-                                                  'Edit Profile',
-                                                  style: TextStyle(
-                                                    fontSize: 14,
-                                                    fontWeight: FontWeight.w500,
-                                                    color: Colors.white,
-                                                  ),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.blueAccent
+                                                      .withOpacity(0.2),
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
                                                 ),
-                                              ],
-                                            ),
+                                                child: const Icon(
+                                                  Icons.edit,
+                                                  color: Colors.blueAccent,
+                                                  size: 20,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 12),
+                                              const Text(
+                                                'Edit Profile',
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
-                                      ];
-                                    },
-                                  ),
+                                      ),
+                                    ];
+                                  },
                                 ),
                               ),
                               const SizedBox(height: 8),
