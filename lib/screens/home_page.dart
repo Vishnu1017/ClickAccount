@@ -1744,7 +1744,7 @@ class _HomePageState extends State<HomePage>
                                         );
                                       } else if (value == 'delivery_tracker') {
                                         String rawNumber =
-                                            '+91 ${sale.phoneNumber}' ?? '';
+                                            '+91 ${sale.phoneNumber}';
 
                                         // Normalize the phone number
                                         String phoneWithCountryCode =
@@ -2844,7 +2844,7 @@ class _HomePageState extends State<HomePage>
                                         );
                                       } else if (value == 'delivery_tracker') {
                                         String rawNumber =
-                                            '+91 ${sale.phoneNumber}' ?? '';
+                                            '+91 ${sale.phoneNumber}';
 
                                         // Normalize the phone number
                                         String phoneWithCountryCode =
