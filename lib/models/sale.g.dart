@@ -27,13 +27,16 @@ class SaleAdapter extends TypeAdapter<Sale> {
       deliveryStatus: fields[7] as String,
       deliveryLink: fields[8] as String,
       paymentMode: fields[9] as String,
+      deliveryStatusHistory: (fields[10] as List?)
+          ?.map((dynamic e) => (e as Map).cast<String, dynamic>())
+          ?.toList(),
     );
   }
 
   @override
   void write(BinaryWriter writer, Sale obj) {
     writer
-      ..writeByte(10)
+      ..writeByte(11)
       ..writeByte(0)
       ..write(obj.customerName)
       ..writeByte(1)
@@ -53,7 +56,9 @@ class SaleAdapter extends TypeAdapter<Sale> {
       ..writeByte(8)
       ..write(obj.deliveryLink)
       ..writeByte(9)
-      ..write(obj.paymentMode);
+      ..write(obj.paymentMode)
+      ..writeByte(10)
+      ..write(obj.deliveryStatusHistory);
   }
 
   @override

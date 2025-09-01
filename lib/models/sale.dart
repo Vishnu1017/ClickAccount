@@ -35,6 +35,10 @@ class Sale extends HiveObject {
   @HiveField(9)
   String paymentMode;
 
+  // Add this field for delivery status history
+  @HiveField(10)
+  List<Map<String, dynamic>>? deliveryStatusHistory;
+
   Sale({
     required this.customerName,
     required this.amount,
@@ -46,6 +50,7 @@ class Sale extends HiveObject {
     this.deliveryStatus = 'All Non Editing Images',
     this.deliveryLink = '',
     this.paymentMode = 'Cash',
+    this.deliveryStatusHistory,
   }) : paymentHistory = paymentHistory ?? [];
 
   // ✅ Computed Getters for use in PDF or UI
@@ -62,5 +67,16 @@ class Sale extends HiveObject {
     return "${dateTime.day.toString().padLeft(2, '0')}-"
         "${dateTime.month.toString().padLeft(2, '0')}-"
         "${dateTime.year}";
+  }
+
+  // Helper method to add delivery status (optional)
+  void addDeliveryStatus(String status, String notes) {
+    deliveryStatusHistory ??= [];
+    deliveryStatusHistory!.add({
+      'status': status,
+      'dateTime': DateTime.now().toIso8601String(),
+      'notes': notes,
+    });
+    deliveryStatus = status;
   }
 }

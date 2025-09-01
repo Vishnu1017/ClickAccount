@@ -1,13 +1,22 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:click_account/models/sale.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:intl/intl.dart';
+import 'package:hive/hive.dart';
+import 'package:click_account/models/sale.dart';
 
 class DeliveryTrackerPage extends StatefulWidget {
   final Sale sale;
+  final String phoneWithCountryCode;
+  final String phoneWithoutCountryCode;
 
-  const DeliveryTrackerPage({super.key, required this.sale});
+  const DeliveryTrackerPage({
+    super.key,
+    required this.sale,
+    required this.phoneWithCountryCode,
+    required this.phoneWithoutCountryCode,
+  });
 
   @override
   State<DeliveryTrackerPage> createState() => _DeliveryTrackerPageState();
@@ -15,6 +24,7 @@ class DeliveryTrackerPage extends StatefulWidget {
 
 class _DeliveryTrackerPageState extends State<DeliveryTrackerPage> {
   final TextEditingController _linkController = TextEditingController();
+  final TextEditingController _statusNotesController = TextEditingController();
   String? _selectedStatus;
   final List<String> statuses = [
     'All Non Editing Images',
@@ -22,6 +32,19 @@ class _DeliveryTrackerPageState extends State<DeliveryTrackerPage> {
     'Printed',
     'Delivered',
   ];
+
+  // Map of status-specific note suggestions
+  final Map<String, String> _statusNoteSuggestions = {
+    'All Non Editing Images':
+        'Non-edited photos are ready for download. Final edited versions will be shared separately once completed.',
+    'Editing':
+        'Photos are currently being edited. We\'ll notify you when they\'re ready for review.',
+    'Printed': 'Photos have been printed and are being prepared for delivery.',
+    'Delivered': 'Photos have been successfully delivered to the customer.',
+  };
+
+  List<Map<String, dynamic>> deliveryStatusHistory = [];
+  String _previousSuggestion = '';
 
   @override
   void initState() {
@@ -31,11 +54,53 @@ class _DeliveryTrackerPageState extends State<DeliveryTrackerPage> {
         widget.sale.deliveryStatus.isNotEmpty
             ? widget.sale.deliveryStatus
             : 'All Non Editing Images';
+
+    // Initialize delivery status history if empty
+    if (widget.sale.deliveryStatusHistory == null ||
+        widget.sale.deliveryStatusHistory!.isEmpty) {
+      deliveryStatusHistory = [
+        {
+          'status': 'Order Received',
+          'dateTime': widget.sale.dateTime.toIso8601String(),
+          'notes': 'Order has been received and is being processed',
+        },
+      ];
+      widget.sale.deliveryStatusHistory = deliveryStatusHistory;
+    } else {
+      deliveryStatusHistory = widget.sale.deliveryStatusHistory!;
+    }
+  }
+
+  void _updateStatusNoteSuggestion() {
+    if (_selectedStatus != null &&
+        _statusNoteSuggestions.containsKey(_selectedStatus) &&
+        (_statusNotesController.text.isEmpty ||
+            _statusNotesController.text == _previousSuggestion)) {
+      setState(() {
+        _previousSuggestion = _statusNoteSuggestions[_selectedStatus]!;
+        _statusNotesController.text = _previousSuggestion;
+      });
+    }
   }
 
   void _saveDeliveryDetails() async {
     widget.sale.deliveryLink = _linkController.text;
     widget.sale.deliveryStatus = _selectedStatus!;
+
+    // Add current status to history if it's new or changed
+    if (deliveryStatusHistory.isEmpty ||
+        deliveryStatusHistory.first['status'] != _selectedStatus) {
+      deliveryStatusHistory.insert(0, {
+        'status': _selectedStatus!,
+        'dateTime': DateTime.now().toIso8601String(),
+        'notes':
+            _statusNotesController.text.isNotEmpty
+                ? _statusNotesController.text
+                : null,
+      });
+      widget.sale.deliveryStatusHistory = deliveryStatusHistory;
+    }
+
     await widget.sale.save();
     Navigator.pop(context);
   }
@@ -90,6 +155,168 @@ class _DeliveryTrackerPageState extends State<DeliveryTrackerPage> {
     });
   }
 
+  void _showStatusHistory() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 600;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Container(
+            padding: EdgeInsets.all(isSmallScreen ? 16 : 20),
+            width: isSmallScreen ? screenWidth * 0.9 : 500,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Delivery Status History',
+                  style: TextStyle(
+                    fontSize: isSmallScreen ? 18 : 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 16),
+                deliveryStatusHistory.isEmpty
+                    ? Center(
+                      child: Text(
+                        'No status history available',
+                        style: TextStyle(
+                          fontSize: isSmallScreen ? 14 : 16,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    )
+                    : Expanded(
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: deliveryStatusHistory.length,
+                        itemBuilder: (context, index) {
+                          final status = deliveryStatusHistory[index];
+                          return _buildHistoryItem(
+                            status,
+                            index,
+                            deliveryStatusHistory.length,
+                            isSmallScreen,
+                          );
+                        },
+                      ),
+                    ),
+                SizedBox(height: 20),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: Text('Close'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildHistoryItem(
+    Map<String, dynamic> status,
+    int index,
+    int totalItems,
+    bool isSmallScreen,
+  ) {
+    return Container(
+      margin: EdgeInsets.only(bottom: isSmallScreen ? 12 : 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Timeline indicator
+          Column(
+            children: [
+              Container(
+                width: isSmallScreen ? 16 : 20,
+                height: isSmallScreen ? 16 : 20,
+                decoration: BoxDecoration(
+                  color: index == 0 ? Colors.green : Colors.grey[400],
+                  shape: BoxShape.circle,
+                ),
+                child:
+                    index == 0
+                        ? Icon(
+                          Icons.check,
+                          color: Colors.white,
+                          size: isSmallScreen ? 12 : 14,
+                        )
+                        : null,
+              ),
+              if (index < totalItems - 1)
+                Container(
+                  width: 2,
+                  height: isSmallScreen ? 40 : 50,
+                  color: Colors.grey[300],
+                ),
+            ],
+          ),
+          SizedBox(width: isSmallScreen ? 12 : 16),
+
+          // Status content
+          Expanded(
+            child: Card(
+              elevation: 2,
+              child: Padding(
+                padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      status['status'],
+                      style: TextStyle(
+                        fontSize: isSmallScreen ? 16 : 17,
+                        fontWeight: FontWeight.bold,
+                        color: index == 0 ? Colors.green[700] : Colors.black,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.access_time,
+                          size: 14,
+                          color: Colors.grey[600],
+                        ),
+                        SizedBox(width: 4),
+                        Text(
+                          DateFormat(
+                            'dd MMM yyyy, hh:mm a',
+                          ).format(DateTime.parse(status['dateTime'])),
+                          style: TextStyle(
+                            fontSize: isSmallScreen ? 12 : 13,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (status['notes'] != null &&
+                        status['notes'].isNotEmpty) ...[
+                      SizedBox(height: 8),
+                      Text(
+                        status['notes'],
+                        style: TextStyle(fontSize: isSmallScreen ? 14 : 15),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   int getCurrentStepIndex() {
     return statuses.indexOf(_selectedStatus ?? 'All Non Editing Images');
   }
@@ -127,6 +354,13 @@ class _DeliveryTrackerPageState extends State<DeliveryTrackerPage> {
                 fontSize: isSmallScreen ? 18 : 20,
               ),
             ),
+            actions: [
+              IconButton(
+                icon: Icon(Icons.history),
+                onPressed: _showStatusHistory,
+                tooltip: 'View History',
+              ),
+            ],
           ),
         ),
       ),
@@ -166,6 +400,10 @@ class _DeliveryTrackerPageState extends State<DeliveryTrackerPage> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          // Customer Info
+                          _buildCustomerInfo(isSmallScreen),
+                          SizedBox(height: isSmallScreen ? 15 : 20),
+
                           // Stepper Timeline - Responsive version
                           _buildResponsiveStepper(isSmallScreen, isPortrait),
                           SizedBox(height: isSmallScreen ? 10 : 20),
@@ -241,8 +479,100 @@ class _DeliveryTrackerPageState extends State<DeliveryTrackerPage> {
                             onChanged: (value) {
                               setState(() {
                                 _selectedStatus = value!;
+                                // Update the status note when status changes
+                                _updateStatusNoteSuggestion();
                               });
                             },
+                          ),
+                          SizedBox(height: isSmallScreen ? 15 : 20),
+
+                          // Status Notes with suggestion indicator
+                          Stack(
+                            children: [
+                              TextFormField(
+                                controller: _statusNotesController,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: isSmallScreen ? 14 : 16,
+                                ),
+                                decoration: InputDecoration(
+                                  labelText: 'Status Notes (Optional)',
+                                  labelStyle: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: isSmallScreen ? 14 : 16,
+                                  ),
+                                  filled: true,
+                                  fillColor: Colors.white.withOpacity(0.05),
+                                  contentPadding: EdgeInsets.symmetric(
+                                    vertical: isSmallScreen ? 14 : 18,
+                                    horizontal: isSmallScreen ? 12 : 16,
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                    borderSide: BorderSide(
+                                      color: Colors.white.withOpacity(0.2),
+                                      width: 1.2,
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                    borderSide: BorderSide(
+                                      color: Colors.white,
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                ),
+                                maxLines: 2,
+                                onTap: () {
+                                  // Clear the field if it contains the default suggestion
+                                  if (_statusNotesController.text ==
+                                      _previousSuggestion) {
+                                    setState(() {
+                                      _statusNotesController.clear();
+                                      _previousSuggestion = '';
+                                    });
+                                  }
+                                },
+                                onChanged: (value) {
+                                  // Track if user modifies the suggestion
+                                  if (value != _previousSuggestion) {
+                                    _previousSuggestion = '';
+                                  }
+                                },
+                              ),
+                              if (_statusNotesController.text.isEmpty ||
+                                  _statusNotesController.text ==
+                                      _previousSuggestion)
+                                Positioned(
+                                  right: 12,
+                                  top: 12,
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      // Apply the suggestion when the hint is tapped
+                                      if (_selectedStatus != null &&
+                                          _statusNoteSuggestions.containsKey(
+                                            _selectedStatus,
+                                          )) {
+                                        setState(() {
+                                          _previousSuggestion =
+                                              _statusNoteSuggestions[_selectedStatus]!;
+                                          _statusNotesController.text =
+                                              _previousSuggestion;
+                                        });
+                                      }
+                                    },
+                                    child: Tooltip(
+                                      message: 'Apply status note template',
+                                      child: Icon(
+                                        Icons.lightbulb_outline,
+                                        color: Colors.amber,
+                                        size: isSmallScreen ? 18 : 20,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
                           SizedBox(height: isSmallScreen ? 15 : 20),
 
@@ -294,6 +624,76 @@ class _DeliveryTrackerPageState extends State<DeliveryTrackerPage> {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCustomerInfo(bool isSmallScreen) {
+    return Card(
+      color: Colors.white.withOpacity(0.1),
+      child: Padding(
+        padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.sale.customerName,
+              style: TextStyle(
+                fontSize: isSmallScreen ? 18 : 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            SizedBox(height: 4),
+            Text(
+              widget.sale.phoneNumber,
+              style: TextStyle(
+                fontSize: isSmallScreen ? 14 : 16,
+                color: Colors.white70,
+              ),
+            ),
+            SizedBox(height: 4),
+            Text(
+              widget.sale.productName,
+              style: TextStyle(
+                fontSize: isSmallScreen ? 14 : 16,
+                color: Colors.white70,
+              ),
+            ),
+            SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(Icons.calendar_today, size: 16, color: Colors.white70),
+                SizedBox(width: 4),
+                Text(
+                  DateFormat('dd MMM yyyy').format(widget.sale.dateTime),
+                  style: TextStyle(fontSize: 14, color: Colors.white70),
+                ),
+                SizedBox(width: 16),
+                Icon(Icons.receipt, size: 16, color: Colors.white70),
+                SizedBox(width: 4),
+                FutureBuilder<Box<Sale>>(
+                  future: Hive.openBox<Sale>('sales'),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData) {
+                      final box = snapshot.data!;
+                      final invoiceNumber =
+                          box.values.toList().indexOf(widget.sale) + 1;
+                      return Text(
+                        'Invoice #$invoiceNumber',
+                        style: TextStyle(fontSize: 14, color: Colors.white70),
+                      );
+                    }
+                    return Text(
+                      'Invoice #...',
+                      style: TextStyle(fontSize: 14, color: Colors.white70),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

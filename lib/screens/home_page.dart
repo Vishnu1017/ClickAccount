@@ -666,7 +666,7 @@ class _HomePageState extends State<HomePage>
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                       Text(
-                                        sale.phoneNumber,
+                                        '+91 ${sale.phoneNumber}',
                                         style: TextStyle(
                                           fontSize:
                                               isVerySmallScreen
@@ -677,6 +677,7 @@ class _HomePageState extends State<HomePage>
                                           color: Colors.black87,
                                         ),
                                       ),
+
                                       Divider(height: 16, thickness: 1),
                                       Row(
                                         mainAxisAlignment:
@@ -1489,7 +1490,7 @@ class _HomePageState extends State<HomePage>
                                                                   sale.customerName,
                                                                 ),
                                                                 pw.Text(
-                                                                  'Contact No.: ${sale.phoneNumber}',
+                                                                  'Contact No.: +91 ${sale.phoneNumber}',
                                                                 ),
                                                                 pw.SizedBox(
                                                                   height: 12,
@@ -1742,12 +1743,27 @@ class _HomePageState extends State<HomePage>
                                           ),
                                         );
                                       } else if (value == 'delivery_tracker') {
+                                        String rawNumber =
+                                            '+91 ${sale.phoneNumber}' ?? '';
+
+                                        // Normalize the phone number
+                                        String phoneWithCountryCode =
+                                            rawNumber.startsWith('+91')
+                                                ? rawNumber
+                                                : '+91$rawNumber';
+                                        String phoneWithoutCountryCode =
+                                            rawNumber.replaceFirst('+91', '');
+
                                         Navigator.push(
                                           scaffoldContext,
                                           MaterialPageRoute(
                                             builder:
                                                 (_) => DeliveryTrackerPage(
                                                   sale: sale,
+                                                  phoneWithCountryCode:
+                                                      phoneWithCountryCode,
+                                                  phoneWithoutCountryCode:
+                                                      phoneWithoutCountryCode,
                                                 ),
                                           ),
                                         );
@@ -2568,7 +2584,7 @@ class _HomePageState extends State<HomePage>
                                                                   sale.customerName,
                                                                 ),
                                                                 pw.Text(
-                                                                  'Contact No.: ${sale.phoneNumber}',
+                                                                  'Contact No.: +91 ${sale.phoneNumber}',
                                                                 ),
                                                                 pw.SizedBox(
                                                                   height: 12,
@@ -2827,12 +2843,27 @@ class _HomePageState extends State<HomePage>
                                           ),
                                         );
                                       } else if (value == 'delivery_tracker') {
+                                        String rawNumber =
+                                            '+91 ${sale.phoneNumber}' ?? '';
+
+                                        // Normalize the phone number
+                                        String phoneWithCountryCode =
+                                            rawNumber.startsWith('+91')
+                                                ? rawNumber
+                                                : '+91$rawNumber';
+                                        String phoneWithoutCountryCode =
+                                            rawNumber.replaceFirst('+91', '');
+
                                         Navigator.push(
                                           scaffoldContext,
                                           MaterialPageRoute(
                                             builder:
                                                 (_) => DeliveryTrackerPage(
                                                   sale: sale,
+                                                  phoneWithCountryCode:
+                                                      phoneWithCountryCode,
+                                                  phoneWithoutCountryCode:
+                                                      phoneWithoutCountryCode,
                                                 ),
                                           ),
                                         );
