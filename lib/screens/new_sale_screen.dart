@@ -473,6 +473,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
       dateTime: selectedDate,
       deliveryStatus: 'All Non Editing Images',
       paymentHistory: [newPayment],
+      discount: totalDiscount,
     );
 
     await saleBox.add(sale);
@@ -696,11 +697,9 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                   ),
                 ),
                 SizedBox(height: 10),
-                ...selectedItems
-                    .asMap()
-                    .entries
-                    .map((entry) => buildItemCard(entry.key, entry.value))
-                    ,
+                ...selectedItems.asMap().entries.map(
+                  (entry) => buildItemCard(entry.key, entry.value),
+                ),
                 Divider(),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,

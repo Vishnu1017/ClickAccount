@@ -636,8 +636,29 @@ class _SelectItemsScreenState extends State<SelectItemsScreen> {
         filled: fillColor != null,
       ),
       keyboardType: keyboardType,
+      textCapitalization:
+          TextCapitalization.words, // Capitalizes first letter of each word
       validator: validator,
-      onChanged: (value) => setState(() {}),
+      onChanged: (value) {
+        if (value.isNotEmpty) {
+          // Capitalize first letter of each word manually
+          final newText = value
+              .split(' ')
+              .map((word) {
+                if (word.isEmpty) return '';
+                return word[0].toUpperCase() + word.substring(1);
+              })
+              .join(' ');
+
+          if (newText != value) {
+            controller.value = controller.value.copyWith(
+              text: newText,
+              selection: TextSelection.collapsed(offset: newText.length),
+            );
+          }
+        }
+        setState(() {});
+      },
     );
   }
 

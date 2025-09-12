@@ -41,7 +41,7 @@ class WhatsAppService {
                   "💰 Amount: ₹${amount.toStringAsFixed(2)}\n"
                   "📋 Invoice #: $invoiceNumber\n\n"
                   "Payment Methods:\n"
-                  "• UPI: playroll.vish-1@oksbi\n"
+                  "• UPI: shutterlifephotography10@okaxis\n"
                   "• Bank Transfer (Details attached)\n"
                   "• Cash (At our studio)\n\n"
                   "Please confirm once payment is made. Thank you for your prompt attention!\n\n"

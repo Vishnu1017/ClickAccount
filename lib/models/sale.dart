@@ -35,9 +35,11 @@ class Sale extends HiveObject {
   @HiveField(9)
   String paymentMode;
 
-  // Add this field for delivery status history
   @HiveField(10)
   List<Map<String, dynamic>>? deliveryStatusHistory;
+
+  @HiveField(11) // New field for total discount
+  double discount;
 
   Sale({
     required this.customerName,
@@ -46,6 +48,7 @@ class Sale extends HiveObject {
     required this.dateTime,
     required this.phoneNumber,
     required this.totalAmount,
+    required this.discount,
     List<Payment>? paymentHistory,
     this.deliveryStatus = 'All Non Editing Images',
     this.deliveryLink = '',
@@ -53,8 +56,7 @@ class Sale extends HiveObject {
     this.deliveryStatusHistory,
   }) : paymentHistory = paymentHistory ?? [];
 
-  // ✅ Computed Getters for use in PDF or UI
-
+  // ✅ Computed getters
   double get receivedAmount {
     return paymentHistory.fold(0.0, (sum, p) => sum + p.amount);
   }
@@ -69,7 +71,6 @@ class Sale extends HiveObject {
         "${dateTime.year}";
   }
 
-  // Helper method to add delivery status (optional)
   void addDeliveryStatus(String status, String notes) {
     deliveryStatusHistory ??= [];
     deliveryStatusHistory!.add({
@@ -78,5 +79,16 @@ class Sale extends HiveObject {
       'notes': notes,
     });
     deliveryStatus = status;
+  }
+
+  // ✅ Override delete() to prevent deletion if discount > 0
+  @override
+  Future<void> delete() {
+    if (discount > 0) {
+      throw Exception(
+        "Deleting this sale is not allowed because it has a discount.",
+      );
+    }
+    return super.delete();
   }
 }

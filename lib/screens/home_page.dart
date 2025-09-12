@@ -1332,8 +1332,8 @@ class _HomePageState extends State<HomePage>
 
                                         final qrData =
                                             enteredAmount != null
-                                                ? 'upi://pay?pa=playroll.vish-1@oksbi&pn=Vishnu&am=${enteredAmount.toStringAsFixed(2)}&cu=INR'
-                                                : 'upi://pay?pa=playroll.vish-1@oksbi&pn=Vishnu&cu=INR';
+                                                ? 'upi://pay?pa=shutterlifephotography10@okaxis&pn=Vishnu&am=${enteredAmount.toStringAsFixed(2)}&cu=INR'
+                                                : 'upi://pay?pa=shutterlifephotography10@okaxis&pn=Vishnu&cu=INR';
 
                                         final qrImage = pw.Barcode.qrCode()
                                             .toSvg(
@@ -1495,23 +1495,8 @@ class _HomePageState extends State<HomePage>
                                                                 pw.SizedBox(
                                                                   height: 12,
                                                                 ),
-                                                                pw.Text(
-                                                                  'Terms And Conditions',
-                                                                  style: pw.TextStyle(
-                                                                    fontWeight:
-                                                                        pw
-                                                                            .FontWeight
-                                                                            .bold,
-                                                                  ),
-                                                                ),
-                                                                pw.Text(
-                                                                  'Thank you for doing business with us.',
-                                                                ),
                                                                 if (balanceAmount >
                                                                     0) ...[
-                                                                  pw.SizedBox(
-                                                                    height: 20,
-                                                                  ),
                                                                   pw.Center(
                                                                     child: pw.SvgImage(
                                                                       svg:
@@ -1531,6 +1516,9 @@ class _HomePageState extends State<HomePage>
                                                                             pw.FontWeight.bold,
                                                                       ),
                                                                     ),
+                                                                  ),
+                                                                  pw.SizedBox(
+                                                                    height: 12,
                                                                   ),
                                                                 ],
                                                               ],
@@ -1607,7 +1595,37 @@ class _HomePageState extends State<HomePage>
                                                                             6,
                                                                           ),
                                                                           child: pw.Text(
-                                                                            '₹ ${sale.totalAmount.toStringAsFixed(2)}',
+                                                                            '₹ ${(sale.totalAmount + sale.discount).toStringAsFixed(2)}',
+                                                                            style: pw.TextStyle(
+                                                                              font:
+                                                                                  rupeeFont,
+                                                                            ),
+                                                                          ),
+                                                                        ),
+                                                                      ],
+                                                                    ),
+                                                                    pw.TableRow(
+                                                                      children: [
+                                                                        pw.Padding(
+                                                                          padding: pw
+                                                                              .EdgeInsets.all(
+                                                                            6,
+                                                                          ),
+                                                                          child: pw.Text(
+                                                                            'Discount',
+                                                                            style: pw.TextStyle(
+                                                                              fontWeight:
+                                                                                  pw.FontWeight.bold,
+                                                                            ),
+                                                                          ),
+                                                                        ),
+                                                                        pw.Padding(
+                                                                          padding: pw
+                                                                              .EdgeInsets.all(
+                                                                            6,
+                                                                          ),
+                                                                          child: pw.Text(
+                                                                            '₹ ${sale.discount.toStringAsFixed(2)}',
                                                                             style: pw.TextStyle(
                                                                               font:
                                                                                   rupeeFont,
@@ -1651,6 +1669,10 @@ class _HomePageState extends State<HomePage>
                                                                           ),
                                                                           child: pw.Text(
                                                                             'Balance',
+                                                                            style: pw.TextStyle(
+                                                                              fontWeight:
+                                                                                  pw.FontWeight.bold,
+                                                                            ),
                                                                           ),
                                                                         ),
                                                                         pw.Padding(
@@ -1696,6 +1718,124 @@ class _HomePageState extends State<HomePage>
                                                             ),
                                                           ),
                                                         ],
+                                                      ),
+                                                      pw.SizedBox(height: 16),
+                                                      // Terms and Conditions Section
+                                                      pw.Text(
+                                                        'Terms and Conditions:',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 14,
+                                                          fontWeight:
+                                                              pw
+                                                                  .FontWeight
+                                                                  .bold,
+                                                        ),
+                                                      ),
+                                                      pw.SizedBox(height: 8),
+                                                      pw.Text(
+                                                        '1. All photographs remain the property of Shutter Life Photography and are protected by copyright law.',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 10,
+                                                        ),
+                                                      ),
+                                                      pw.SizedBox(height: 4),
+                                                      pw.Text(
+                                                        '2. Client is granted personal use license for the photographs, not for commercial purposes.',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 10,
+                                                        ),
+                                                      ),
+                                                      pw.SizedBox(height: 4),
+                                                      pw.Text(
+                                                        '3. Delivery timelines are estimates and may vary based on workload and complexity.',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 10,
+                                                        ),
+                                                      ),
+                                                      pw.SizedBox(height: 4),
+                                                      pw.Text(
+                                                        '4. Rush delivery services may incur additional charges.',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 10,
+                                                        ),
+                                                      ),
+                                                      pw.SizedBox(height: 4),
+                                                      pw.Text(
+                                                        '5. Once delivered, client is responsible for backup and storage of digital files.',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 10,
+                                                        ),
+                                                      ),
+                                                      pw.SizedBox(height: 4),
+                                                      pw.Text(
+                                                        '6. Re-shoots may be requested within 7 days of delivery if quality issues are found.',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 10,
+                                                        ),
+                                                      ),
+                                                      pw.SizedBox(height: 4),
+                                                      pw.Text(
+                                                        '7. Payments are non-refundable once services have been rendered.',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 10,
+                                                        ),
+                                                      ),
+                                                      pw.SizedBox(height: 4),
+                                                      pw.Text(
+                                                        '8. Balance amount must be paid in full before final delivery of photographs.',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 10,
+                                                        ),
+                                                      ),
+                                                      pw.SizedBox(height: 4),
+                                                      // NEW: Added the two requested terms
+                                                      pw.Text(
+                                                        '9. If advance payment is made, the photo shoot will be considered officially booked and reserved.',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 10,
+                                                        ),
+                                                      ),
+                                                      pw.SizedBox(height: 4),
+                                                      pw.Text(
+                                                        '10. If the program takes extra hours beyond the agreed timeframe, additional charges will apply.',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 10,
+                                                        ),
+                                                      ),
+                                                      pw.SizedBox(height: 4),
+                                                      pw.Text(
+                                                        '11. Weather conditions may affect outdoor shoots and may require rescheduling.',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 10,
+                                                        ),
+                                                      ),
+                                                      pw.SizedBox(height: 4),
+                                                      pw.Text(
+                                                        '12. Client must provide access to suitable locations for the shoot as agreed upon.',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 10,
+                                                        ),
+                                                      ),
+                                                      pw.SizedBox(height: 4),
+                                                      pw.Text(
+                                                        '13. Raw files are not included in the package unless specified in writing.',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 10,
+                                                        ),
+                                                      ),
+                                                      pw.SizedBox(height: 4),
+                                                      pw.Text(
+                                                        '14. The photographer retains the right to use images for portfolio and marketing purposes.',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 10,
+                                                        ),
+                                                      ),
+                                                      pw.SizedBox(height: 4),
+                                                      pw.Text(
+                                                        '15. Client cooperation is essential for achieving desired results.',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 10,
+                                                        ),
                                                       ),
                                                       pw.SizedBox(height: 16),
                                                       pw.Align(
@@ -1802,7 +1942,7 @@ class _HomePageState extends State<HomePage>
                                               "💰 Amount: ₹${balanceAmount.toStringAsFixed(2)}\n"
                                               "📋 Invoice #: $invoiceNumber\n\n"
                                               "Payment Methods:\n"
-                                              "• UPI: playroll.vish-1@oksbi\n"
+                                              "• UPI: shutterlifephotography10@okaxis\n"
                                               "• Bank Transfer (Details attached)\n"
                                               "• Cash (At our studio)\n\n"
                                               "Please confirm once payment is made. Thank you for your prompt attention!\n\n"
@@ -2437,7 +2577,7 @@ class _HomePageState extends State<HomePage>
                                         );
 
                                         final qrData =
-                                            'upi://pay?pa=playroll.vish-1@oksbi&pn=Vishnu&am=${enteredAmount.toStringAsFixed(2)}&cu=INR';
+                                            'upi://pay?pa=shutterlifephotography10@okaxis&pn=Vishnu&am=${enteredAmount.toStringAsFixed(2)}&cu=INR';
 
                                         final prefs =
                                             await SharedPreferences.getInstance();
@@ -2589,23 +2729,8 @@ class _HomePageState extends State<HomePage>
                                                                 pw.SizedBox(
                                                                   height: 12,
                                                                 ),
-                                                                pw.Text(
-                                                                  'Terms And Conditions',
-                                                                  style: pw.TextStyle(
-                                                                    fontWeight:
-                                                                        pw
-                                                                            .FontWeight
-                                                                            .bold,
-                                                                  ),
-                                                                ),
-                                                                pw.Text(
-                                                                  'Thank you for doing business with us.',
-                                                                ),
                                                                 if (enteredAmount >
                                                                     0) ...[
-                                                                  pw.SizedBox(
-                                                                    height: 20,
-                                                                  ),
                                                                   pw.Center(
                                                                     child: pw.BarcodeWidget(
                                                                       data:
@@ -2681,6 +2806,7 @@ class _HomePageState extends State<HomePage>
                                                                     ),
                                                                   },
                                                                   children: [
+                                                                    // Total Amount row
                                                                     pw.TableRow(
                                                                       decoration:
                                                                           pw.BoxDecoration(
@@ -2707,7 +2833,7 @@ class _HomePageState extends State<HomePage>
                                                                             6,
                                                                           ),
                                                                           child: pw.Text(
-                                                                            '₹ ${sale.totalAmount.toStringAsFixed(2)}',
+                                                                            '₹ ${(sale.totalAmount + sale.discount).toStringAsFixed(2)}',
                                                                             style: pw.TextStyle(
                                                                               font:
                                                                                   rupeeFont,
@@ -2716,6 +2842,38 @@ class _HomePageState extends State<HomePage>
                                                                         ),
                                                                       ],
                                                                     ),
+                                                                    // Discount row
+                                                                    pw.TableRow(
+                                                                      children: [
+                                                                        pw.Padding(
+                                                                          padding: pw
+                                                                              .EdgeInsets.all(
+                                                                            6,
+                                                                          ),
+                                                                          child: pw.Text(
+                                                                            'Discount',
+                                                                            style: pw.TextStyle(
+                                                                              fontWeight:
+                                                                                  pw.FontWeight.bold,
+                                                                            ),
+                                                                          ),
+                                                                        ),
+                                                                        pw.Padding(
+                                                                          padding: pw
+                                                                              .EdgeInsets.all(
+                                                                            6,
+                                                                          ),
+                                                                          child: pw.Text(
+                                                                            '₹ ${sale.discount.toStringAsFixed(2)}',
+                                                                            style: pw.TextStyle(
+                                                                              font:
+                                                                                  rupeeFont,
+                                                                            ),
+                                                                          ),
+                                                                        ),
+                                                                      ],
+                                                                    ),
+                                                                    // Received row
                                                                     pw.TableRow(
                                                                       children: [
                                                                         pw.Padding(
@@ -2742,6 +2900,7 @@ class _HomePageState extends State<HomePage>
                                                                         ),
                                                                       ],
                                                                     ),
+                                                                    // Balance row
                                                                     pw.TableRow(
                                                                       children: [
                                                                         pw.Padding(
@@ -2751,6 +2910,10 @@ class _HomePageState extends State<HomePage>
                                                                           ),
                                                                           child: pw.Text(
                                                                             'Balance',
+                                                                            style: pw.TextStyle(
+                                                                              fontWeight:
+                                                                                  pw.FontWeight.bold,
+                                                                            ),
                                                                           ),
                                                                         ),
                                                                         pw.Padding(
@@ -2768,6 +2931,7 @@ class _HomePageState extends State<HomePage>
                                                                         ),
                                                                       ],
                                                                     ),
+                                                                    // Payment Mode row
                                                                     pw.TableRow(
                                                                       children: [
                                                                         pw.Padding(
@@ -2796,6 +2960,123 @@ class _HomePageState extends State<HomePage>
                                                             ),
                                                           ),
                                                         ],
+                                                      ),
+                                                      pw.SizedBox(height: 16),
+                                                      // Terms and Conditions Section
+                                                      pw.Text(
+                                                        'Terms and Conditions:',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 14,
+                                                          fontWeight:
+                                                              pw
+                                                                  .FontWeight
+                                                                  .bold,
+                                                        ),
+                                                      ),
+                                                      pw.SizedBox(height: 8),
+                                                      pw.Text(
+                                                        '1. All photographs remain the property of Shutter Life Photography and are protected by copyright law.',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 10,
+                                                        ),
+                                                      ),
+                                                      pw.SizedBox(height: 4),
+                                                      pw.Text(
+                                                        '2. Client is granted personal use license for the photographs, not for commercial purposes.',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 10,
+                                                        ),
+                                                      ),
+                                                      pw.SizedBox(height: 4),
+                                                      pw.Text(
+                                                        '3. Delivery timelines are estimates and may vary based on workload and complexity.',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 10,
+                                                        ),
+                                                      ),
+                                                      pw.SizedBox(height: 4),
+                                                      pw.Text(
+                                                        '4. Rush delivery services may incur additional charges.',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 10,
+                                                        ),
+                                                      ),
+                                                      pw.SizedBox(height: 4),
+                                                      pw.Text(
+                                                        '5. Once delivered, client is responsible for backup and storage of digital files.',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 10,
+                                                        ),
+                                                      ),
+                                                      pw.SizedBox(height: 4),
+                                                      pw.Text(
+                                                        '6. Re-shoots may be requested within 7 days of delivery if quality issues are found.',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 10,
+                                                        ),
+                                                      ),
+                                                      pw.SizedBox(height: 4),
+                                                      pw.Text(
+                                                        '7. Payments are non-refundable once services have been rendered.',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 10,
+                                                        ),
+                                                      ),
+                                                      pw.SizedBox(height: 4),
+                                                      pw.Text(
+                                                        '8. Balance amount must be paid in full before final delivery of photographs.',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 10,
+                                                        ),
+                                                      ),
+                                                      pw.SizedBox(height: 4),
+                                                      pw.Text(
+                                                        '9. If advance payment is made, the photo shoot will be considered officially booked and reserved.',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 10,
+                                                        ),
+                                                      ),
+                                                      pw.SizedBox(height: 4),
+                                                      pw.Text(
+                                                        '10. If the program takes extra hours beyond the agreed timeframe, additional charges will apply.',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 10,
+                                                        ),
+                                                      ),
+                                                      pw.SizedBox(height: 4),
+                                                      pw.Text(
+                                                        '11. Weather conditions may affect outdoor shoots and may require rescheduling.',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 10,
+                                                        ),
+                                                      ),
+                                                      pw.SizedBox(height: 4),
+                                                      pw.Text(
+                                                        '12. Client must provide access to suitable locations for the shoot as agreed upon.',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 10,
+                                                        ),
+                                                      ),
+                                                      pw.SizedBox(height: 4),
+                                                      pw.Text(
+                                                        '13. Raw files are not included in the package unless specified in writing.',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 10,
+                                                        ),
+                                                      ),
+                                                      pw.SizedBox(height: 4),
+                                                      pw.Text(
+                                                        '14. The photographer retains the right to use images for portfolio and marketing purposes.',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 10,
+                                                        ),
+                                                      ),
+                                                      pw.SizedBox(height: 4),
+                                                      pw.Text(
+                                                        '15. Client cooperation is essential for achieving desired results.',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 10,
+                                                        ),
                                                       ),
                                                       pw.SizedBox(height: 16),
                                                       pw.Align(
@@ -2902,7 +3183,7 @@ class _HomePageState extends State<HomePage>
                                               "💰 Amount: ₹${balanceAmount.toStringAsFixed(2)}\n"
                                               "📋 Invoice #: $invoiceNumber\n\n"
                                               "Payment Methods:\n"
-                                              "• UPI: playroll.vish-1@oksbi\n"
+                                              "• UPI: shutterlifephotography10@okaxis\n"
                                               "• Bank Transfer (Details attached)\n"
                                               "• Cash (At our studio)\n\n"
                                               "Please confirm once payment is made. Thank you for your prompt attention!\n\n"

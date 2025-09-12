@@ -86,6 +86,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
       deliveryStatus: widget.sale.deliveryStatus,
       deliveryLink: widget.sale.deliveryLink,
       paymentHistory: [newPayment, ...widget.sale.paymentHistory],
+      discount: widget.sale.discount, // ✅ Pass the existing discount value
     );
 
     await box.putAt(widget.index, updatedSale);
