@@ -389,7 +389,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                             ],
                           ),
                           child: DropdownButtonFormField<String>(
-                            value: _selectedMode,
+                            initialValue: _selectedMode,
                             items:
                                 _paymentModes.map((mode) {
                                   return DropdownMenuItem(

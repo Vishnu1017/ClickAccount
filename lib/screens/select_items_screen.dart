@@ -669,7 +669,7 @@ class _SelectItemsScreenState extends State<SelectItemsScreen> {
     Function(String?) onChanged,
   ) {
     return DropdownButtonFormField<String>(
-      value: value,
+      initialValue: value,
       decoration: InputDecoration(
         labelText: label,
         border: OutlineInputBorder(),

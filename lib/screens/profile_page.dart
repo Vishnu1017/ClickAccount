@@ -545,7 +545,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                       vertical: 8,
                                     ),
                                     child: DropdownButtonFormField<String>(
-                                      value: role,
+                                      initialValue: role,
                                       decoration: InputDecoration(
                                         labelText: 'Role',
                                         labelStyle: const TextStyle(

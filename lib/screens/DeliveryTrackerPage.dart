@@ -410,7 +410,7 @@ class _DeliveryTrackerPageState extends State<DeliveryTrackerPage> {
 
                           // Status Dropdown
                           DropdownButtonFormField<String>(
-                            value: _selectedStatus,
+                            initialValue: _selectedStatus,
                             decoration: InputDecoration(
                               labelText: 'Delivery Status',
                               labelStyle: TextStyle(

@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -21,7 +23,7 @@ class _CustomersPageState extends State<CustomersPage> {
   List<Map<String, String>> customers = [];
   List<Map<String, String>> filteredCustomers = [];
   final TextEditingController _searchController = TextEditingController();
-  FocusNode _searchFocusNode = FocusNode();
+  final FocusNode _searchFocusNode = FocusNode();
   bool _isSearchExpanded = false;
 
   @override

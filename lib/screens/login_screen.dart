@@ -468,7 +468,7 @@ class _LoginScreenState extends State<LoginScreen>
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: DropdownButtonFormField<String>(
-                            value: selectedRole,
+                            initialValue: selectedRole,
                             dropdownColor: Colors.blue.shade800,
                             icon: Icon(
                               Icons.arrow_drop_down,

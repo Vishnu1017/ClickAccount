@@ -12,7 +12,7 @@ class ProductsPage extends StatefulWidget {
 
 class _ProductsPageState extends State<ProductsPage> {
   final TextEditingController _searchController = TextEditingController();
-  FocusNode _searchFocusNode = FocusNode();
+  final FocusNode _searchFocusNode = FocusNode();
   bool _isSearchExpanded = false;
   List<String> filteredProducts = [];
 

@@ -40,7 +40,7 @@ class _HomePageState extends State<HomePage>
   late AnimationController _controller;
   String _searchQuery = "";
   final TextEditingController _searchController = TextEditingController();
-  FocusNode _searchFocusNode = FocusNode();
+  final FocusNode _searchFocusNode = FocusNode();
   bool _isSearchExpanded = false;
   DateTimeRange? selectedRange;
   DateRangePreset? selectedPreset;
@@ -1097,7 +1097,7 @@ class _HomePageState extends State<HomePage>
 
                                         // Ask user for editable amount before QR generation
                                         final TextEditingController
-                                        _amountController =
+                                        amountController =
                                             TextEditingController(
                                               text: balanceAmount
                                                   .toStringAsFixed(2),
