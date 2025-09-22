@@ -384,10 +384,6 @@ class _ProfilePageState extends State<ProfilePage> {
                                       PopupMenuItem<String>(
                                         value: 'edit',
                                         child: Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 4,
-                                            vertical: 4,
-                                          ),
                                           child: Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
@@ -411,9 +407,9 @@ class _ProfilePageState extends State<ProfilePage> {
                                               const Text(
                                                 'Edit Profile',
                                                 style: TextStyle(
-                                                  fontSize: 14,
-                                                  fontWeight: FontWeight.w500,
-                                                  color: Colors.white,
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.black,
                                                 ),
                                               ),
                                             ],
