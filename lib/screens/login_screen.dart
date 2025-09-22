@@ -3,7 +3,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:click_account/models/user_model.dart';
-import 'package:click_account/screens/nav_bar_page.dart';
 import 'package:click_account/screens/auth_gate_screen.dart'; // ✅ new import
 
 class LoginScreen extends StatefulWidget {
@@ -19,7 +18,6 @@ class _LoginScreenState extends State<LoginScreen>
   bool _isLoggedIn = false;
   bool _obscurePassword = true;
   late AnimationController _controller;
-  late Animation<double> _animation;
   String selectedRole = 'None'; // Default role
   final List<String> roles = [
     'None',
@@ -48,10 +46,6 @@ class _LoginScreenState extends State<LoginScreen>
       duration: const Duration(milliseconds: 500),
       vsync: this,
     );
-    _animation = Tween<double>(
-      begin: 0,
-      end: 1,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
