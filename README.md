@@ -75,7 +75,10 @@ flutter build web    # Web
 <p>
   <a href="https://flutter.dev" target="_blank"><img src="https://www.vectorlogo.zone/logos/flutterio/flutterio-icon.svg" alt="Flutter" width="40" height="40" style="margin-right:10px"/></a>
   <a href="https://dart.dev" target="_blank"><img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/dart/dart-original.svg" alt="Dart" width="40" height="40" style="margin-right:10px"/></a>
-  <a href="https://pub.dev/packages/hive" target="_blank"><img src="https://pub.dev/static/hash-3e5x4t/image/preview/hive.png" alt="Hive" width="40" height="40" style="margin-right:10px"/></a>
+ <a href="https://pub.dev/packages/hive" target="_blank">
+  <img src="https://raw.githubusercontent.com/hivedb/hive/master/logo/hive.png" alt="Hive" width="40" height="40"/>
+</a>
+
   <a href="https://www.w3.org/html/" target="_blank"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/html5/html5-original.svg" alt="HTML5" width="40" height="40"/></a>
 </p>
 
