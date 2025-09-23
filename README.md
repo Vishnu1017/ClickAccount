@@ -92,7 +92,7 @@ flutter build web    # Web
 <ul>
   <li>Vishnu Chandan</li>
   <li>GitHub: <a href="https://github.com/Vishnu1017">Vishnu1017</a></li>
-  <li>Email: (add your email here)</li>
+  <li>Email: (playroll.vish@gmail.com)</li>
 </ul>
 
 <h2>📄 License</h2>
