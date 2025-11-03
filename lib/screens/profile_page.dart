@@ -59,13 +59,13 @@ class _ProfilePageState extends State<ProfilePage> {
     email = widget.user.email;
     phone = widget.user.phone;
     role = widget.user.role;
-    upiId = widget.user.upiId; // Add this
+    upiId = widget.user.upiId;
 
     _nameController = TextEditingController(text: name);
     _roleController = TextEditingController(text: role);
     _emailController = TextEditingController(text: email);
     _phoneController = TextEditingController(text: phone);
-    _upiController = TextEditingController(text: upiId); // Change this
+    _upiController = TextEditingController(text: upiId);
 
     _loadImage();
   }
@@ -105,7 +105,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
     if (path != null && path.isNotEmpty) {
       final file = File(path);
-      // Check if file exists and is readable
       try {
         final exists = await file.exists();
         if (exists) {
@@ -114,7 +113,6 @@ class _ProfilePageState extends State<ProfilePage> {
             _isImageSaved = true;
           });
         } else {
-          // Remove invalid path from storage
           await prefs.remove('${widget.user.email}_profileImagePath');
           setState(() {
             _profileImage = null;
@@ -168,7 +166,6 @@ class _ProfilePageState extends State<ProfilePage> {
       final file = File(picked.path);
       final prefs = await SharedPreferences.getInstance();
 
-      // Save the path to shared preferences
       await prefs.setString('${widget.user.email}_profileImagePath', file.path);
 
       if (!mounted) return;
@@ -231,7 +228,7 @@ class _ProfilePageState extends State<ProfilePage> {
         role = _roleController.text;
         email = _emailController.text;
         phone = _phoneController.text;
-        upiId = _upiController.text; // Update the local variable
+        upiId = _upiController.text;
         _isEditing = false;
       });
 
@@ -246,20 +243,19 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _logout() async {
-    if (_isLoggingOut) return; // Prevent multiple calls
+    if (_isLoggingOut) return;
     setState(() => _isLoggingOut = true);
 
     try {
-      // Clear session
       final sessionBox = await Hive.openBox('session');
       await sessionBox.clear();
-      await sessionBox.close(); // Properly close the box
+      await sessionBox.close();
 
       if (!mounted) return;
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (context) => LoginScreen()),
-        (route) => false, // Remove all routes
+        (route) => false,
       );
     } catch (e) {
       debugPrint('Logout error: $e');
@@ -281,7 +277,6 @@ class _ProfilePageState extends State<ProfilePage> {
       );
 
       if (userKey != null) {
-        // Remove profile image from storage
         final prefs = await SharedPreferences.getInstance();
         await prefs.remove('${widget.user.email}_profileImagePath');
 
@@ -325,630 +320,558 @@ class _ProfilePageState extends State<ProfilePage> {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
     final isSmallScreen = screenWidth < 600;
-    final isPortrait =
-        MediaQuery.of(context).orientation == Orientation.portrait;
 
     return Scaffold(
-      body: SingleChildScrollView(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(minHeight: screenHeight),
-          child: Stack(
-            children: [
-              Container(
-                height: screenHeight,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Color(0xFF1A237E), Color(0xFF00BCD4)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-              ),
-              SafeArea(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isSmallScreen ? 16 : 32,
-                    vertical: isSmallScreen ? 16 : 24,
+      body: Container(
+        height: screenHeight,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF1A237E), Color(0xFF00BCD4)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.symmetric(
+              horizontal: isSmallScreen ? 16 : 32,
+              vertical: 20,
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Main Profile Card
+                Container(
+                  width: isSmallScreen ? screenWidth * 0.95 : screenWidth * 0.7,
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: Colors.white30, width: 1.5),
                   ),
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Center(
-                        child: Container(
-                          width:
-                              isSmallScreen
-                                  ? screenWidth * 0.95
-                                  : isPortrait
-                                  ? screenWidth * 0.8
-                                  : screenWidth * 0.6,
-                          padding: EdgeInsets.all(isSmallScreen ? 16 : 24),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(24),
-                            border: Border.all(
-                              color: Colors.white30,
-                              width: 1.5,
-                            ),
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Align(
-                                alignment: Alignment.topRight,
-                                child: PopupMenuButton<String>(
-                                  icon: const Icon(
-                                    FontAwesomeIcons.ellipsisV,
-                                    color: Colors.white,
-                                    size: 20,
-                                  ),
-                                  shadowColor: Colors.black.withOpacity(0.3),
-                                  onSelected: (value) {
-                                    if (value == 'edit') {
-                                      _toggleEditing();
-                                    }
-                                  },
-                                  itemBuilder: (BuildContext context) {
-                                    return [
-                                      PopupMenuItem<String>(
-                                        value: 'edit',
-                                        child: Container(
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Container(
-                                                padding: const EdgeInsets.all(
-                                                  6,
-                                                ),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.blueAccent
-                                                      .withOpacity(0.2),
-                                                  borderRadius:
-                                                      BorderRadius.circular(8),
-                                                ),
-                                                child: const Icon(
-                                                  Icons.edit,
-                                                  color: Colors.blueAccent,
-                                                  size: 20,
-                                                ),
-                                              ),
-                                              const SizedBox(width: 12),
-                                              const Text(
-                                                'Edit Profile',
-                                                style: TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Colors.black,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ];
-                                  },
-                                ),
+                      // Header Section with Edit Button in Top-Right
+                      Column(
+                        children: [
+                          // Edit Button - Top Right aligned properly
+                          Align(
+                            alignment: Alignment.topRight,
+                            child: PopupMenuButton<String>(
+                              icon: const Icon(
+                                FontAwesomeIcons.ellipsisV,
+                                color: Colors.white,
+                                size: 20,
                               ),
-                              const SizedBox(height: 8),
-                              GestureDetector(
-                                onTap: _pickImage,
-                                child: Stack(
-                                  alignment: Alignment.bottomRight,
-                                  children: [
-                                    _isImageLoading
-                                        ? CircleAvatar(
-                                          radius: 50,
-                                          child: Padding(
-                                            padding: const EdgeInsets.all(16.0),
-                                            child: CircularProgressIndicator(
-                                              color: Colors.white,
+                              shadowColor: Colors.black.withOpacity(0.3),
+                              onSelected: (value) {
+                                if (value == 'edit') {
+                                  _toggleEditing();
+                                }
+                              },
+                              itemBuilder: (BuildContext context) {
+                                return [
+                                  PopupMenuItem<String>(
+                                    value: 'edit',
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(6),
+                                          decoration: BoxDecoration(
+                                            color: Colors.blueAccent
+                                                .withOpacity(0.2),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
                                             ),
                                           ),
-                                        )
-                                        : CircleAvatar(
-                                          radius: isSmallScreen ? 50 : 60,
-                                          backgroundColor: Colors.white
-                                              .withOpacity(0.3),
-                                          child:
-                                              _profileImage != null &&
-                                                      _isImageSaved
-                                                  ? ClipRRect(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          50,
-                                                        ),
-                                                    child: Image.file(
-                                                      _profileImage!,
-                                                      fit: BoxFit.cover,
-                                                      width:
-                                                          isSmallScreen
-                                                              ? 100
-                                                              : 120,
-                                                      height:
-                                                          isSmallScreen
-                                                              ? 100
-                                                              : 120,
-                                                      errorBuilder: (
-                                                        context,
-                                                        error,
-                                                        stackTrace,
-                                                      ) {
-                                                        return Text(
-                                                          name.isNotEmpty
-                                                              ? name[0]
-                                                                  .toUpperCase()
-                                                              : 'U',
-                                                          style: TextStyle(
-                                                            fontSize:
-                                                                isSmallScreen
-                                                                    ? 36
-                                                                    : 42,
-                                                            fontWeight:
-                                                                FontWeight.bold,
-                                                            color: Colors.white,
-                                                          ),
-                                                        );
-                                                      },
-                                                    ),
-                                                  )
-                                                  : Text(
-                                                    name.isNotEmpty
-                                                        ? name[0].toUpperCase()
-                                                        : 'U',
-                                                    style: TextStyle(
-                                                      fontSize:
-                                                          isSmallScreen
-                                                              ? 36
-                                                              : 42,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      color: Colors.white,
-                                                    ),
-                                                  ),
+                                          child: const Icon(
+                                            Icons.edit,
+                                            color: Colors.blueAccent,
+                                            size: 20,
+                                          ),
                                         ),
-                                    if (!_isImageLoading)
-                                      const CircleAvatar(
-                                        radius: 14,
-                                        backgroundColor: Colors.white,
-                                        child: Icon(
-                                          Icons.edit,
-                                          size: 16,
-                                          color: Colors.black87,
+                                        const SizedBox(width: 12),
+                                        const Text(
+                                          'Edit Profile',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.black,
+                                          ),
                                         ),
-                                      ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              _isEditing
-                                  ? TextField(
-                                    controller: _nameController,
-                                    style: TextStyle(
-                                      fontSize: isSmallScreen ? 18 : 20,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
-                                    decoration: const InputDecoration(
-                                      border: InputBorder.none,
-                                      contentPadding: EdgeInsets.zero,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  )
-                                  : Text(
-                                    name,
-                                    style: TextStyle(
-                                      fontSize: isSmallScreen ? 18 : 20,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
+                                      ],
                                     ),
                                   ),
-                              const SizedBox(height: 4),
-                              _isEditing
-                                  ? Padding(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: isSmallScreen ? 20 : 40,
-                                      vertical: 8,
-                                    ),
-                                    child: DropdownButtonFormField<String>(
-                                      initialValue: role,
-                                      decoration: InputDecoration(
-                                        labelText: 'Role',
-                                        labelStyle: const TextStyle(
-                                          color: Colors.white70,
-                                        ),
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                          borderSide: const BorderSide(
-                                            color: Colors.white30,
-                                          ),
-                                        ),
-                                        enabledBorder: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                          borderSide: const BorderSide(
-                                            color: Colors.white30,
-                                          ),
-                                        ),
-                                        filled: true,
-                                        fillColor: Colors.white.withOpacity(
-                                          0.1,
+                                ];
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+
+                          // Profile Image and Name - Centered
+                          GestureDetector(
+                            onTap: _pickImage,
+                            child: Stack(
+                              alignment: Alignment.bottomRight,
+                              children: [
+                                _isImageLoading
+                                    ? CircleAvatar(
+                                      radius: 50,
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(16.0),
+                                        child: CircularProgressIndicator(
+                                          color: Colors.white,
                                         ),
                                       ),
-                                      dropdownColor: Colors.blueGrey[800],
-                                      icon: const Icon(
-                                        Icons.arrow_drop_down,
-                                        color: Colors.white70,
+                                    )
+                                    : CircleAvatar(
+                                      radius: isSmallScreen ? 50 : 60,
+                                      backgroundColor: Colors.white.withOpacity(
+                                        0.3,
                                       ),
-                                      style: TextStyle(
-                                        fontSize: isSmallScreen ? 14 : 16,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.blue.shade900,
-                                      ),
-                                      onChanged: (String? newValue) {
-                                        setState(() {
-                                          role = newValue!;
-                                          _roleController.text = newValue;
-                                        });
-                                      },
-                                      items:
-                                          roles.map<DropdownMenuItem<String>>((
-                                            String value,
-                                          ) {
-                                            return DropdownMenuItem<String>(
-                                              value: value,
-                                              child: Text(
-                                                value,
-                                                style: const TextStyle(
+                                      child:
+                                          _profileImage != null && _isImageSaved
+                                              ? ClipRRect(
+                                                borderRadius:
+                                                    BorderRadius.circular(50),
+                                                child: Image.file(
+                                                  _profileImage!,
+                                                  fit: BoxFit.cover,
+                                                  width:
+                                                      isSmallScreen ? 100 : 120,
+                                                  height:
+                                                      isSmallScreen ? 100 : 120,
+                                                  errorBuilder: (
+                                                    context,
+                                                    error,
+                                                    stackTrace,
+                                                  ) {
+                                                    return Text(
+                                                      name.isNotEmpty
+                                                          ? name[0]
+                                                              .toUpperCase()
+                                                          : 'U',
+                                                      style: TextStyle(
+                                                        fontSize:
+                                                            isSmallScreen
+                                                                ? 36
+                                                                : 42,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color: Colors.white,
+                                                      ),
+                                                    );
+                                                  },
+                                                ),
+                                              )
+                                              : Text(
+                                                name.isNotEmpty
+                                                    ? name[0].toUpperCase()
+                                                    : 'U',
+                                                style: TextStyle(
+                                                  fontSize:
+                                                      isSmallScreen ? 36 : 42,
+                                                  fontWeight: FontWeight.bold,
                                                   color: Colors.white,
                                                 ),
                                               ),
-                                            );
-                                          }).toList(),
                                     ),
-                                  )
-                                  : Chip(
-                                    avatar: CircleAvatar(
-                                      backgroundColor: Colors.blue.shade100
-                                          .withOpacity(0.8),
-                                      child: Icon(
-                                        Icons.work_outline,
-                                        size: isSmallScreen ? 16 : 18,
-                                        color: Colors.blue.shade700,
-                                      ),
+                                if (!_isImageLoading)
+                                  const CircleAvatar(
+                                    radius: 14,
+                                    backgroundColor: Colors.white,
+                                    child: Icon(
+                                      Icons.edit,
+                                      size: 16,
+                                      color: Colors.black87,
                                     ),
-                                    label: Text(
-                                      role,
-                                      style: TextStyle(
-                                        fontSize: isSmallScreen ? 14 : 16,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.blue.shade900,
-                                      ),
-                                    ),
-                                    backgroundColor: Colors.blue.shade50
-                                        .withOpacity(0.9),
-                                    elevation: 0,
-                                    shadowColor: Colors.transparent,
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: isSmallScreen ? 10 : 12,
-                                      vertical: isSmallScreen ? 6 : 8,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      side: BorderSide(
-                                        color: Colors.blue.shade200.withOpacity(
-                                          0.5,
-                                        ),
-                                        width: 1,
-                                      ),
-                                    ),
-                                    materialTapTargetSize:
-                                        MaterialTapTargetSize.shrinkWrap,
                                   ),
-                              const SizedBox(height: 10),
-                              const Divider(color: Colors.white30),
-                              const SizedBox(height: 6),
-                              _isEditing
-                                  ? Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 12,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: Colors.white30,
-                                        width: 1,
-                                      ),
-                                    ),
-                                    child: TextField(
-                                      controller: _emailController,
-                                      style: TextStyle(
-                                        fontSize: isSmallScreen ? 16 : 18,
-                                        color: Colors.white,
-                                      ),
-                                      decoration: InputDecoration(
-                                        prefixIcon: Icon(
-                                          Icons.email,
-                                          size: isSmallScreen ? 20 : 22,
-                                          color: Colors.white70,
-                                        ),
-                                        border: InputBorder.none,
-                                      ),
-                                    ),
-                                  )
-                                  : _glassRow(
-                                    Icons.email,
-                                    email.isNotEmpty ? email : "No email",
-                                    isSmallScreen,
-                                  ),
-                              _isEditing
-                                  ? Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 12,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: Colors.white30,
-                                        width: 1,
-                                      ),
-                                    ),
-                                    child: TextField(
-                                      controller: _phoneController,
-                                      style: TextStyle(
-                                        fontSize: isSmallScreen ? 16 : 18,
-                                        color: Colors.white,
-                                      ),
-                                      decoration: InputDecoration(
-                                        prefixIcon: Icon(
-                                          Icons.phone,
-                                          size: isSmallScreen ? 20 : 22,
-                                          color: Colors.white70,
-                                        ),
-                                        border: InputBorder.none,
-                                      ),
-                                    ),
-                                  )
-                                  : _glassRow(
-                                    Icons.phone,
-                                    phone.isNotEmpty
-                                        ? "+91 $phone"
-                                        : "No phone",
-                                    isSmallScreen,
-                                  ),
-                              _isEditing
-                                  ? Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 12,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: Colors.white30,
-                                        width: 1,
-                                      ),
-                                    ),
-                                    child: TextField(
-                                      controller: _upiController,
-                                      style: TextStyle(
-                                        fontSize: isSmallScreen ? 16 : 18,
-                                        color: Colors.white,
-                                      ),
-                                      decoration: InputDecoration(
-                                        prefixIcon: Icon(
-                                          Icons.qr_code,
-                                          size: isSmallScreen ? 20 : 22,
-                                          color: Colors.white70,
-                                        ),
-                                        hintText:
-                                            upiId.isEmpty
-                                                ? 'Enter your UPI ID'
-                                                : upiId, // Show current UPI ID as hint
-                                        hintStyle: const TextStyle(
-                                          color: Colors.white54,
-                                        ),
-                                        border: InputBorder.none,
-                                      ),
-                                    ),
-                                  )
-                                  : _glassRow(
-                                    Icons.qr_code,
-                                    upiId.isNotEmpty ? upiId : "No UPI ID",
-                                    isSmallScreen,
-                                  ),
-                              _glassRow(
-                                Icons.location_city,
-                                'Bangalore, India',
-                                isSmallScreen,
-                              ),
-                              if (_isEditing) ...[
-                                const SizedBox(height: 24),
-                                Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: isSmallScreen ? 20 : 40,
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        child: OutlinedButton(
-                                          onPressed:
-                                              _toggleEditing, // this will now discard unsaved edits
-                                          style: OutlinedButton.styleFrom(
-                                            foregroundColor: Colors.white,
-                                            side: BorderSide(
-                                              color: Colors.white.withOpacity(
-                                                0.5,
-                                              ),
-                                            ),
-                                            padding: const EdgeInsets.symmetric(
-                                              vertical: 14,
-                                            ),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                            ),
-                                          ),
-                                          child: Text(
-                                            'Cancel',
-                                            style: TextStyle(
-                                              fontSize: isSmallScreen ? 16 : 18,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-
-                                      SizedBox(width: isSmallScreen ? 16 : 24),
-                                      Expanded(
-                                        child: ElevatedButton(
-                                          onPressed: _saveProfile,
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.blueAccent,
-                                            foregroundColor: Colors.white,
-                                            elevation: 2,
-                                            padding: const EdgeInsets.symmetric(
-                                              vertical: 14,
-                                            ),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                            ),
-                                            shadowColor: Colors.blueAccent
-                                                .withOpacity(0.3),
-                                          ),
-                                          child: Text(
-                                            'Save Changes',
-                                            style: TextStyle(
-                                              fontSize: isSmallScreen ? 16 : 18,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
                               ],
-                            ],
+                            ),
                           ),
-                        ),
+                          const SizedBox(height: 20),
+                          _isEditing
+                              ? TextField(
+                                controller: _nameController,
+                                style: TextStyle(
+                                  fontSize: isSmallScreen ? 22 : 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                                textAlign: TextAlign.center,
+                                decoration: const InputDecoration(
+                                  border: InputBorder.none,
+                                  contentPadding: EdgeInsets.zero,
+                                ),
+                              )
+                              : Text(
+                                name,
+                                style: TextStyle(
+                                  fontSize: isSmallScreen ? 22 : 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                          const SizedBox(height: 12),
+                        ],
                       ),
-                      const SizedBox(height: 15),
-                      if (!_isEditing)
-                        Padding(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: isSmallScreen ? 16 : 24,
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: InkWell(
-                                  onTap: _logout,
-                                  borderRadius: BorderRadius.circular(16),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 14,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(
-                                        color: Colors.white.withOpacity(0.5),
-                                      ),
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          Colors.white.withOpacity(0.15),
-                                          Colors.white.withOpacity(0.05),
-                                        ],
-                                      ),
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Icon(
-                                          Icons.logout,
+
+                      // Role Section
+                      _isEditing
+                          ? Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 16,
+                            ),
+                            child: DropdownButtonFormField<String>(
+                              value: role,
+                              decoration: InputDecoration(
+                                labelText: 'Role',
+                                labelStyle: const TextStyle(
+                                  color: Colors.white70,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(
+                                    color: Colors.white30,
+                                  ),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(
+                                    color: Colors.white30,
+                                  ),
+                                ),
+                                filled: true,
+                                fillColor: Colors.white.withOpacity(0.1),
+                              ),
+                              dropdownColor: Colors.blueGrey[800],
+                              icon: const Icon(
+                                Icons.arrow_drop_down,
+                                color: Colors.white70,
+                              ),
+                              style: TextStyle(
+                                fontSize: isSmallScreen ? 16 : 18,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                              onChanged: (String? newValue) {
+                                setState(() {
+                                  role = newValue!;
+                                  _roleController.text = newValue;
+                                });
+                              },
+                              items:
+                                  roles.map<DropdownMenuItem<String>>((
+                                    String value,
+                                  ) {
+                                    return DropdownMenuItem<String>(
+                                      value: value,
+                                      child: Text(
+                                        value,
+                                        style: const TextStyle(
                                           color: Colors.white,
-                                          size: isSmallScreen ? 20 : 22,
                                         ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          "Logout",
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.w500,
-                                            fontSize: isSmallScreen ? 16 : 18,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
+                                      ),
+                                    );
+                                  }).toList(),
+                            ),
+                          )
+                          : Container(
+                            margin: const EdgeInsets.symmetric(vertical: 16),
+                            child: Chip(
+                              avatar: CircleAvatar(
+                                backgroundColor: Colors.blue.shade100
+                                    .withOpacity(0.8),
+                                child: Icon(
+                                  Icons.work_outline,
+                                  size: isSmallScreen ? 18 : 20,
+                                  color: Colors.blue.shade700,
+                                ),
+                              ),
+                              label: Text(
+                                role,
+                                style: TextStyle(
+                                  fontSize: isSmallScreen ? 16 : 18,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.blue.shade900,
+                                ),
+                              ),
+                              backgroundColor: Colors.blue.shade50.withOpacity(
+                                0.9,
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                side: BorderSide(
+                                  color: Colors.blue.shade200.withOpacity(0.5),
+                                  width: 1,
+                                ),
+                              ),
+                            ),
+                          ),
+
+                      const Divider(color: Colors.white30, height: 20),
+                      const SizedBox(height: 20),
+
+                      // Profile Information
+                      _buildInfoSection(isSmallScreen),
+
+                      // Action Buttons when Editing
+                      if (_isEditing) ...[
+                        const SizedBox(height: 30),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: _toggleEditing,
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: Colors.white,
+                                  side: BorderSide(
+                                    color: Colors.white.withOpacity(0.5),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 16,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: Text(
+                                  'Cancel',
+                                  style: TextStyle(
+                                    fontSize: isSmallScreen ? 16 : 18,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
                               ),
-                              SizedBox(width: isSmallScreen ? 16 : 24),
-                              Expanded(
-                                child: InkWell(
-                                  onTap:
-                                      () => _showEnhancedDeleteDialog(context),
-                                  borderRadius: BorderRadius.circular(16),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 14,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(16),
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          Colors.red.shade600,
-                                          Colors.red.shade800,
-                                        ],
-                                      ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.red.withOpacity(0.3),
-                                          blurRadius: 8,
-                                          offset: const Offset(0, 4),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Icon(
-                                          Icons.delete_forever,
-                                          color: Colors.white,
-                                          size: isSmallScreen ? 20 : 22,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          "Delete",
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.w500,
-                                            fontSize: isSmallScreen ? 16 : 18,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: _saveProfile,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.blueAccent,
+                                  foregroundColor: Colors.white,
+                                  elevation: 2,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 16,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: Text(
+                                  'Save Changes',
+                                  style: TextStyle(
+                                    fontSize: isSmallScreen ? 16 : 18,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
+                        const SizedBox(height: 10),
+                      ],
                     ],
                   ),
                 ),
-              ),
-            ],
+
+                // Bottom Action Buttons when Not Editing
+                if (!_isEditing) ...[
+                  const SizedBox(height: 30),
+                  SizedBox(
+                    width:
+                        isSmallScreen ? screenWidth * 0.95 : screenWidth * 0.7,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _actionButton(
+                            icon: Icons.logout,
+                            text: "Logout",
+                            color: Colors.white.withOpacity(0.15),
+                            borderColor: Colors.white.withOpacity(0.5),
+                            onTap: _logout,
+                            isSmallScreen: isSmallScreen,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: _actionButton(
+                            icon: Icons.delete_forever,
+                            text: "Delete",
+                            color: Colors.red.shade600,
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.red.shade600,
+                                Colors.red.shade800,
+                              ],
+                            ),
+                            onTap: () => _showEnhancedDeleteDialog(context),
+                            isSmallScreen: isSmallScreen,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ],
+            ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoSection(bool isSmallScreen) {
+    return Column(
+      children: [
+        _buildInfoField(
+          Icons.email,
+          "Email",
+          _emailController,
+          email,
+          isSmallScreen,
+        ),
+        const SizedBox(height: 16),
+        _buildInfoField(
+          Icons.phone,
+          "Phone",
+          _phoneController,
+          phone,
+          isSmallScreen,
+        ),
+        const SizedBox(height: 16),
+        _buildInfoField(
+          Icons.qr_code,
+          "UPI ID",
+          _upiController,
+          upiId,
+          isSmallScreen,
+        ),
+        const SizedBox(height: 16),
+        _glassInfoRow(Icons.location_city, 'Bangalore, India', isSmallScreen),
+      ],
+    );
+  }
+
+  Widget _buildInfoField(
+    IconData icon,
+    String label,
+    TextEditingController controller,
+    String value,
+    bool isSmallScreen,
+  ) {
+    return _isEditing
+        ? Container(
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white30),
+          ),
+          child: TextField(
+            controller: controller,
+            style: TextStyle(
+              fontSize: isSmallScreen ? 16 : 18,
+              color: Colors.white,
+            ),
+            decoration: InputDecoration(
+              prefixIcon: Icon(icon, color: Colors.white70, size: 22),
+              hintText: value.isEmpty ? 'Enter your $label' : value,
+              hintStyle: const TextStyle(color: Colors.white54),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(
+                vertical: 16,
+                horizontal: 16,
+              ),
+            ),
+          ),
+        )
+        : _glassInfoRow(
+          icon,
+          value.isNotEmpty
+              ? (label == "Phone" ? "+91 $value" : value)
+              : "No $label",
+          isSmallScreen,
+        );
+  }
+
+  Widget _glassInfoRow(IconData icon, String text, bool isSmallScreen) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white30),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.white70, size: 22),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.9),
+                fontSize: isSmallScreen ? 16 : 18,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _actionButton({
+    required IconData icon,
+    required String text,
+    required Color color,
+    Gradient? gradient,
+    Color borderColor = Colors.transparent,
+    required Function onTap,
+    required bool isSmallScreen,
+  }) {
+    return InkWell(
+      onTap: () => onTap(),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: color,
+          gradient: gradient,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: borderColor),
+          boxShadow:
+              gradient != null
+                  ? [
+                    BoxShadow(
+                      color: Colors.red.withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
+                  : null,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: Colors.white, size: isSmallScreen ? 20 : 22),
+            const SizedBox(width: 8),
+            Text(
+              text,
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w500,
+                fontSize: isSmallScreen ? 16 : 18,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -1063,26 +986,5 @@ class _ProfilePageState extends State<ProfilePage> {
     if (shouldDelete == true) {
       await deleteCurrentUser(widget.user.email);
     }
-  }
-
-  Widget _glassRow(IconData icon, String label, bool isSmallScreen) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8),
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.white70, size: isSmallScreen ? 20 : 22),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              label,
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.9),
-                fontSize: isSmallScreen ? 16 : 18,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
