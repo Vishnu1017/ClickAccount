@@ -132,7 +132,7 @@ class _PasscodeCreationScreenState extends State<PasscodeCreationScreen> {
             curve: Curves.easeInOut,
             width: fieldSize,
             height: fieldSize,
-            margin: EdgeInsets.symmetric(horizontal: fieldSize / 13),
+            margin: EdgeInsets.symmetric(horizontal: fieldSize / 22),
             decoration: BoxDecoration(
               gradient:
                   isFilled
@@ -173,6 +173,8 @@ class _PasscodeCreationScreenState extends State<PasscodeCreationScreen> {
             ),
             child: Center(
               child: TextField(
+                obscureText: true, // 🔒 Hides the numeric passcode input
+                obscuringCharacter: '•', // Optional: dot symbol
                 keyboardType: TextInputType.number,
                 textAlign: TextAlign.center,
                 maxLength: 1,
@@ -660,6 +662,8 @@ class _EnterPasscodeScreenState extends State<EnterPasscodeScreen> {
             ),
             child: Center(
               child: TextField(
+                obscureText: true, // 🔒 Hides the numeric passcode input
+                obscuringCharacter: '*', // Optional: dot symbol
                 keyboardType: TextInputType.number,
                 textAlign: TextAlign.center,
                 maxLength: 1,

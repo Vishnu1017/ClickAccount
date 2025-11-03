@@ -1,3 +1,4 @@
+import 'dart:ffi';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -23,6 +24,7 @@ class _ProfilePageState extends State<ProfilePage> {
   late String role;
   late String email;
   late String phone;
+  late String upiId;
   File? _profileImage;
   final picker = ImagePicker();
   bool _isImageLoading = false;
@@ -46,6 +48,7 @@ class _ProfilePageState extends State<ProfilePage> {
   late TextEditingController _roleController;
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
+  late TextEditingController _upiController;
 
   @override
   void initState() {
@@ -57,11 +60,13 @@ class _ProfilePageState extends State<ProfilePage> {
     email = widget.user.email;
     phone = widget.user.phone;
     role = widget.user.role;
+    upiId = widget.user.upiId; // Add this
 
     _nameController = TextEditingController(text: name);
     _roleController = TextEditingController(text: role);
     _emailController = TextEditingController(text: email);
     _phoneController = TextEditingController(text: phone);
+    _upiController = TextEditingController(text: upiId); // Change this
 
     _loadImage();
   }
@@ -72,6 +77,7 @@ class _ProfilePageState extends State<ProfilePage> {
     _roleController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
+    _upiController.dispose();
     super.dispose();
   }
 
@@ -197,6 +203,7 @@ class _ProfilePageState extends State<ProfilePage> {
         _roleController.text = role;
         _emailController.text = email;
         _phoneController.text = phone;
+        _upiController.text = upiId;
       }
     });
   }
@@ -215,6 +222,7 @@ class _ProfilePageState extends State<ProfilePage> {
         phone: _phoneController.text,
         role: _roleController.text,
         password: widget.user.password,
+        upiId: _upiController.text,
       );
 
       await box.put(userKey, updatedUser);
@@ -224,6 +232,7 @@ class _ProfilePageState extends State<ProfilePage> {
         role = _roleController.text;
         email = _emailController.text;
         phone = _phoneController.text;
+        upiId = _upiController.text; // Update the local variable
         _isEditing = false;
       });
 
@@ -713,6 +722,48 @@ class _ProfilePageState extends State<ProfilePage> {
                                         : "No phone",
                                     isSmallScreen,
                                   ),
+                              _isEditing
+                                  ? Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: Colors.white30,
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: TextField(
+                                      controller: _upiController,
+                                      style: TextStyle(
+                                        fontSize: isSmallScreen ? 16 : 18,
+                                        color: Colors.white,
+                                      ),
+                                      decoration: InputDecoration(
+                                        prefixIcon: Icon(
+                                          Icons.qr_code,
+                                          size: isSmallScreen ? 20 : 22,
+                                          color: Colors.white70,
+                                        ),
+                                        hintText:
+                                            upiId.isEmpty
+                                                ? 'Enter your UPI ID'
+                                                : upiId, // Show current UPI ID as hint
+                                        hintStyle: const TextStyle(
+                                          color: Colors.white54,
+                                        ),
+                                        border: InputBorder.none,
+                                      ),
+                                    ),
+                                  )
+                                  : _glassRow(
+                                    Icons.qr_code,
+                                    upiId.isNotEmpty ? upiId : "No UPI ID",
+                                    isSmallScreen,
+                                  ),
                               _glassRow(
                                 Icons.location_city,
                                 'Bangalore, India',
@@ -728,7 +779,8 @@ class _ProfilePageState extends State<ProfilePage> {
                                     children: [
                                       Expanded(
                                         child: OutlinedButton(
-                                          onPressed: _toggleEditing,
+                                          onPressed:
+                                              _toggleEditing, // this will now discard unsaved edits
                                           style: OutlinedButton.styleFrom(
                                             foregroundColor: Colors.white,
                                             side: BorderSide(
@@ -753,6 +805,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                           ),
                                         ),
                                       ),
+
                                       SizedBox(width: isSmallScreen ? 16 : 24),
                                       Expanded(
                                         child: ElevatedButton(

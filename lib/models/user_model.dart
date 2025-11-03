@@ -19,11 +19,15 @@ class User extends HiveObject {
   @HiveField(4)
   String role;
 
+  @HiveField(5)
+  String upiId;
+
   User({
     required this.name,
     required this.email,
     required this.phone,
     required this.password,
     required this.role,
+    this.upiId = '',
   });
 }

@@ -44,6 +44,10 @@ class _HomePageState extends State<HomePage>
   bool _isSearchExpanded = false;
   DateTimeRange? selectedRange;
   DateRangePreset? selectedPreset;
+  String _currentUserName = '';
+  String _currentUserEmail = '';
+  String _currentUserPhone = '';
+  String _currentUserUpiId = '';
 
   Future<void> _selectDateRange(BuildContext context) async {
     final DateTimeRange? picked = await showDateRangePicker(
@@ -57,6 +61,41 @@ class _HomePageState extends State<HomePage>
         selectedRange = picked;
         selectedPreset = DateRangePreset.custom;
       });
+    }
+  }
+
+  Future<void> _loadCurrentUserData() async {
+    final currentUser = await _getCurrentUserName();
+    setState(() {
+      _currentUserName = currentUser?.name ?? '';
+      _currentUserEmail = currentUser?.email ?? '';
+      _currentUserPhone = currentUser?.phone ?? '';
+      _currentUserUpiId = currentUser?.upiId ?? '';
+    });
+  }
+
+  // Add this method to your _HomePageState class
+  Future<User?> _getCurrentUserName() async {
+    try {
+      final usersBox = await Hive.openBox<User>('users');
+      final sessionBox = await Hive.openBox('session');
+      final currentUserEmail = sessionBox.get('currentUserEmail');
+
+      if (currentUserEmail != null) {
+        return usersBox.values.firstWhere(
+          (user) => user.email == currentUserEmail,
+          orElse: () => usersBox.values.first,
+        );
+      } else {
+        // If no session, get the first user
+        if (usersBox.isNotEmpty) {
+          return usersBox.values.first;
+        }
+      }
+      return null; // Return null if no user found
+    } catch (e) {
+      debugPrint('Error getting current user: $e');
+      return null;
     }
   }
 
@@ -161,6 +200,8 @@ class _HomePageState extends State<HomePage>
   void initState() {
     super.initState();
     fetchWelcomeMessage();
+    _getCurrentUserName();
+    _loadCurrentUserData();
 
     _controller = AnimationController(
       vsync: this,
@@ -810,8 +851,12 @@ class _HomePageState extends State<HomePage>
                                                   sale.phoneNumber
                                                       .replaceAll('+91', '')
                                                       .trim();
+                                              final signature =
+                                                  _currentUserName.isNotEmpty
+                                                      ? ' - $_currentUserName'
+                                                      : '';
                                               final msg =
-                                                  "Hello ${sale.customerName}, your payment of ₹${due.toStringAsFixed(2)} is overdue for more than 7 days. Please make the payment at the earliest. - Shutter Life Photography";
+                                                  "Hello ${sale.customerName}, your payment of ₹${due.toStringAsFixed(2)} is overdue for more than 7 days. Please make the payment at the earliest. - $signature";
                                               if (phone != null &&
                                                   phone.isNotEmpty) {
                                                 WidgetsBinding.instance
@@ -1118,18 +1163,24 @@ class _HomePageState extends State<HomePage>
                                                 MediaQuery.of(
                                                   context,
                                                 ).size.width;
+                                            final maxWidth =
+                                                screenWidth < 400
+                                                    ? screenWidth * 0.9
+                                                    : 400.0;
 
                                             return Dialog(
+                                              insetPadding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 16,
+                                                    vertical: 24,
+                                                  ),
                                               shape: RoundedRectangleBorder(
                                                 borderRadius:
                                                     BorderRadius.circular(16),
                                               ),
                                               child: ConstrainedBox(
                                                 constraints: BoxConstraints(
-                                                  maxWidth:
-                                                      screenWidth < 400
-                                                          ? screenWidth * 0.9
-                                                          : 400,
+                                                  maxWidth: maxWidth,
                                                 ),
                                                 child: SingleChildScrollView(
                                                   child: Padding(
@@ -1150,7 +1201,7 @@ class _HomePageState extends State<HomePage>
                                                                 Colors
                                                                     .deepPurple,
                                                             borderRadius:
-                                                                BorderRadius.vertical(
+                                                                const BorderRadius.vertical(
                                                                   top:
                                                                       Radius.circular(
                                                                         16,
@@ -1158,11 +1209,11 @@ class _HomePageState extends State<HomePage>
                                                                 ),
                                                           ),
                                                           padding:
-                                                              EdgeInsets.symmetric(
+                                                              const EdgeInsets.symmetric(
                                                                 vertical: 20,
                                                               ),
                                                           child: Column(
-                                                            children: [
+                                                            children: const [
                                                               Icon(
                                                                 Icons
                                                                     .qr_code_2_rounded,
@@ -1199,7 +1250,7 @@ class _HomePageState extends State<HomePage>
                                                               ),
                                                           child: Column(
                                                             children: [
-                                                              Text(
+                                                              const Text(
                                                                 "Enter the amount you want to show in the UPI QR. Leave it empty if the customer should enter manually.",
                                                                 style: TextStyle(
                                                                   fontSize: 14,
@@ -1211,24 +1262,25 @@ class _HomePageState extends State<HomePage>
                                                                     TextAlign
                                                                         .center,
                                                               ),
-                                                              SizedBox(
+                                                              const SizedBox(
                                                                 height: 16,
                                                               ),
                                                               TextField(
                                                                 controller:
                                                                     controller,
                                                                 keyboardType:
-                                                                    TextInputType.numberWithOptions(
+                                                                    const TextInputType.numberWithOptions(
                                                                       decimal:
                                                                           true,
                                                                     ),
                                                                 decoration: InputDecoration(
                                                                   labelText:
                                                                       'Amount (₹)',
-                                                                  prefixIcon: Icon(
-                                                                    Icons
-                                                                        .currency_rupee,
-                                                                  ),
+                                                                  prefixIcon:
+                                                                      const Icon(
+                                                                        Icons
+                                                                            .currency_rupee,
+                                                                      ),
                                                                   border: OutlineInputBorder(
                                                                     borderRadius:
                                                                         BorderRadius.circular(
@@ -1241,7 +1293,7 @@ class _HomePageState extends State<HomePage>
                                                                           .grey[100],
                                                                 ),
                                                               ),
-                                                              SizedBox(
+                                                              const SizedBox(
                                                                 height: 24,
                                                               ),
                                                               Row(
@@ -1263,7 +1315,7 @@ class _HomePageState extends State<HomePage>
                                                                           null,
                                                                         ),
                                                                   ),
-                                                                  SizedBox(
+                                                                  const SizedBox(
                                                                     width: 10,
                                                                   ),
                                                                   ElevatedButton(
@@ -1277,7 +1329,7 @@ class _HomePageState extends State<HomePage>
                                                                               10,
                                                                             ),
                                                                       ),
-                                                                      padding: EdgeInsets.symmetric(
+                                                                      padding: const EdgeInsets.symmetric(
                                                                         horizontal:
                                                                             24,
                                                                         vertical:
@@ -1289,22 +1341,41 @@ class _HomePageState extends State<HomePage>
                                                                           controller
                                                                               .text
                                                                               .trim();
+
+                                                                      // Handle empty input - return 0 to indicate no QR code
+                                                                      if (input
+                                                                          .isEmpty) {
+                                                                        Navigator.pop(
+                                                                          context,
+                                                                          0.0,
+                                                                        );
+                                                                        return;
+                                                                      }
+
                                                                       final parsed =
                                                                           double.tryParse(
                                                                             input,
                                                                           );
+
+                                                                      // Handle invalid or zero/negative amounts
+                                                                      if (parsed ==
+                                                                              null ||
+                                                                          parsed <=
+                                                                              0) {
+                                                                        Navigator.pop(
+                                                                          context,
+                                                                          0.0,
+                                                                        );
+                                                                        return;
+                                                                      }
+
+                                                                      // Return valid positive amount
                                                                       Navigator.pop(
                                                                         context,
-                                                                        (input.isEmpty ||
-                                                                                parsed ==
-                                                                                    null ||
-                                                                                parsed <=
-                                                                                    0)
-                                                                            ? null
-                                                                            : parsed,
+                                                                        parsed,
                                                                       );
                                                                     },
-                                                                    child: Text(
+                                                                    child: const Text(
                                                                       'Generate QR',
                                                                       style: TextStyle(
                                                                         color:
@@ -1330,10 +1401,65 @@ class _HomePageState extends State<HomePage>
                                           },
                                         );
 
+                                        final usersBox = Hive.box<User>(
+                                          'users',
+                                        );
+                                        User? currentUser;
+
+                                        try {
+                                          // Try to get current user from session or use the first user
+                                          final sessionBox = await Hive.openBox(
+                                            'session',
+                                          );
+                                          final currentUserEmail = sessionBox
+                                              .get('currentUserEmail');
+
+                                          if (currentUserEmail != null) {
+                                            currentUser = usersBox.values
+                                                .firstWhere(
+                                                  (user) =>
+                                                      user.email ==
+                                                      currentUserEmail,
+                                                  orElse:
+                                                      () =>
+                                                          usersBox.values.first,
+                                                );
+                                          } else {
+                                            currentUser = usersBox.values.first;
+                                          }
+                                        } catch (e) {
+                                          debugPrint(
+                                            'Error getting current user: $e',
+                                          );
+                                          currentUser = usersBox.values.first;
+                                        }
+
+                                        // USE DYNAMIC UPI DATA FROM USER PROFILE - NO FALLBACK
+                                        final userUpiId =
+                                            currentUser?.upiId ?? '';
+                                        final userName =
+                                            currentUser?.name ?? '';
+
+                                        // Check if UPI ID is available
+                                        if (userUpiId.isEmpty) {
+                                          ScaffoldMessenger.of(
+                                            scaffoldContext,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                "Please set your UPI ID in your profile first",
+                                              ),
+                                              backgroundColor: Colors.red,
+                                            ),
+                                          );
+                                          return;
+                                        }
+
                                         final qrData =
-                                            enteredAmount != null
-                                                ? 'upi://pay?pa=shutterlifephotography10@okaxis&pn=Vishnu&am=${enteredAmount.toStringAsFixed(2)}&cu=INR'
-                                                : 'upi://pay?pa=shutterlifephotography10@okaxis&pn=Vishnu&cu=INR';
+                                            enteredAmount != null &&
+                                                    enteredAmount > 0
+                                                ? 'upi://pay?pa=$userUpiId&pn=${Uri.encodeComponent(userName)}&am=${enteredAmount.toStringAsFixed(2)}&cu=INR'
+                                                : 'upi://pay?pa=$userUpiId&pn=${Uri.encodeComponent(userName)}&cu=INR';
 
                                         final qrImage = pw.Barcode.qrCode()
                                             .toSvg(
@@ -1341,7 +1467,6 @@ class _HomePageState extends State<HomePage>
                                               width: 120,
                                               height: 120,
                                             );
-
                                         final prefs =
                                             await SharedPreferences.getInstance();
 
@@ -1423,7 +1548,7 @@ class _HomePageState extends State<HomePage>
                                                                     .start,
                                                             children: [
                                                               pw.Text(
-                                                                'Shutter Life Photography',
+                                                                _currentUserName,
                                                                 style: pw.TextStyle(
                                                                   fontSize: 22,
                                                                   fontWeight:
@@ -1436,10 +1561,10 @@ class _HomePageState extends State<HomePage>
                                                                 height: 4,
                                                               ),
                                                               pw.Text(
-                                                                'Phone Number: +91 63601 20253',
+                                                                'Phone Number: +91 $_currentUserPhone',
                                                               ),
                                                               pw.Text(
-                                                                'Email: shutterlifephotography10@gmail.com',
+                                                                'Email: $_currentUserEmail',
                                                               ),
                                                             ],
                                                           ),
@@ -1733,7 +1858,7 @@ class _HomePageState extends State<HomePage>
                                                       ),
                                                       pw.SizedBox(height: 8),
                                                       pw.Text(
-                                                        '1. All photographs remain the property of Shutter Life Photography and are protected by copyright law.',
+                                                        '1. All photographs remain the property of $_currentUserName and are protected by copyright law.',
                                                         style: pw.TextStyle(
                                                           fontSize: 10,
                                                         ),
@@ -1844,7 +1969,7 @@ class _HomePageState extends State<HomePage>
                                                                 .Alignment
                                                                 .centerRight,
                                                         child: pw.Text(
-                                                          'For: Shutter Life Photography',
+                                                          'For: $_currentUserName',
                                                         ),
                                                       ),
                                                     ],
@@ -1931,36 +2056,94 @@ class _HomePageState extends State<HomePage>
                                           );
                                           return;
                                         }
+                                        final currentUserName =
+                                            await _getCurrentUserName();
+                                        final userName =
+                                            currentUserName?.name ?? '';
+                                        final userEmail =
+                                            currentUserName?.email ?? '';
+                                        final userPhone =
+                                            currentUserName?.phone ?? '';
+                                        final userUpiId =
+                                            currentUserName?.upiId ?? '';
+
+                                        // GET CURRENT USER FOR DYNAMIC UPI ID
+                                        final usersBox = Hive.box<User>(
+                                          'users',
+                                        );
+                                        User? currentUser;
+
+                                        try {
+                                          final sessionBox = await Hive.openBox(
+                                            'session',
+                                          );
+                                          final currentUserEmail = sessionBox
+                                              .get('currentUserEmail');
+
+                                          if (currentUserEmail != null) {
+                                            currentUser = usersBox.values
+                                                .firstWhere(
+                                                  (user) =>
+                                                      user.email ==
+                                                      currentUserEmail,
+                                                  orElse:
+                                                      () =>
+                                                          usersBox.values.first,
+                                                );
+                                          } else {
+                                            currentUser = usersBox.values.first;
+                                          }
+                                        } catch (e) {
+                                          debugPrint(
+                                            'Error getting current user: $e',
+                                          );
+                                          currentUser = usersBox.values.first;
+                                        }
+
+                                        // Check if UPI ID is available
+                                        if (userUpiId.isEmpty) {
+                                          ScaffoldMessenger.of(
+                                            scaffoldContext,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                "Please set your UPI ID in your profile first",
+                                              ),
+                                              backgroundColor: Colors.red,
+                                            ),
+                                          );
+                                          return;
+                                        }
 
                                         String message;
                                         if (sale.dateTime != null &&
                                             balanceAmount != null &&
                                             invoiceNumber != null) {
                                           message =
-                                              "Dear ${sale.customerName},\n\nFriendly reminder from Shutter Life Photography:\n\n"
+                                              "Dear ${sale.customerName},\n\nFriendly reminder from ${userName.isNotEmpty ? userName : ''}:\n\n"
                                               "📅 Payment Due: ${DateFormat('dd MMM yyyy').format(sale.dateTime)}\n"
                                               "💰 Amount: ₹${balanceAmount.toStringAsFixed(2)}\n"
                                               "📋 Invoice #: $invoiceNumber\n\n"
                                               "Payment Methods:\n"
-                                              "• UPI: shutterlifephotography10@okaxis\n"
+                                              "• UPI: $userUpiId\n" // DYNAMIC UPI ID
                                               "• Bank Transfer (Details attached)\n"
                                               "• Cash (At our studio)\n\n"
                                               "Please confirm once payment is made. Thank you for your prompt attention!\n\n"
-                                              "Warm regards,\nAccounts Team\nShutter Life Photography";
+                                              "Warm regards,\nAccounts Team\n${userName.isNotEmpty ? userName : ''}";
                                         } else {
                                           message =
                                               "Dear ${sale.customerName},\n\nThis is a friendly reminder regarding your payment. "
                                               "Please contact us for invoice details.\n\n"
-                                              "Warm regards,\nAccounts Team\nShutter Life Photography";
+                                              "Warm regards,\nAccounts Team\n${userName.isNotEmpty ? userName : ''}";
                                         }
 
                                         try {
                                           final encodedMessage =
                                               Uri.encodeComponent(message);
                                           final url1 =
-                                              "https://wa.me/$phone?text=${Uri.encodeComponent(message)}";
+                                              "https://wa.me/$phone?text=$encodedMessage";
                                           final url2 =
-                                              "https://wa.me/91$phone?text=${Uri.encodeComponent(message)}";
+                                              "https://wa.me/91$phone?text=$encodedMessage";
 
                                           canLaunchUrl(Uri.parse(url1)).then((
                                             canLaunch,
@@ -2568,6 +2751,60 @@ class _HomePageState extends State<HomePage>
                                           }
                                         }
 
+                                        // GET CURRENT USER FROM HIVE FOR DYNAMIC UPI DATA
+                                        final usersBox = Hive.box<User>(
+                                          'users',
+                                        );
+                                        User? currentUser;
+
+                                        try {
+                                          final sessionBox = await Hive.openBox(
+                                            'session',
+                                          );
+                                          final currentUserEmail = sessionBox
+                                              .get('currentUserEmail');
+
+                                          if (currentUserEmail != null) {
+                                            currentUser = usersBox.values
+                                                .firstWhere(
+                                                  (user) =>
+                                                      user.email ==
+                                                      currentUserEmail,
+                                                  orElse:
+                                                      () =>
+                                                          usersBox.values.first,
+                                                );
+                                          } else {
+                                            currentUser = usersBox.values.first;
+                                          }
+                                        } catch (e) {
+                                          debugPrint(
+                                            'Error getting current user: $e',
+                                          );
+                                          currentUser = usersBox.values.first;
+                                        }
+
+                                        // USE DYNAMIC UPI DATA FROM USER PROFILE
+                                        final userUpiId =
+                                            currentUser?.upiId ?? '';
+                                        final userName =
+                                            currentUser?.name ?? '';
+
+                                        // Check if UPI ID is available
+                                        if (userUpiId.isEmpty) {
+                                          ScaffoldMessenger.of(
+                                            scaffoldContext,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                "Please set your UPI ID in your profile first",
+                                              ),
+                                              backgroundColor: Colors.red,
+                                            ),
+                                          );
+                                          return;
+                                        }
+
                                         // Create PDF
                                         final pdf = pw.Document();
                                         final rupeeFont = pw.Font.ttf(
@@ -2576,8 +2813,11 @@ class _HomePageState extends State<HomePage>
                                           ),
                                         );
 
+                                        // USE DYNAMIC QR DATA
                                         final qrData =
-                                            'upi://pay?pa=shutterlifephotography10@okaxis&pn=Vishnu&am=${enteredAmount.toStringAsFixed(2)}&cu=INR';
+                                            enteredAmount > 0
+                                                ? 'upi://pay?pa=$userUpiId&pn=${Uri.encodeComponent(userName)}&am=${enteredAmount.toStringAsFixed(2)}&cu=INR'
+                                                : 'upi://pay?pa=$userUpiId&pn=${Uri.encodeComponent(userName)}&cu=INR';
 
                                         final prefs =
                                             await SharedPreferences.getInstance();
@@ -2657,7 +2897,7 @@ class _HomePageState extends State<HomePage>
                                                                     .start,
                                                             children: [
                                                               pw.Text(
-                                                                'Shutter Life Photography',
+                                                                _currentUserName,
                                                                 style: pw.TextStyle(
                                                                   fontSize: 22,
                                                                   fontWeight:
@@ -2670,10 +2910,10 @@ class _HomePageState extends State<HomePage>
                                                                 height: 4,
                                                               ),
                                                               pw.Text(
-                                                                'Phone Number: +91 63601 20253',
+                                                                'Phone Number: +91 $_currentUserPhone',
                                                               ),
                                                               pw.Text(
-                                                                'Email: shutterlifephotography10@gmail.com',
+                                                                'Email: $_currentUserEmail',
                                                               ),
                                                             ],
                                                           ),
@@ -2962,7 +3202,7 @@ class _HomePageState extends State<HomePage>
                                                         ],
                                                       ),
                                                       pw.SizedBox(height: 16),
-                                                      // Terms and Conditions Section
+                                                      // Terms and Conditions Section (keep your existing terms)
                                                       pw.Text(
                                                         'Terms and Conditions:',
                                                         style: pw.TextStyle(
@@ -2975,7 +3215,7 @@ class _HomePageState extends State<HomePage>
                                                       ),
                                                       pw.SizedBox(height: 8),
                                                       pw.Text(
-                                                        '1. All photographs remain the property of Shutter Life Photography and are protected by copyright law.',
+                                                        '1. All photographs remain the property of $_currentUserName and are protected by copyright law.',
                                                         style: pw.TextStyle(
                                                           fontSize: 10,
                                                         ),
@@ -3030,6 +3270,7 @@ class _HomePageState extends State<HomePage>
                                                         ),
                                                       ),
                                                       pw.SizedBox(height: 4),
+                                                      // NEW: Added the two requested terms
                                                       pw.Text(
                                                         '9. If advance payment is made, the photo shoot will be considered officially booked and reserved.',
                                                         style: pw.TextStyle(
@@ -3085,7 +3326,7 @@ class _HomePageState extends State<HomePage>
                                                                 .Alignment
                                                                 .centerRight,
                                                         child: pw.Text(
-                                                          'For: Shutter Life Photography',
+                                                          'For: $_currentUserName',
                                                         ),
                                                       ),
                                                     ],
@@ -3173,35 +3414,94 @@ class _HomePageState extends State<HomePage>
                                           return;
                                         }
 
+                                        final currentUserName =
+                                            await _getCurrentUserName();
+                                        final userName =
+                                            currentUserName?.name ?? '';
+                                        final userEmail =
+                                            currentUserName?.email ?? '';
+                                        final userPhone =
+                                            currentUserName?.phone ?? '';
+                                        final userUpiId =
+                                            currentUserName?.upiId ?? '';
+
+                                        // GET CURRENT USER FOR DYNAMIC UPI ID
+                                        final usersBox = Hive.box<User>(
+                                          'users',
+                                        );
+                                        User? currentUser;
+
+                                        try {
+                                          final sessionBox = await Hive.openBox(
+                                            'session',
+                                          );
+                                          final currentUserEmail = sessionBox
+                                              .get('currentUserEmail');
+
+                                          if (currentUserEmail != null) {
+                                            currentUser = usersBox.values
+                                                .firstWhere(
+                                                  (user) =>
+                                                      user.email ==
+                                                      currentUserEmail,
+                                                  orElse:
+                                                      () =>
+                                                          usersBox.values.first,
+                                                );
+                                          } else {
+                                            currentUser = usersBox.values.first;
+                                          }
+                                        } catch (e) {
+                                          debugPrint(
+                                            'Error getting current user: $e',
+                                          );
+                                          currentUser = usersBox.values.first;
+                                        }
+
+                                        // Check if UPI ID is available
+                                        if (userUpiId.isEmpty) {
+                                          ScaffoldMessenger.of(
+                                            scaffoldContext,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                "Please set your UPI ID in your profile first",
+                                              ),
+                                              backgroundColor: Colors.red,
+                                            ),
+                                          );
+                                          return;
+                                        }
+
                                         String message;
                                         if (sale.dateTime != null &&
                                             balanceAmount != null &&
                                             invoiceNumber != null) {
                                           message =
-                                              "Dear ${sale.customerName},\n\nFriendly reminder from Shutter Life Photography:\n\n"
+                                              "Dear ${sale.customerName},\n\nFriendly reminder from ${userName.isNotEmpty ? userName : ''}:\n\n"
                                               "📅 Payment Due: ${DateFormat('dd MMM yyyy').format(sale.dateTime)}\n"
                                               "💰 Amount: ₹${balanceAmount.toStringAsFixed(2)}\n"
                                               "📋 Invoice #: $invoiceNumber\n\n"
                                               "Payment Methods:\n"
-                                              "• UPI: shutterlifephotography10@okaxis\n"
+                                              "• UPI: $userUpiId\n" // DYNAMIC UPI ID
                                               "• Bank Transfer (Details attached)\n"
                                               "• Cash (At our studio)\n\n"
                                               "Please confirm once payment is made. Thank you for your prompt attention!\n\n"
-                                              "Warm regards,\nAccounts Team\nShutter Life Photography";
+                                              "Warm regards,\nAccounts Team\n${userName.isNotEmpty ? userName : ''}";
                                         } else {
                                           message =
                                               "Dear ${sale.customerName},\n\nThis is a friendly reminder regarding your payment. "
                                               "Please contact us for invoice details.\n\n"
-                                              "Warm regards,\nAccounts Team\nShutter Life Photography";
+                                              "Warm regards,\nAccounts Team\n${userName.isNotEmpty ? userName : ''}";
                                         }
 
                                         try {
                                           final encodedMessage =
                                               Uri.encodeComponent(message);
                                           final url1 =
-                                              "https://wa.me/$phone?text=${Uri.encodeComponent(message)}";
+                                              "https://wa.me/$phone?text=$encodedMessage";
                                           final url2 =
-                                              "https://wa.me/91$phone?text=${Uri.encodeComponent(message)}";
+                                              "https://wa.me/91$phone?text=$encodedMessage";
 
                                           canLaunchUrl(Uri.parse(url1)).then((
                                             canLaunch,
