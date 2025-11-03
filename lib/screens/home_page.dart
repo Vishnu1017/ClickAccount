@@ -47,7 +47,7 @@ class _HomePageState extends State<HomePage>
   String _currentUserName = '';
   String _currentUserEmail = '';
   String _currentUserPhone = '';
-  String _currentUserUpiId = '';
+  // String _currentUserUpiId = '';
 
   Future<void> _selectDateRange(BuildContext context) async {
     final DateTimeRange? picked = await showDateRangePicker(
@@ -70,7 +70,7 @@ class _HomePageState extends State<HomePage>
       _currentUserName = currentUser?.name ?? '';
       _currentUserEmail = currentUser?.email ?? '';
       _currentUserPhone = currentUser?.phone ?? '';
-      _currentUserUpiId = currentUser?.upiId ?? '';
+      // _currentUserUpiId = currentUser?.upiId ?? '';
     });
   }
 
@@ -1435,10 +1435,8 @@ class _HomePageState extends State<HomePage>
                                         }
 
                                         // USE DYNAMIC UPI DATA FROM USER PROFILE - NO FALLBACK
-                                        final userUpiId =
-                                            currentUser?.upiId ?? '';
-                                        final userName =
-                                            currentUser?.name ?? '';
+                                        final userUpiId = currentUser.upiId;
+                                        final userName = currentUser.name;
 
                                         // Check if UPI ID is available
                                         if (userUpiId.isEmpty) {
@@ -2785,10 +2783,8 @@ class _HomePageState extends State<HomePage>
                                         }
 
                                         // USE DYNAMIC UPI DATA FROM USER PROFILE
-                                        final userUpiId =
-                                            currentUser?.upiId ?? '';
-                                        final userName =
-                                            currentUser?.name ?? '';
+                                        final userUpiId = currentUser.upiId;
+                                        final userName = currentUser.name;
 
                                         // Check if UPI ID is available
                                         if (userUpiId.isEmpty) {
