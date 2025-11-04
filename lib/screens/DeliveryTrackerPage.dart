@@ -4,7 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:hive/hive.dart';
-import 'package:click_account/models/sale.dart';
+import 'package:bizmate/models/sale.dart';
 
 class DeliveryTrackerPage extends StatefulWidget {
   final Sale sale;

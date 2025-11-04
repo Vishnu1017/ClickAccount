@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'package:click_account/models/sale.dart';
+import 'package:bizmate/models/sale.dart';
 import 'package:hive/hive.dart';
 
 class CalendarPage extends StatefulWidget {

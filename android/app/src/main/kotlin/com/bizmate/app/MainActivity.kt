@@ -1,4 +1,4 @@
-package com.example.click_account
+package com.bizmate.app
 
 import android.content.Intent
 import android.os.Bundle

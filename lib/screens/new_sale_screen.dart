@@ -1,4 +1,4 @@
-import 'package:click_account/models/payment.dart';
+import 'package:bizmate/models/payment.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:table_calendar/table_calendar.dart';

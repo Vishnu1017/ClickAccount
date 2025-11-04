@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:click_account/models/sale.dart';
+import 'package:bizmate/models/sale.dart';
 import 'package:intl/intl.dart';
 
 class PaymentHistoryPage extends StatelessWidget {

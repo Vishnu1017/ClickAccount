@@ -1,8 +1,8 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'package:flutter/material.dart';
 
-import 'package:click_account/models/user_model.dart';
-import 'package:click_account/screens/CalendarPage.dart';
+import 'package:bizmate/models/user_model.dart';
+import 'package:bizmate/screens/CalendarPage.dart';
 
 import '../models/product_store.dart';
 import 'customers_page.dart';
@@ -230,21 +230,6 @@ class _NavBarPageState extends State<NavBarPage> {
                     padding: const EdgeInsets.only(right: 10.0, bottom: 10),
                     child: Container(
                       constraints: BoxConstraints(maxWidth: 150),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(32),
-                        gradient: LinearGradient(
-                          colors: [
-                            Color.fromARGB(88, 20, 14, 188),
-                            Color.fromARGB(167, 20, 14, 188),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.9),
-                          width: 2,
-                        ),
-                      ),
                       child: Material(
                         color: Colors.transparent,
                         child: InkWell(
@@ -259,8 +244,8 @@ class _NavBarPageState extends State<NavBarPage> {
                           },
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
+                              horizontal: 14,
+                              vertical: 6,
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
@@ -268,19 +253,7 @@ class _NavBarPageState extends State<NavBarPage> {
                                 Icon(
                                   Icons.calendar_today,
                                   color: Colors.white,
-                                  size: 18,
-                                ),
-                                SizedBox(width: 6),
-                                Flexible(
-                                  child: Text(
-                                    "Calendar",
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 14,
-                                      letterSpacing: 0.6,
-                                    ),
-                                  ),
+                                  size: 20,
                                 ),
                               ],
                             ),

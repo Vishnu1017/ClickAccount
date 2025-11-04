@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:click_account/models/product_store.dart';
-import 'package:click_account/models/product.dart';
+import 'package:bizmate/models/product_store.dart';
+import 'package:bizmate/models/product.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 class ProductsPage extends StatefulWidget {

@@ -1,12 +1,12 @@
 // ignore_for_file: unused_local_variable, unnecessary_null_comparison
 
-import 'package:click_account/models/sale.dart';
-import 'package:click_account/models/user_model.dart';
-import 'package:click_account/screens/DeliveryTrackerPage.dart';
-import 'package:click_account/screens/WhatsAppHelper.dart';
-import 'package:click_account/screens/payment_history_page.dart';
-import 'package:click_account/screens/pdf_preview_screen.dart';
-import 'package:click_account/screens/sale_detail_screen.dart';
+import 'package:bizmate/models/sale.dart';
+import 'package:bizmate/models/user_model.dart';
+import 'package:bizmate/screens/DeliveryTrackerPage.dart';
+import 'package:bizmate/screens/WhatsAppHelper.dart';
+import 'package:bizmate/screens/payment_history_page.dart';
+import 'package:bizmate/screens/pdf_preview_screen.dart';
+import 'package:bizmate/screens/sale_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';

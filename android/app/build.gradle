@@ -1,12 +1,12 @@
 plugins {
     id("com.android.application")
-    id("com.google.gms.google-services")
+    // id("com.google.gms.google-services")
     id("kotlin-android")
     id("dev.flutter.flutter-gradle-plugin")
 }
 
 android {
-    namespace = "com.example.click_account"
+    namespace = "com.bizmate.app"
     compileSdk = 36
     ndkVersion = "27.0.12077973"
 
@@ -22,7 +22,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.click_account"
+        applicationId = "com.bizmate.app"
         minSdkVersion(24) // ✅ Use proper Kotlin syntax here
         targetSdk = 33
         versionCode = 1

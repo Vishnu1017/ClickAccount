@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:click_account/models/user_model.dart';
-import 'package:click_account/screens/login_screen.dart';
+import 'package:bizmate/models/user_model.dart';
+import 'package:bizmate/screens/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:click_account/models/sale.dart';
-import 'package:click_account/models/product.dart';
-import 'package:click_account/models/payment.dart';
+import 'package:bizmate/models/sale.dart';
+import 'package:bizmate/models/product.dart';
+import 'package:bizmate/models/payment.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -193,11 +193,14 @@ class _CustomSplashScreenState extends State<CustomSplashScreen>
                   borderRadius: BorderRadius.circular(
                     12,
                   ), // Adjust the radius as needed
-                  child: Image.asset('assets/images/logo.PNG', width: 130),
+                  child: Image.asset(
+                    'assets/images/bizmate_logo.JPG',
+                    width: 130,
+                  ),
                 ),
                 const SizedBox(height: 20),
                 const Text(
-                  "Click Account",
+                  "BizMate",
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,

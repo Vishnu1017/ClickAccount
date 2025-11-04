@@ -1,4 +1,4 @@
-import 'package:click_account/screens/SalesReportPage.dart';
+import 'package:bizmate/screens/SalesReportPage.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';

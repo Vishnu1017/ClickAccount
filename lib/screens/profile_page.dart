@@ -5,7 +5,7 @@ import 'package:hive/hive.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:click_account/models/user_model.dart';
+import 'package:bizmate/models/user_model.dart';
 import 'login_screen.dart';
 
 class ProfilePage extends StatefulWidget {

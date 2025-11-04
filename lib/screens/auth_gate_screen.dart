@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:click_account/models/user_model.dart';
-import 'package:click_account/screens/nav_bar_page.dart';
+import 'package:bizmate/models/user_model.dart';
+import 'package:bizmate/screens/nav_bar_page.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 final _storage = FlutterSecureStorage(

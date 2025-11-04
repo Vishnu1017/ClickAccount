@@ -1,5 +1,5 @@
 import 'dart:ui';
-import 'package:click_account/models/product_store.dart';
+import 'package:bizmate/models/product_store.dart';
 import 'package:flutter/material.dart';
 
 class SelectItemsScreen extends StatefulWidget {

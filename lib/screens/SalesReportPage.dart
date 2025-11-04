@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:click_account/models/sale.dart';
-import 'package:click_account/models/user_model.dart';
+import 'package:bizmate/models/sale.dart';
+import 'package:bizmate/models/user_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';

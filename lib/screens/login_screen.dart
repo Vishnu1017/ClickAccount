@@ -2,8 +2,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
-import 'package:click_account/models/user_model.dart';
-import 'package:click_account/screens/auth_gate_screen.dart'; // ✅ new import
+import 'package:bizmate/models/user_model.dart';
+import 'package:bizmate/screens/auth_gate_screen.dart'; // ✅ new import
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
