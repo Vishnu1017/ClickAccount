@@ -79,8 +79,6 @@ flutter build web    # Web
   <a href="https://www.w3.org/html/" target="_blank"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/html5/html5-original.svg" alt="HTML5" width="40" height="40"/></a>
 </p>
 
-
-
 <h2>📈 Roadmap</h2>
 <ul>
   <li>Dark mode support</li>
@@ -103,8 +101,14 @@ flutter build web    # Web
 <h2>📸 Screenshots</h2>
 <p>Make sure to add your app screenshots in <code>assets/screenshots/</code> directory.</p>
 <ul>
-  <li><img src="assets/screenshots/login.png" alt="Login Screen" width="250"/></li>
-  <li><img src="assets/screenshots/dashboard.png" alt="Dashboard" width="250"/></li>
-  <li><img src="assets/screenshots/invoice.png" alt="Invoice Screen" width="250"/></li>
+  <li><img src="assets/screenshots/login.jpg" alt="Login Screen" width="250"/></li>
+  <li><img src="assets/screenshots//signup.jpg" alt="Sign Up Screen" width="250"/></li>
+  <li><img src="assets/screenshots/dashboard.JPG" alt="Dashboard" width="250"/></li>
+  <li><img src="assets/screenshots/invoice.JPG" alt="Invoice Screen" width="250"/></li>
+  <li><img src="assets/screenshots/customer.JPG" alt="Customer Screen" width="250"/></li>
+  <li><img src="assets/screenshots/home.JPG" alt="Home Screen" width="250"/></li>
+  <li><img src="assets/screenshots/packages.JPG" alt="Packages Screen" width="250"/></li>
+  <li><img src="assets/screenshots/profile.JPG" alt="Profile Screen" width="250"/></li>
+  <li><img src="assets/screenshots/sale_details.JPG" alt="Sales Details Screen" width="250"/></li>
+  <li><img src="assets/screenshots/sale_report.JPG" alt="Sales Report Screen" width="250"/></li>
 </ul>
-
