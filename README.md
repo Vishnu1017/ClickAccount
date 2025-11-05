@@ -56,7 +56,7 @@ web/
 
 <h3>Installation</h3>
 <pre>
-git clone https://github.com/Vishnu1017/ClickAccount.git
+git clone https://github.com/Vishnu1017/BizMate.git
 cd ClickAccount
 flutter pub get
 </pre>
