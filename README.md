@@ -57,7 +57,7 @@ web/
 <h3>Installation</h3>
 <pre>
 git clone https://github.com/Vishnu1017/BizMate.git
-cd ClickAccount
+cd BizMate
 flutter pub get
 </pre>
 
