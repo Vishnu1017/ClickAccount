@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:bizmate/widgets/app_snackbar.dart' show AppSnackBar;
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -118,8 +119,9 @@ class _DeliveryTrackerPageState extends State<DeliveryTrackerPage> {
     final phone = widget.sale.phoneNumber.replaceAll(' ', '');
 
     if (phone.length < 10 || !RegExp(r'^[0-9]+$').hasMatch(phone)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Please enter a valid 10-digit phone number")),
+      AppSnackBar.showWarning(
+        context,
+        message: "Please enter a valid 10-digit phone number",
       );
       return;
     }

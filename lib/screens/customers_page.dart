@@ -2,6 +2,9 @@
 
 import 'dart:io';
 
+import 'package:bizmate/widgets/app_snackbar.dart' show AppSnackBar;
+import 'package:bizmate/widgets/confirm_delete_dialog.dart'
+    show showConfirmDialog;
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:intl/intl.dart';
@@ -285,121 +288,20 @@ class _CustomersPageState extends State<CustomersPage> {
   }
 
   Future<bool> _confirmDelete(int index) async {
-    return await showDialog<bool>(
-          context: context,
-          barrierDismissible: false,
-          builder:
-              (ctx) => LayoutBuilder(
-                builder: (context, constraints) {
-                  // Responsive sizing values
-                  final bool isSmallScreen = constraints.maxWidth < 600;
-                  final double iconSize = isSmallScreen ? 24.0 : 28.0;
-                  final double fontSize = isSmallScreen ? 16.0 : 18.0;
-                  final double padding = isSmallScreen ? 12.0 : 16.0;
-                  final double buttonPadding = isSmallScreen ? 10.0 : 14.0;
+    bool confirmed = false;
 
-                  return AlertDialog(
-                    insetPadding: EdgeInsets.all(padding),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    titlePadding: EdgeInsets.fromLTRB(
-                      padding,
-                      padding,
-                      padding,
-                      8,
-                    ),
-                    contentPadding: EdgeInsets.fromLTRB(
-                      padding,
-                      8,
-                      padding,
-                      padding,
-                    ),
-                    title: SizedBox(
-                      width: double.infinity, // Make the Row take full width
-                      child: Row(
-                        mainAxisAlignment:
-                            MainAxisAlignment
-                                .center, // Center the children horizontally
-                        children: [
-                          Icon(
-                            Icons.warning,
-                            color: Colors.red,
-                            size: iconSize,
-                          ),
-                          SizedBox(width: isSmallScreen ? 8 : 12),
-                          Text(
-                            "Confirm Deletion",
-                            style: TextStyle(
-                              fontSize: fontSize,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    content: Text(
-                      "Delete all sales by ${filteredCustomers[index]['name']}?",
-                      style: TextStyle(fontSize: fontSize - 2),
-                      textAlign:
-                          TextAlign.center, // Also center the content text
-                    ),
-                    actionsPadding: EdgeInsets.symmetric(
-                      horizontal: padding,
-                      vertical: 8,
-                    ),
-                    actions: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Flexible(
-                            child: TextButton(
-                              style: TextButton.styleFrom(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: buttonPadding,
-                                  vertical: buttonPadding - 4,
-                                ),
-                              ),
-                              onPressed: () => Navigator.of(ctx).pop(false),
-                              child: Text(
-                                "Cancel",
-                                style: TextStyle(
-                                  color: Colors.grey[700],
-                                  fontSize: fontSize - 2,
-                                ),
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: isSmallScreen ? 8 : 16),
-                          Flexible(
-                            child: ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red,
-                                foregroundColor: Colors.white,
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: buttonPadding,
-                                  vertical: buttonPadding - 4,
-                                ),
-                              ),
-                              icon: Icon(
-                                Icons.delete_forever,
-                                size: iconSize - 2,
-                              ),
-                              label: Text(
-                                "Delete",
-                                style: TextStyle(fontSize: fontSize - 2),
-                              ),
-                              onPressed: () => Navigator.of(ctx).pop(true),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  );
-                },
-              ),
-        ) ??
-        false;
+    await showConfirmDialog(
+      context: context,
+      title: "Confirm Deletion",
+      message: "Delete all sales by ${filteredCustomers[index]['name']}?",
+      icon: Icons.warning_amber_rounded,
+      iconColor: Colors.redAccent,
+      onConfirm: () {
+        confirmed = true;
+      },
+    );
+
+    return confirmed;
   }
 
   void _deleteCustomer(int index) async {
@@ -446,10 +348,9 @@ class _CustomersPageState extends State<CustomersPage> {
 
       if (cleanedPhone.length < 10 ||
           !RegExp(r'^[0-9]+$').hasMatch(cleanedPhone)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Please enter a valid 10-digit phone number"),
-          ),
+        AppSnackBar.showWarning(
+          context,
+          message: "Please enter a valid 10-digit phone number",
         );
         return;
       }
@@ -523,9 +424,11 @@ class _CustomersPageState extends State<CustomersPage> {
         }
       });
     } catch (e) {
-      ScaffoldMessenger.of(
+      AppSnackBar.showError(
         context,
-      ).showSnackBar(SnackBar(content: Text("Couldn't open WhatsApp")));
+        message: "Couldn't open WhatsApp",
+        duration: const Duration(seconds: 2),
+      );
     }
   }
 

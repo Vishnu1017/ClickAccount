@@ -1,35 +1,38 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'product.dart';
+part of 'rental_booking.dart';
 
 // **************************************************************************
 // TypeAdapterGenerator
 // **************************************************************************
 
-class ProductAdapter extends TypeAdapter<Product> {
+class RentalBookingAdapter extends TypeAdapter<RentalBooking> {
   @override
-  final int typeId = 2;
+  final int typeId = 6;
 
   @override
-  Product read(BinaryReader reader) {
+  RentalBooking read(BinaryReader reader) {
     final numOfFields = reader.readByte();
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-    return Product(
-      fields[0] as String,
-      fields[1] as double,
+    return RentalBooking(
+      itemName: fields[0] as String,
+      from: fields[1] as DateTime,
+      to: fields[2] as DateTime,
     );
   }
 
   @override
-  void write(BinaryWriter writer, Product obj) {
+  void write(BinaryWriter writer, RentalBooking obj) {
     writer
-      ..writeByte(2)
+      ..writeByte(3)
       ..writeByte(0)
-      ..write(obj.name)
+      ..write(obj.itemName)
       ..writeByte(1)
-      ..write(obj.rate);
+      ..write(obj.from)
+      ..writeByte(2)
+      ..write(obj.to);
   }
 
   @override
@@ -38,7 +41,7 @@ class ProductAdapter extends TypeAdapter<Product> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is ProductAdapter &&
+      other is RentalBookingAdapter &&
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }

@@ -2,7 +2,7 @@ import 'package:hive/hive.dart';
 
 part 'user_model.g.dart';
 
-@HiveType(typeId: 32) // 👈 Unique ID
+@HiveType(typeId: 0) // 👈 Unique ID
 class User extends HiveObject {
   @HiveField(0)
   String name;

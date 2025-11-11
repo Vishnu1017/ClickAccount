@@ -1,3 +1,4 @@
+import 'package:bizmate/widgets/app_snackbar.dart' show AppSnackBar;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:bizmate/models/user_model.dart';
@@ -61,26 +62,21 @@ class _PasscodeCreationScreenState extends State<PasscodeCreationScreen> {
     if (_selectedType == PasscodeType.numeric) {
       passcode = _pinDigits.take(_numericLength).join();
       if (passcode.length != _numericLength) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
+        AppSnackBar.showError(
+          context,
+          message:
               "Please enter exactly $_numericLength digits for the numeric passcode",
-            ),
-            backgroundColor: Colors.red.shade400,
-          ),
+          duration: Duration(seconds: 2),
         );
         return;
       }
     } else {
       passcode = _alphanumericController.text.trim();
       if (passcode.length < 6) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              "Alphanumeric passcode must be at least 6 characters",
-            ),
-            backgroundColor: Colors.red,
-          ),
+        AppSnackBar.showError(
+          context,
+          message: "Alphanumeric passcode must be at least 6 characters",
+          duration: Duration(seconds: 2),
         );
         return;
       }
@@ -100,11 +96,10 @@ class _PasscodeCreationScreenState extends State<PasscodeCreationScreen> {
         MaterialPageRoute(builder: (_) => NavBarPage(user: widget.user)),
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Failed to save passcode"),
-          backgroundColor: Colors.red,
-        ),
+      AppSnackBar.showError(
+        context,
+        message: "Failed to save passcode",
+        duration: Duration(seconds: 2),
       );
     }
   }
@@ -584,17 +579,13 @@ class _EnterPasscodeScreenState extends State<EnterPasscodeScreen> {
   void _triggerShakeAnimation() {
     // This would typically be implemented with an AnimationController
     // For simplicity, we're just showing a visual feedback
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
+    AppSnackBar.showError(
+      context,
+      message:
           _attemptCount >= 3
               ? "Multiple failed attempts. Consider resetting your passcode."
               : "Please check your passcode and try again.",
-          style: const TextStyle(color: Colors.white),
-        ),
-        backgroundColor: Colors.red.shade400,
-        duration: const Duration(seconds: 2),
-      ),
+      duration: Duration(seconds: 2),
     );
   }
 

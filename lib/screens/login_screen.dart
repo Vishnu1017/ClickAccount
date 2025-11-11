@@ -1,5 +1,6 @@
 // ignore_for_file: library_private_types_in_public_api
 
+import 'package:bizmate/widgets/app_snackbar.dart' show AppSnackBar;
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:bizmate/models/user_model.dart';
@@ -70,6 +71,29 @@ class _LoginScreenState extends State<LoginScreen>
     });
   }
 
+  // Phone number validation function
+  bool _isValidPhoneNumber(String phone) {
+    // Remove any non-digit characters
+    String cleanedPhone = phone.replaceAll(RegExp(r'[^\d]'), '');
+
+    // Check if phone number has 10 digits (standard US number)
+    if (cleanedPhone.length != 10) {
+      return false;
+    }
+
+    // Check if all characters are digits
+    if (!RegExp(r'^\d+$').hasMatch(cleanedPhone)) {
+      return false;
+    }
+
+    // Check if phone number doesn't start with 0
+    if (cleanedPhone.startsWith('0')) {
+      return false;
+    }
+
+    return true;
+  }
+
   Future<void> createAccount() async {
     final fullName = fullNameController.text.trim();
     final phone = phoneController.text.trim();
@@ -81,6 +105,12 @@ class _LoginScreenState extends State<LoginScreen>
         email.isEmpty ||
         password.isEmpty) {
       showError("All fields are required");
+      return;
+    }
+
+    // Phone number validation
+    if (!_isValidPhoneNumber(phone)) {
+      showError("Please enter a valid 10-digit phone number");
       return;
     }
 
@@ -220,37 +250,15 @@ class _LoginScreenState extends State<LoginScreen>
   // ---------------- Snackbar helpers ----------------
 
   void showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.error_outline, color: Colors.white),
-            const SizedBox(width: 8),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: Colors.red[400],
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
+    AppSnackBar.showError(
+      context,
+      message: message,
+      duration: Duration(seconds: 2),
     );
   }
 
   void showSuccess(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.check_circle, color: Colors.white),
-            const SizedBox(width: 8),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: Colors.green[400],
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
+    AppSnackBar.showSuccess(context, message: message);
   }
 
   // ---------------- Forgot password dialog ----------------

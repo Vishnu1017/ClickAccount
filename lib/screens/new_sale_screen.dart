@@ -1,4 +1,5 @@
 import 'package:bizmate/models/payment.dart';
+import 'package:bizmate/widgets/app_snackbar.dart' show AppSnackBar;
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:table_calendar/table_calendar.dart';
@@ -480,15 +481,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
 
     setState(() => isLoading = false);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("✅ Sale saved successfully!"),
-        backgroundColor: Colors.green[600],
-        behavior: SnackBarBehavior.floating,
-        duration: Duration(seconds: 2),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
+    AppSnackBar.showSuccess(context, message: "✅ Sale saved successfully!");
 
     await Future.delayed(Duration(milliseconds: 800));
     Navigator.pop(context);
@@ -781,14 +774,11 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                         if (!isCustomerSelectedFromList) {
                           final isDuplicate = await isPhoneNumberDuplicate();
                           if (isDuplicate) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
+                            AppSnackBar.showError(
+                              context,
+                              message:
                                   "A customer with this phone number already exists!",
-                                ),
-                                backgroundColor: Colors.red,
-                                duration: Duration(seconds: 2),
-                              ),
+                              duration: Duration(seconds: 2),
                             );
                             return;
                           }

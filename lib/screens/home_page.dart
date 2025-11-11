@@ -7,6 +7,9 @@ import 'package:bizmate/screens/WhatsAppHelper.dart';
 import 'package:bizmate/screens/payment_history_page.dart';
 import 'package:bizmate/screens/pdf_preview_screen.dart';
 import 'package:bizmate/screens/sale_detail_screen.dart';
+import 'package:bizmate/widgets/app_snackbar.dart' show AppSnackBar;
+import 'package:bizmate/widgets/confirm_delete_dialog.dart'
+    show showConfirmDialog;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -935,200 +938,25 @@ class _HomePageState extends State<HomePage>
                                       final scaffoldContext = context;
 
                                       if (value == 'delete') {
-                                        final confirm = await showDialog<bool>(
+                                        await showConfirmDialog(
                                           context: context,
-                                          barrierDismissible: false,
-                                          builder:
-                                              (ctx) => LayoutBuilder(
-                                                builder: (
-                                                  context,
-                                                  constraints,
-                                                ) {
-                                                  // Responsive sizing values
-                                                  final bool isSmallScreen =
-                                                      constraints.maxWidth <
-                                                      600;
-                                                  final double iconSize =
-                                                      isSmallScreen
-                                                          ? 24.0
-                                                          : 28.0;
-                                                  final double fontSize =
-                                                      isSmallScreen
-                                                          ? 16.0
-                                                          : 18.0;
-                                                  final double padding =
-                                                      isSmallScreen
-                                                          ? 12.0
-                                                          : 16.0;
-                                                  final double buttonPadding =
-                                                      isSmallScreen
-                                                          ? 10.0
-                                                          : 14.0;
-
-                                                  return AlertDialog(
-                                                    insetPadding:
-                                                        EdgeInsets.all(padding),
-                                                    shape: RoundedRectangleBorder(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            16,
-                                                          ),
-                                                    ),
-                                                    titlePadding:
-                                                        EdgeInsets.fromLTRB(
-                                                          padding,
-                                                          padding,
-                                                          padding,
-                                                          8,
-                                                        ),
-                                                    contentPadding:
-                                                        EdgeInsets.fromLTRB(
-                                                          padding,
-                                                          8,
-                                                          padding,
-                                                          padding,
-                                                        ),
-                                                    title: Row(
-                                                      children: [
-                                                        Icon(
-                                                          Icons.warning,
-                                                          color: Colors.red,
-                                                          size: iconSize,
-                                                        ),
-                                                        SizedBox(
-                                                          width:
-                                                              isSmallScreen
-                                                                  ? 8
-                                                                  : 12,
-                                                        ),
-                                                        Text(
-                                                          "Confirm Deletion",
-                                                          style: TextStyle(
-                                                            fontSize: fontSize,
-                                                            fontWeight:
-                                                                FontWeight.bold,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                    content: Text(
-                                                      'Are you sure you want to delete this sale? This action cannot be undone.',
-                                                      style: TextStyle(
-                                                        fontSize: fontSize - 2,
-                                                      ),
-                                                      textAlign:
-                                                          TextAlign.center,
-                                                    ),
-                                                    actionsPadding:
-                                                        EdgeInsets.symmetric(
-                                                          horizontal: padding,
-                                                          vertical: 8,
-                                                        ),
-                                                    actions: [
-                                                      Row(
-                                                        mainAxisAlignment:
-                                                            MainAxisAlignment
-                                                                .spaceBetween,
-                                                        children: [
-                                                          Flexible(
-                                                            child: TextButton(
-                                                              style: TextButton.styleFrom(
-                                                                padding: EdgeInsets.symmetric(
-                                                                  horizontal:
-                                                                      buttonPadding,
-                                                                  vertical:
-                                                                      buttonPadding -
-                                                                      4,
-                                                                ),
-                                                              ),
-                                                              onPressed:
-                                                                  () =>
-                                                                      Navigator.of(
-                                                                        ctx,
-                                                                      ).pop(
-                                                                        false,
-                                                                      ),
-                                                              child: Text(
-                                                                "Cancel",
-                                                                style: TextStyle(
-                                                                  color:
-                                                                      Colors
-                                                                          .grey[700],
-                                                                  fontSize:
-                                                                      fontSize -
-                                                                      2,
-                                                                ),
-                                                              ),
-                                                            ),
-                                                          ),
-                                                          SizedBox(
-                                                            width:
-                                                                isSmallScreen
-                                                                    ? 8
-                                                                    : 16,
-                                                          ),
-                                                          Flexible(
-                                                            child: ElevatedButton.icon(
-                                                              style: ElevatedButton.styleFrom(
-                                                                backgroundColor:
-                                                                    Colors.red,
-                                                                foregroundColor:
-                                                                    Colors
-                                                                        .white,
-                                                                padding: EdgeInsets.symmetric(
-                                                                  horizontal:
-                                                                      buttonPadding,
-                                                                  vertical:
-                                                                      buttonPadding -
-                                                                      4,
-                                                                ),
-                                                              ),
-                                                              icon: Icon(
-                                                                Icons
-                                                                    .delete_forever,
-                                                                size:
-                                                                    iconSize -
-                                                                    2,
-                                                              ),
-                                                              label: Text(
-                                                                "Delete",
-                                                                style: TextStyle(
-                                                                  fontSize:
-                                                                      fontSize -
-                                                                      2,
-                                                                ),
-                                                              ),
-                                                              onPressed:
-                                                                  () =>
-                                                                      Navigator.of(
-                                                                        ctx,
-                                                                      ).pop(
-                                                                        true,
-                                                                      ),
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ],
-                                                  );
-                                                },
+                                          title: "Confirm Deletion",
+                                          message:
+                                              "Are you sure you want to delete this sale? This action cannot be undone.",
+                                          icon: Icons.warning_amber_rounded,
+                                          iconColor: Colors.redAccent,
+                                          onConfirm: () {
+                                            box.deleteAt(originalIndex);
+                                            AppSnackBar.showError(
+                                              scaffoldContext,
+                                              message:
+                                                  "🗑️ Sale deleted successfully.",
+                                              duration: const Duration(
+                                                seconds: 2,
                                               ),
+                                            );
+                                          },
                                         );
-
-                                        if (confirm == true) {
-                                          box.deleteAt(originalIndex);
-                                          ScaffoldMessenger.of(
-                                            scaffoldContext,
-                                          ).showSnackBar(
-                                            SnackBar(
-                                              content: Text(
-                                                "🗑️ Sale deleted successfully.",
-                                              ),
-                                              backgroundColor: Colors.red[400],
-                                              duration: Duration(seconds: 2),
-                                            ),
-                                          );
-                                        }
                                       } else if (value == 'share_pdf') {
                                         final pdf = pw.Document();
                                         final balanceAmount =
@@ -1440,15 +1268,10 @@ class _HomePageState extends State<HomePage>
 
                                         // Check if UPI ID is available
                                         if (userUpiId.isEmpty) {
-                                          ScaffoldMessenger.of(
+                                          AppSnackBar.showWarning(
                                             scaffoldContext,
-                                          ).showSnackBar(
-                                            SnackBar(
-                                              content: Text(
+                                            message:
                                                 "Please set your UPI ID in your profile first",
-                                              ),
-                                              backgroundColor: Colors.red,
-                                            ),
                                           );
                                           return;
                                         }
@@ -2042,14 +1865,12 @@ class _HomePageState extends State<HomePage>
                                         if (phone == null ||
                                             phone.isEmpty ||
                                             phone.length < 10) {
-                                          ScaffoldMessenger.of(
+                                          AppSnackBar.showError(
                                             scaffoldContext,
-                                          ).showSnackBar(
-                                            SnackBar(
-                                              content: Text(
+                                            message:
                                                 "Phone number not available or invalid",
-                                              ),
-                                              backgroundColor: Colors.red,
+                                            duration: const Duration(
+                                              seconds: 2,
                                             ),
                                           );
                                           return;
@@ -2100,15 +1921,10 @@ class _HomePageState extends State<HomePage>
 
                                         // Check if UPI ID is available
                                         if (userUpiId.isEmpty) {
-                                          ScaffoldMessenger.of(
+                                          AppSnackBar.showWarning(
                                             scaffoldContext,
-                                          ).showSnackBar(
-                                            SnackBar(
-                                              content: Text(
+                                            message:
                                                 "Please set your UPI ID in your profile first",
-                                              ),
-                                              backgroundColor: Colors.red,
-                                            ),
                                           );
                                           return;
                                         }
@@ -2163,13 +1979,11 @@ class _HomePageState extends State<HomePage>
                                             }
                                           });
                                         } catch (e) {
-                                          ScaffoldMessenger.of(
+                                          AppSnackBar.showError(
                                             context,
-                                          ).showSnackBar(
-                                            SnackBar(
-                                              content: Text(
-                                                "Couldn't open WhatsApp",
-                                              ),
+                                            message: "Couldn't open WhatsApp",
+                                            duration: const Duration(
+                                              seconds: 2,
                                             ),
                                           );
                                         }
@@ -2481,16 +2295,11 @@ class _HomePageState extends State<HomePage>
 
                                         if (confirm == true) {
                                           box.deleteAt(originalIndex);
-                                          ScaffoldMessenger.of(
+                                          AppSnackBar.showError(
                                             scaffoldContext,
-                                          ).showSnackBar(
-                                            SnackBar(
-                                              content: Text(
+                                            message:
                                                 "🗑️ Sale deleted successfully.",
-                                              ),
-                                              backgroundColor: Colors.red[400],
-                                              duration: Duration(seconds: 2),
-                                            ),
+                                            duration: Duration(seconds: 2),
                                           );
                                         }
                                       } else if (value == 'share_pdf') {
@@ -2788,15 +2597,10 @@ class _HomePageState extends State<HomePage>
 
                                         // Check if UPI ID is available
                                         if (userUpiId.isEmpty) {
-                                          ScaffoldMessenger.of(
+                                          AppSnackBar.showWarning(
                                             scaffoldContext,
-                                          ).showSnackBar(
-                                            SnackBar(
-                                              content: Text(
+                                            message:
                                                 "Please set your UPI ID in your profile first",
-                                              ),
-                                              backgroundColor: Colors.red,
-                                            ),
                                           );
                                           return;
                                         }
@@ -3397,14 +3201,12 @@ class _HomePageState extends State<HomePage>
                                         if (phone == null ||
                                             phone.isEmpty ||
                                             phone.length < 10) {
-                                          ScaffoldMessenger.of(
+                                          AppSnackBar.showError(
                                             scaffoldContext,
-                                          ).showSnackBar(
-                                            SnackBar(
-                                              content: Text(
+                                            message:
                                                 "Phone number not available or invalid",
-                                              ),
-                                              backgroundColor: Colors.red,
+                                            duration: const Duration(
+                                              seconds: 2,
                                             ),
                                           );
                                           return;
@@ -3456,15 +3258,10 @@ class _HomePageState extends State<HomePage>
 
                                         // Check if UPI ID is available
                                         if (userUpiId.isEmpty) {
-                                          ScaffoldMessenger.of(
+                                          AppSnackBar.showWarning(
                                             scaffoldContext,
-                                          ).showSnackBar(
-                                            SnackBar(
-                                              content: Text(
+                                            message:
                                                 "Please set your UPI ID in your profile first",
-                                              ),
-                                              backgroundColor: Colors.red,
-                                            ),
                                           );
                                           return;
                                         }
@@ -3519,13 +3316,11 @@ class _HomePageState extends State<HomePage>
                                             }
                                           });
                                         } catch (e) {
-                                          ScaffoldMessenger.of(
+                                          AppSnackBar.showError(
                                             context,
-                                          ).showSnackBar(
-                                            SnackBar(
-                                              content: Text(
-                                                "Couldn't open WhatsApp",
-                                              ),
+                                            message: "Couldn't open WhatsApp",
+                                            duration: const Duration(
+                                              seconds: 2,
                                             ),
                                           );
                                         }

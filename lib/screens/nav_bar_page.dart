@@ -1,8 +1,11 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
+import 'package:bizmate/screens/Camera%20rental%20page/camera_rental_nav_bar.dart';
 import 'package:flutter/material.dart';
 
 import 'package:bizmate/models/user_model.dart';
 import 'package:bizmate/screens/CalendarPage.dart';
+import 'package:shared_preferences/shared_preferences.dart'
+    show SharedPreferences;
 
 import '../models/product_store.dart';
 import 'customers_page.dart';
@@ -23,6 +26,7 @@ class NavBarPage extends StatefulWidget {
 
 class _NavBarPageState extends State<NavBarPage> {
   int _currentIndex = 0;
+  bool _isRentalEnabled = false;
 
   final List<String> _titles = [
     "Home",
@@ -32,12 +36,32 @@ class _NavBarPageState extends State<NavBarPage> {
     "Profile",
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    _loadRentalStatus();
+  }
+
+  Future<void> _loadRentalStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _isRentalEnabled =
+          prefs.getBool('${widget.user.email}_rentalEnabled') ?? false;
+    });
+  }
+
+  // Add this method to reload rental status when needed
+  Future<void> _reloadRentalStatus() async {
+    await _loadRentalStatus();
+  }
+
   List<Widget> get _pages => [
     HomePage(),
     DashboardPage(),
     CustomersPage(),
     ProductsPage(),
-    ProfilePage(user: widget.user),
+    // Update ProfilePage to include callback for rental status updates
+    ProfilePage(user: widget.user, onRentalStatusChanged: _reloadRentalStatus),
   ];
 
   Widget _buildAddSaleButton() {
@@ -184,7 +208,6 @@ class _NavBarPageState extends State<NavBarPage> {
                     setState(() {});
                   }
 
-                  // Decide if user tapped "Save & New"
                   continueAdding = result != null && result['continue'] == true;
                 }
               },
@@ -197,6 +220,8 @@ class _NavBarPageState extends State<NavBarPage> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isPhotographer = widget.user.role == 'Photographer';
+
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
@@ -227,39 +252,102 @@ class _NavBarPageState extends State<NavBarPage> {
             _currentIndex == 0
                 ? [
                   Padding(
-                    padding: const EdgeInsets.only(right: 10.0, bottom: 10),
-                    child: Container(
-                      constraints: BoxConstraints(maxWidth: 150),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(32),
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => CalendarPage(),
-                              ),
-                            );
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 6,
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
+                    padding: const EdgeInsets.only(right: 14.0, bottom: 10),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // 📅 Calendar Button (always visible)
+                        Container(
+                          constraints: BoxConstraints(maxWidth: 150),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(32),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => CalendarPage(),
+                                  ),
+                                );
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 6,
+                                ),
+                                child: Icon(
                                   Icons.calendar_today,
                                   color: Colors.white,
-                                  size: 20,
+                                  size: 22,
                                 ),
-                              ],
+                              ),
                             ),
                           ),
                         ),
-                      ),
+                        SizedBox(width: 8),
+
+                        // 🎥 Camera Rental Button (only if Photographer AND enabled)
+                        if (isPhotographer && _isRentalEnabled)
+                          Container(
+                            constraints: BoxConstraints(maxWidth: 150),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(32),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder:
+                                          (context) =>
+                                              const CameraRentalNavBar(),
+                                    ),
+                                  );
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 6,
+                                  ),
+                                  child: Stack(
+                                    alignment: Alignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.camera_alt,
+                                        color: Colors.white,
+                                        size: 28,
+                                      ),
+                                      Positioned(
+                                        bottom: 0,
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 4,
+                                            vertical: 2,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.red,
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                          ),
+                                          child: const Text(
+                                            "Rental",
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 8,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ]
@@ -315,6 +403,8 @@ class _NavBarPageState extends State<NavBarPage> {
                 await Future.delayed(Duration(milliseconds: 100));
                 setState(() {});
               }
+              // Reload rental status when switching to any tab
+              _loadRentalStatus();
             },
             backgroundColor: Colors.transparent,
             type: BottomNavigationBarType.fixed,
@@ -323,7 +413,7 @@ class _NavBarPageState extends State<NavBarPage> {
             unselectedItemColor: Colors.grey,
             showSelectedLabels: false,
             showUnselectedLabels: false,
-            items: [
+            items: const [
               BottomNavigationBarItem(
                 icon: Icon(Icons.home_outlined),
                 activeIcon: Icon(Icons.home),

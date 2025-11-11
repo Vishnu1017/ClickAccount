@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:bizmate/models/sale.dart';
 import 'package:bizmate/models/user_model.dart';
+import 'package:bizmate/widgets/app_snackbar.dart' show AppSnackBar;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -142,14 +143,17 @@ class _SalesReportPageState extends State<SalesReportPage> {
       if (!mounted) return;
 
       if (result.type != ResultType.done) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('PDF saved but could not open: $fileName')),
+        AppSnackBar.showInfo(
+          context,
+          message: '📄 PDF saved but could not open: $fileName',
         );
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to generate PDF: ${e.toString()}')),
+      AppSnackBar.showError(
+        context,
+        message: '❌ Failed to generate PDF: ${e.toString()}',
+        duration: Duration(seconds: 2),
       );
     }
   }
@@ -373,28 +377,19 @@ class _SalesReportPageState extends State<SalesReportPage> {
     try {
       if (!mounted) return;
 
-      final scaffoldMessenger = ScaffoldMessenger.of(context);
+      // final scaffoldMessenger = ScaffoldMessenger.of(context);
       final sales = getFilteredSales();
 
       if (sales.isEmpty) {
-        scaffoldMessenger.showSnackBar(
-          const SnackBar(content: Text('No sales data to export')),
-        );
+        AppSnackBar.showInfo(context, message: 'ℹ️ No sales data to export');
         return;
       }
 
       // Show loading indicator
-      scaffoldMessenger.showSnackBar(
-        const SnackBar(
-          content: Row(
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(width: 20),
-              Text('Generating CSV file...'),
-            ],
-          ),
-          duration: Duration(seconds: 2),
-        ),
+      AppSnackBar.showLoading(
+        context,
+        message: 'Generating CSV file...',
+        duration: const Duration(seconds: 2),
       );
 
       final dateFormat = DateFormat('dd/MM/yyyy');
@@ -456,19 +451,25 @@ class _SalesReportPageState extends State<SalesReportPage> {
       if (!mounted) return;
 
       if (result.type != ResultType.done) {
-        scaffoldMessenger.showSnackBar(
-          SnackBar(content: Text('Failed to open file: ${result.message}')),
+        AppSnackBar.showError(
+          context,
+          message: '❌ Failed to open file: ${result.message}',
+          duration: Duration(seconds: 2),
         );
       } else {
-        scaffoldMessenger.showSnackBar(
-          const SnackBar(content: Text('CSV file exported successfully')),
+        AppSnackBar.showSuccess(
+          context,
+          message: '✅ CSV file exported successfully',
         );
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
+      AppSnackBar.showError(
         context,
-      ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+        message: '❌ Error: ${e.toString()}',
+        duration: Duration(seconds: 2),
+      );
+
       debugPrint('CSV Export Error: $e');
     }
   }

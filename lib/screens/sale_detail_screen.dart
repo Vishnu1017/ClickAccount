@@ -1,4 +1,5 @@
 import 'package:bizmate/models/payment.dart';
+import 'package:bizmate/widgets/app_snackbar.dart' show AppSnackBar;
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:intl/intl.dart';
@@ -91,15 +92,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
 
     await box.putAt(widget.index, updatedSale);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("✅ Sale updated successfully!"),
-        backgroundColor: Colors.green[600],
-        behavior: SnackBarBehavior.floating,
-        duration: Duration(seconds: 2),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
+    AppSnackBar.showSuccess(context, message: "✅ Sale updated successfully!");
 
     await Future.delayed(Duration(milliseconds: 500));
     Navigator.pop(context);

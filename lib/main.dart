@@ -1,34 +1,30 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:bizmate/models/user_model.dart';
+import 'package:bizmate/models/sale.dart';
+import 'package:bizmate/models/product.dart';
+import 'package:bizmate/models/payment.dart';
+import 'package:bizmate/models/rental_item.dart';
+import 'package:bizmate/models/customer_model.dart';
+import 'package:bizmate/models/rental_sale_model.dart';
 import 'package:bizmate/screens/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:bizmate/models/sale.dart';
-import 'package:bizmate/models/product.dart';
-import 'package:bizmate/models/payment.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
   try {
-    // Initialize Flutter binding first
     WidgetsFlutterBinding.ensureInitialized();
-
-    // Initialize Hive
     await _initializeHive();
-
-    // Initialize default profile image
     await _initializeDefaultProfileImage();
 
     runApp(const MyApp());
   } catch (error, stackTrace) {
-    // Critical error handling - log and show user-friendly message
     debugPrint('App initialization failed: $error');
     debugPrint('Stack trace: $stackTrace');
 
-    // Run a minimal error app that shows a friendly message
     runApp(
       MaterialApp(
         home: Scaffold(
@@ -49,21 +45,21 @@ Future<void> _initializeHive() async {
     final appDocDir = await getApplicationDocumentsDirectory();
     Hive.init(appDocDir.path);
 
-    // Register adapters with type safety
     _registerAdapters();
 
-    // Open boxes with error handling
     await Future.wait([
       _openBoxSafely<User>('users'),
       _openBoxSafely<Sale>('sales'),
       _openBoxSafely<Product>('products'),
       _openBoxSafely<Payment>('payments'),
+      _openBoxSafely<RentalItem>('rental_items'),
+      _openBoxSafely<CustomerModel>('customers'),
+      _openBoxSafely<RentalSaleModel>('rental_sales'),
     ]);
   } catch (e) {
     debugPrint('Hive initialization error: $e');
-    // Consider deleting corrupt boxes if needed
     // await _deleteAllHiveBoxes();
-    rethrow; // Let main() catch handle it
+    rethrow;
   }
 }
 
@@ -72,6 +68,9 @@ void _registerAdapters() {
   _registerAdapter<Sale>(1, SaleAdapter());
   _registerAdapter<Product>(2, ProductAdapter());
   _registerAdapter<Payment>(3, PaymentAdapter());
+  _registerAdapter<RentalItem>(4, RentalItemAdapter());
+  _registerAdapter<CustomerModel>(5, CustomerModelAdapter());
+  _registerAdapter<RentalSaleModel>(6, RentalSaleModelAdapter());
 }
 
 void _registerAdapter<T>(int typeId, TypeAdapter<T> adapter) {
@@ -85,7 +84,6 @@ Future<Box<T>> _openBoxSafely<T>(String name) async {
     return await Hive.openBox<T>(name);
   } catch (e) {
     debugPrint('Failed to open box $name: $e');
-    // Try to delete and recreate if corrupted
     await Hive.deleteBoxFromDisk(name);
     return await Hive.openBox<T>(name);
   }
@@ -105,19 +103,32 @@ Future<void> _initializeDefaultProfileImage() async {
     }
   } catch (e) {
     debugPrint('Default image initialization failed: $e');
-    // Non-critical error, app can continue
   }
 }
 
+// ✅ Keep this exactly as you had it — do not remove
 // Future<void> _deleteAllHiveBoxes() async {
-//   final List<String> boxNames = ['users', 'sales', 'products', 'payments'];
+//   final List<String> boxNames = [
+//     'users',
+//     'sales',
+//     'products',
+//     'payments',
+//     'rental_items',
+//     'customers',
+//     'rental_sales',
+//   ];
 
 //   for (var boxName in boxNames) {
-//     if (await Hive.boxExists(boxName)) {
-//       if (Hive.isBoxOpen(boxName)) {
-//         await Hive.box(boxName).close();
+//     try {
+//       if (await Hive.boxExists(boxName)) {
+//         if (Hive.isBoxOpen(boxName)) {
+//           await Hive.box(boxName).close();
+//         }
+//         await Hive.deleteBoxFromDisk(boxName);
+//         debugPrint('Deleted Hive box: $boxName');
 //       }
-//       await Hive.deleteBoxFromDisk(boxName);
+//     } catch (e) {
+//       debugPrint('Error deleting Hive box $boxName: $e');
 //     }
 //   }
 // }
@@ -154,9 +165,7 @@ class _CustomSplashScreenState extends State<CustomSplashScreen>
       vsync: this,
       duration: const Duration(seconds: 2),
     );
-
     _animation = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
-
     _controller.forward();
 
     Timer(const Duration(seconds: 3), () {
@@ -190,9 +199,7 @@ class _CustomSplashScreenState extends State<CustomSplashScreen>
               mainAxisSize: MainAxisSize.min,
               children: [
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(
-                    12,
-                  ), // Adjust the radius as needed
+                  borderRadius: BorderRadius.circular(12),
                   child: Image.asset(
                     'assets/images/bizmate_logo.JPG',
                     width: 130,

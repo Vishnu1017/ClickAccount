@@ -1,3 +1,5 @@
+import 'package:bizmate/widgets/confirm_delete_dialog.dart'
+    show showConfirmDialog;
 import 'package:flutter/material.dart';
 import 'package:bizmate/models/product_store.dart';
 import 'package:bizmate/models/product.dart';
@@ -249,95 +251,20 @@ class _ProductsPageState extends State<ProductsPage> {
   }
 
   Future<bool> _confirmDelete(int index) async {
-    return await showDialog<bool>(
-          context: context,
-          barrierDismissible: false,
-          builder: (ctx) {
-            final media = MediaQuery.of(ctx);
-            final isSmallScreen = media.size.width < 600;
-            final double iconSize = isSmallScreen ? 24.0 : 30.0;
-            final double fontSize = isSmallScreen ? 16.0 : 20.0;
-            final double padding = isSmallScreen ? 12.0 : 20.0;
-            final double buttonPadding = isSmallScreen ? 10.0 : 16.0;
+    bool confirmed = false;
 
-            return AlertDialog(
-              insetPadding: EdgeInsets.all(padding),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              title: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.warning, color: Colors.red, size: iconSize),
-                  SizedBox(width: 12),
-                  Flexible(
-                    child: Text(
-                      "Confirm Deletion",
-                      style: TextStyle(
-                        fontSize: fontSize,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              content: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: Text(
-                  "Are you sure you want to delete this package?",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: fontSize - 2),
-                ),
-              ),
-              actionsPadding: EdgeInsets.fromLTRB(padding, 0, padding, padding),
-              actions: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextButton(
-                        onPressed: () => Navigator.of(ctx).pop(false),
-                        style: TextButton.styleFrom(
-                          padding: EdgeInsets.symmetric(
-                            vertical: buttonPadding - 4,
-                          ),
-                        ),
-                        child: Text(
-                          "Cancel",
-                          style: TextStyle(
-                            fontSize: fontSize - 2,
-                            color: Colors.grey[700],
-                          ),
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          ProductStore().remove(index);
-                          Navigator.of(ctx).pop(true);
-                        },
-                        icon: Icon(Icons.delete_forever, size: iconSize - 2),
-                        label: Text(
-                          "Delete",
-                          style: TextStyle(fontSize: fontSize - 2),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                          foregroundColor: Colors.white,
-                          padding: EdgeInsets.symmetric(
-                            vertical: buttonPadding - 4,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            );
-          },
-        ) ??
-        false;
+    await showConfirmDialog(
+      context: context,
+      title: "Confirm Deletion",
+      message: "Are you sure you want to delete this package?",
+      icon: Icons.warning_amber_rounded,
+      iconColor: Colors.redAccent,
+      onConfirm: () {
+        ProductStore().remove(index);
+        confirmed = true;
+      },
+    );
+
+    return confirmed;
   }
 }

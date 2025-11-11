@@ -1,3 +1,4 @@
+import 'package:bizmate/widgets/app_snackbar.dart' show AppSnackBar;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
@@ -8,7 +9,11 @@ class PdfPreviewScreen extends StatelessWidget {
   final String filePath;
   final Sale sale;
 
-  const PdfPreviewScreen({super.key, required this.filePath, required this.sale});
+  const PdfPreviewScreen({
+    super.key,
+    required this.filePath,
+    required this.sale,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -117,13 +122,10 @@ Thanks for choosing *Shutter Life Photography*!
             await Clipboard.setData(ClipboardData(text: message));
 
             // Show snackbar about clipboard copy
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
+            AppSnackBar.showSuccess(
+              context,
+              message:
                   "✅ Message copied! Paste it in WhatsApp after selecting contact.",
-                ),
-                backgroundColor: Colors.green,
-              ),
             );
 
             await Future.delayed(Duration(milliseconds: 300)); // Small wait
@@ -136,11 +138,10 @@ Thanks for choosing *Shutter Life Photography*!
                 subject: '📸 Your Invoice from Shutter Life Photography',
               );
             } catch (e) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text("❌ Failed to share: ${e.toString()}"),
-                  backgroundColor: Colors.red,
-                ),
+              AppSnackBar.showError(
+                context,
+                message: "❌ Failed to share: ${e.toString()}",
+                duration: Duration(seconds: 2),
               );
             }
           },

@@ -1,4 +1,7 @@
 import 'dart:io';
+import 'package:bizmate/widgets/app_snackbar.dart' show AppSnackBar;
+import 'package:bizmate/widgets/confirm_delete_dialog.dart'
+    show showConfirmDialog;
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:hive/hive.dart';
@@ -10,8 +13,13 @@ import 'login_screen.dart';
 
 class ProfilePage extends StatefulWidget {
   final User user;
+  final VoidCallback? onRentalStatusChanged;
 
-  const ProfilePage({super.key, required this.user});
+  const ProfilePage({
+    super.key,
+    required this.user,
+    this.onRentalStatusChanged,
+  });
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -29,6 +37,7 @@ class _ProfilePageState extends State<ProfilePage> {
   bool _isImageLoading = false;
   bool _isImageSaved = false;
   bool _isEditing = false;
+  bool _isRentalEnabled = false;
 
   final List<String> roles = [
     'None',
@@ -59,7 +68,7 @@ class _ProfilePageState extends State<ProfilePage> {
     email = widget.user.email;
     phone = widget.user.phone;
     role = widget.user.role;
-    upiId = widget.user.upiId;
+    upiId = widget.user.upiId; // Ensure upiId is never null
 
     _nameController = TextEditingController(text: name);
     _roleController = TextEditingController(text: role);
@@ -68,6 +77,7 @@ class _ProfilePageState extends State<ProfilePage> {
     _upiController = TextEditingController(text: upiId);
 
     _loadImage();
+    _loadRentalSetting();
   }
 
   @override
@@ -90,8 +100,10 @@ class _ProfilePageState extends State<ProfilePage> {
     } catch (e) {
       debugPrint('Session verification error: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Session error. Please login again.')),
+        AppSnackBar.showError(
+          context,
+          message: 'Session error. Please login again.',
+          duration: Duration(seconds: 2),
         );
         await _logout();
       }
@@ -136,16 +148,57 @@ class _ProfilePageState extends State<ProfilePage> {
     setState(() => _isImageLoading = false);
   }
 
+  Future<void> _loadRentalSetting() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _isRentalEnabled =
+          prefs.getBool('${widget.user.email}_rentalEnabled') ?? false;
+    });
+  }
+
+  Future<void> _enableRental() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('${widget.user.email}_rentalEnabled', true);
+    setState(() {
+      _isRentalEnabled = true;
+    });
+
+    // Call the callback if provided
+    widget.onRentalStatusChanged?.call();
+
+    if (mounted) {
+      AppSnackBar.showSuccess(
+        context,
+        message: 'Rental page enabled successfully!',
+      );
+    }
+  }
+
+  Future<void> _disableRental() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('${widget.user.email}_rentalEnabled', false);
+    setState(() {
+      _isRentalEnabled = false;
+    });
+
+    // Call the callback if provided
+    widget.onRentalStatusChanged?.call();
+
+    if (mounted) {
+      AppSnackBar.showWarning(context, message: 'Rental page disabled');
+    }
+  }
+
   Future<void> _pickImage() async {
     try {
       final status = await Permission.photos.request();
 
       if (!status.isGranted) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Permission denied. Please allow access to gallery.'),
-          ),
+        AppSnackBar.showError(
+          context,
+          message: 'Permission denied. Please allow access to gallery.',
+          duration: Duration(seconds: 2),
         );
         return;
       }
@@ -175,18 +228,18 @@ class _ProfilePageState extends State<ProfilePage> {
         _isImageSaved = true;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Profile image updated successfully!'),
-          backgroundColor: Colors.green,
-        ),
+      AppSnackBar.showSuccess(
+        context,
+        message: 'Profile image updated successfully!',
       );
     } catch (e) {
       debugPrint('Image picking error: $e');
       setState(() => _isImageLoading = false);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error picking image: ${e.toString()}')),
+      AppSnackBar.showError(
+        context,
+        message: 'Error picking image: ${e.toString()}',
+        duration: Duration(seconds: 2),
       );
     }
   }
@@ -195,6 +248,7 @@ class _ProfilePageState extends State<ProfilePage> {
     setState(() {
       _isEditing = !_isEditing;
       if (!_isEditing) {
+        // Reset controllers to latest saved values
         _nameController.text = name;
         _roleController.text = role;
         _emailController.text = email;
@@ -205,39 +259,60 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _saveProfile() async {
-    final box = Hive.box<User>('users');
-    final userKey = box.keys.firstWhere(
-      (key) => box.get(key)?.email == widget.user.email,
-      orElse: () => null,
-    );
-
-    if (userKey != null) {
-      final updatedUser = User(
-        name: _nameController.text,
-        email: _emailController.text,
-        phone: _phoneController.text,
-        role: _roleController.text,
-        password: widget.user.password,
-        upiId: _upiController.text,
+    try {
+      final box = Hive.box<User>('users');
+      final userKey = box.keys.firstWhere(
+        (key) => box.get(key)?.email == widget.user.email,
+        orElse: () => null,
       );
 
-      await box.put(userKey, updatedUser);
+      if (userKey != null) {
+        final updatedUser = User(
+          name: _nameController.text.trim(),
+          email: _emailController.text.trim(),
+          phone: _phoneController.text.trim(),
+          role: _roleController.text.trim(),
+          password: widget.user.password,
+          upiId: _upiController.text.trim(),
+        );
 
-      setState(() {
-        name = _nameController.text;
-        role = _roleController.text;
-        email = _emailController.text;
-        phone = _phoneController.text;
-        upiId = _upiController.text;
-        _isEditing = false;
-      });
+        await box.put(userKey, updatedUser);
 
+        setState(() {
+          // Update state variables with saved values
+          name = updatedUser.name;
+          role = updatedUser.role; // ✅ This updates the role state
+          email = updatedUser.email;
+          phone = updatedUser.phone;
+          upiId = updatedUser.upiId;
+          _isEditing = false;
+
+          // Update controllers in case user edits again immediately
+          _nameController.text = name;
+          _roleController.text = role;
+          _emailController.text = email;
+          _phoneController.text = phone;
+          _upiController.text = upiId;
+        });
+
+        AppSnackBar.showSuccess(
+          context,
+          message: 'Profile updated successfully!',
+        );
+      } else {
+        AppSnackBar.showError(
+          context,
+          message: 'User not found in database.',
+          duration: Duration(seconds: 2),
+        );
+      }
+    } catch (e) {
+      debugPrint('Save profile error: $e');
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Profile updated successfully!'),
-          backgroundColor: Colors.green,
-        ),
+      AppSnackBar.showError(
+        context,
+        message: 'Error saving profile. Please try again.',
+        duration: Duration(seconds: 2),
       );
     }
   }
@@ -260,8 +335,10 @@ class _ProfilePageState extends State<ProfilePage> {
     } catch (e) {
       debugPrint('Logout error: $e');
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Logout failed. Please try again.')),
+      AppSnackBar.showError(
+        context,
+        message: 'Logout failed. Please try again.',
+        duration: Duration(seconds: 2),
       );
     } finally {
       setState(() => _isLoggingOut = false);
@@ -279,15 +356,14 @@ class _ProfilePageState extends State<ProfilePage> {
       if (userKey != null) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.remove('${widget.user.email}_profileImagePath');
+        await prefs.remove('${widget.user.email}_rentalEnabled');
 
         await box.delete(userKey);
 
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Account deleted successfully!"),
-            backgroundColor: Colors.green,
-          ),
+        AppSnackBar.showSuccess(
+          context,
+          message: "Account deleted successfully!",
         );
 
         Navigator.pushReplacement(
@@ -296,21 +372,19 @@ class _ProfilePageState extends State<ProfilePage> {
         );
       } else {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("User not found"),
-            backgroundColor: Colors.red,
-          ),
+        AppSnackBar.showError(
+          context,
+          message: "User not found",
+          duration: Duration(seconds: 2),
         );
       }
     } catch (e) {
       debugPrint('Delete user error: $e');
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Error deleting account"),
-          backgroundColor: Colors.red,
-        ),
+      AppSnackBar.showError(
+        context,
+        message: "Error deleting account",
+        duration: Duration(seconds: 2),
       );
     }
   }
@@ -621,6 +695,13 @@ class _ProfilePageState extends State<ProfilePage> {
                       // Profile Information
                       _buildInfoSection(isSmallScreen),
 
+                      // Rental Page Control Section - Only for Photographer role
+                      if (role == 'Photographer' && !_isEditing) ...[
+                        const SizedBox(height: 20),
+                        const Divider(color: Colors.white30, height: 20),
+                        _buildRentalControlSection(isSmallScreen),
+                      ],
+
                       // Action Buttons when Editing
                       if (_isEditing) ...[
                         const SizedBox(height: 30),
@@ -752,12 +833,218 @@ class _ProfilePageState extends State<ProfilePage> {
           Icons.qr_code,
           "UPI ID",
           _upiController,
-          upiId,
+          upiId.isEmpty ? "No UPI ID" : upiId, // Show proper message when empty
           isSmallScreen,
         ),
         const SizedBox(height: 16),
         _glassInfoRow(Icons.location_city, 'Bangalore, India', isSmallScreen),
       ],
+    );
+  }
+
+  Widget _buildRentalControlSection(bool isSmallScreen) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white30),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.camera_alt, color: Colors.white70, size: 22),
+              const SizedBox(width: 12),
+              Text(
+                'Rental Page Control',
+                style: TextStyle(
+                  fontSize: isSmallScreen ? 18 : 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Manage rental page visibility in navigation',
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.8),
+              fontSize: isSmallScreen ? 14 : 16,
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Status Display
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white.withOpacity(0.2)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Current Status',
+                      style: TextStyle(
+                        fontSize: isSmallScreen ? 14 : 16,
+                        color: Colors.white,
+                      ),
+                    ),
+                    Text(
+                      _isRentalEnabled ? 'Enabled' : 'Disabled',
+                      style: TextStyle(
+                        fontSize: isSmallScreen ? 16 : 18,
+                        color:
+                            _isRentalEnabled
+                                ? const Color.fromARGB(255, 57, 130, 59)
+                                : Colors.orange,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color:
+                        _isRentalEnabled
+                            ? Colors.green.withOpacity(0.2)
+                            : Colors.orange.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: _isRentalEnabled ? Colors.green : Colors.orange,
+                    ),
+                  ),
+                  child: Text(
+                    _isRentalEnabled ? 'ACTIVE' : 'INACTIVE',
+                    style: TextStyle(
+                      color: _isRentalEnabled ? Colors.white : Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Enable/Disable Buttons
+          Row(
+            children: [
+              Expanded(
+                child: _rentalControlButton(
+                  icon: Icons.check_circle,
+                  text: "Enable",
+                  color: const Color.fromARGB(255, 0, 255, 8),
+                  isEnabled: !_isRentalEnabled,
+                  onTap: _isRentalEnabled ? null : _enableRental,
+                  isSmallScreen: isSmallScreen,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _rentalControlButton(
+                  icon: Icons.remove_circle,
+                  text: "Disable",
+                  color: Colors.orange,
+                  isEnabled: _isRentalEnabled,
+                  onTap: _isRentalEnabled ? _disableRental : null,
+                  isSmallScreen: isSmallScreen,
+                ),
+              ),
+            ],
+          ),
+
+          // Info Message
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.white),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info, color: Colors.white, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _isRentalEnabled
+                        ? 'Rental page is visible in navigation menu'
+                        : 'Rental page is hidden from navigation menu',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: isSmallScreen ? 14 : 15,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _rentalControlButton({
+    required IconData icon,
+    required String text,
+    required Color color,
+    required bool isEnabled,
+    required Function? onTap,
+    required bool isSmallScreen,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap != null ? () => onTap() : null,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+          decoration: BoxDecoration(
+            color:
+                isEnabled
+                    ? color.withOpacity(0.2)
+                    : Colors.grey.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isEnabled ? color : Colors.grey.withOpacity(0.3),
+              width: 1.5,
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                color: isEnabled ? color : Colors.grey,
+                size: isSmallScreen ? 24 : 28,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                text,
+                style: TextStyle(
+                  color: isEnabled ? color : Colors.grey,
+                  fontWeight: FontWeight.w600,
+                  fontSize: isSmallScreen ? 14 : 16,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -878,112 +1165,21 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _showEnhancedDeleteDialog(BuildContext context) async {
-    final shouldDelete = await showDialog(
+    bool confirmed = false;
+
+    await showConfirmDialog(
       context: context,
-      builder:
-          (context) => Dialog(
-            backgroundColor: Colors.transparent,
-            insetPadding: const EdgeInsets.all(24),
-            child: Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 20,
-                    spreadRadius: 2,
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.warning_amber_rounded,
-                    color: Colors.red,
-                    size: 48,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    "Delete Account?",
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.red,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    "This will permanently remove all your data. This action cannot be undone.",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.grey.shade700),
-                  ),
-                  const SizedBox(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      TextButton(
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 12,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            side: BorderSide(color: Colors.grey.shade400),
-                          ),
-                        ),
-                        onPressed: () => Navigator.pop(context, false),
-                        child: Text(
-                          "Cancel",
-                          style: TextStyle(color: Colors.grey.shade800),
-                        ),
-                      ),
-                      Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          gradient: LinearGradient(
-                            colors: [Colors.red.shade600, Colors.red.shade800],
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.red.withOpacity(0.3),
-                              blurRadius: 6,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
-                        ),
-                        child: TextButton(
-                          style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 24,
-                              vertical: 12,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          onPressed: () => Navigator.pop(context, true),
-                          child: const Text(
-                            "Delete Forever",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
+      title: "Delete Account?",
+      message:
+          "This will permanently remove all your data.\nThis action cannot be undone.",
+      icon: Icons.warning_amber_rounded,
+      iconColor: Colors.redAccent,
+      onConfirm: () {
+        confirmed = true;
+      },
     );
 
-    if (shouldDelete == true) {
+    if (confirmed) {
       await deleteCurrentUser(widget.user.email);
     }
   }

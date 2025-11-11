@@ -3,7 +3,7 @@ import 'package:hive/hive.dart';
 
 part 'sale.g.dart';
 
-@HiveType(typeId: 65)
+@HiveType(typeId: 1)
 class Sale extends HiveObject {
   @HiveField(0)
   String customerName;

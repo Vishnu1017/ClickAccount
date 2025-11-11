@@ -1,3 +1,4 @@
+import 'package:bizmate/widgets/app_snackbar.dart' show AppSnackBar;
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
@@ -20,9 +21,11 @@ class WhatsAppService {
 
       if (cleanedPhone.length < 10 ||
           !RegExp(r'^[0-9]+$').hasMatch(cleanedPhone)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Please enter a valid 10-digit phone number")),
+        AppSnackBar.showWarning(
+          context,
+          message: "Please enter a valid 10-digit phone number",
         );
+
         return;
       }
 
@@ -72,9 +75,11 @@ class WhatsAppService {
         throw Exception("WhatsApp is not installed or URL can't be launched");
       }
     } catch (e) {
-      ScaffoldMessenger.of(
+      AppSnackBar.showError(
         context,
-      ).showSnackBar(SnackBar(content: Text("Couldn't open WhatsApp")));
+        message: "Couldn't open WhatsApp",
+        duration: Duration(seconds: 2),
+      );
     }
   }
 }
