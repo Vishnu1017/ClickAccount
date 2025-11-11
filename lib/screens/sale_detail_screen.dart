@@ -92,7 +92,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
 
     await box.putAt(widget.index, updatedSale);
 
-    AppSnackBar.showSuccess(context, message: "✅ Sale updated successfully!");
+    AppSnackBar.showSuccess(context, message: "Sale updated successfully!");
 
     await Future.delayed(Duration(milliseconds: 500));
     Navigator.pop(context);

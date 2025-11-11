@@ -481,7 +481,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
 
     setState(() => isLoading = false);
 
-    AppSnackBar.showSuccess(context, message: "✅ Sale saved successfully!");
+    AppSnackBar.showSuccess(context, message: "Sale saved successfully!");
 
     await Future.delayed(Duration(milliseconds: 800));
     Navigator.pop(context);

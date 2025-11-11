@@ -145,14 +145,14 @@ class _SalesReportPageState extends State<SalesReportPage> {
       if (result.type != ResultType.done) {
         AppSnackBar.showInfo(
           context,
-          message: '📄 PDF saved but could not open: $fileName',
+          message: 'PDF saved but could not open: $fileName',
         );
       }
     } catch (e) {
       if (!mounted) return;
       AppSnackBar.showError(
         context,
-        message: '❌ Failed to generate PDF: ${e.toString()}',
+        message: 'Failed to generate PDF: ${e.toString()}',
         duration: Duration(seconds: 2),
       );
     }
@@ -381,7 +381,7 @@ class _SalesReportPageState extends State<SalesReportPage> {
       final sales = getFilteredSales();
 
       if (sales.isEmpty) {
-        AppSnackBar.showInfo(context, message: 'ℹ️ No sales data to export');
+        AppSnackBar.showInfo(context, message: 'No sales data to export');
         return;
       }
 
@@ -453,20 +453,20 @@ class _SalesReportPageState extends State<SalesReportPage> {
       if (result.type != ResultType.done) {
         AppSnackBar.showError(
           context,
-          message: '❌ Failed to open file: ${result.message}',
+          message: 'Failed to open file: ${result.message}',
           duration: Duration(seconds: 2),
         );
       } else {
         AppSnackBar.showSuccess(
           context,
-          message: '✅ CSV file exported successfully',
+          message: 'CSV file exported successfully',
         );
       }
     } catch (e) {
       if (!mounted) return;
       AppSnackBar.showError(
         context,
-        message: '❌ Error: ${e.toString()}',
+        message: 'Error: ${e.toString()}',
         duration: Duration(seconds: 2),
       );
 

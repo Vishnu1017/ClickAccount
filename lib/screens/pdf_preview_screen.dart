@@ -125,7 +125,7 @@ Thanks for choosing *Shutter Life Photography*!
             AppSnackBar.showSuccess(
               context,
               message:
-                  "✅ Message copied! Paste it in WhatsApp after selecting contact.",
+                  "Message copied! Paste it in WhatsApp after selecting contact.",
             );
 
             await Future.delayed(Duration(milliseconds: 300)); // Small wait
@@ -140,7 +140,7 @@ Thanks for choosing *Shutter Life Photography*!
             } catch (e) {
               AppSnackBar.showError(
                 context,
-                message: "❌ Failed to share: ${e.toString()}",
+                message: "Failed to share: ${e.toString()}",
                 duration: Duration(seconds: 2),
               );
             }

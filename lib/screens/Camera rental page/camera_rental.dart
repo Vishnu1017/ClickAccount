@@ -43,7 +43,7 @@ class _CameraRentalPageState extends State<CameraRentalPage> {
       setState(() => _isLoading = false);
       AppSnackBar.showError(
         context,
-        message: '❌ Error loading sales: $e',
+        message: 'Error loading sales: $e',
         duration: const Duration(seconds: 2),
       );
     }

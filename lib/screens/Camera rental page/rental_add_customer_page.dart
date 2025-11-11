@@ -65,7 +65,7 @@ class _RentalAddCustomerPageState extends State<RentalAddCustomerPage> {
       debugPrint('Error initializing Hive boxes: $e');
       AppSnackBar.showError(
         context,
-        message: '❌ Error initializing database: $e',
+        message: 'Error initializing database: $e',
         duration: Duration(seconds: 2),
       );
     } finally {
@@ -156,7 +156,7 @@ class _RentalAddCustomerPageState extends State<RentalAddCustomerPage> {
       debugPrint('Error saving sale: $e');
       AppSnackBar.showError(
         context,
-        message: '❌ Failed to save data: $e',
+        message: 'Failed to save data: $e',
         duration: Duration(seconds: 2),
       );
     } finally {

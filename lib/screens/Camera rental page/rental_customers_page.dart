@@ -38,7 +38,7 @@ class _RentalCustomersPageState extends State<RentalCustomersPage> {
       setState(() => _isLoading = false);
       AppSnackBar.showError(
         context,
-        message: '❌ Error loading customers: $e',
+        message: 'Error loading customers: $e',
         duration: const Duration(seconds: 2),
       );
     }
