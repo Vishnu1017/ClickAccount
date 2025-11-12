@@ -497,16 +497,37 @@ class SaleOptionsMenu extends StatelessWidget {
       final currentUserEmail = sessionBox.get('currentUserEmail');
 
       if (currentUserEmail != null) {
-        return usersBox.values.firstWhere(
-          (user) => user.email == currentUserEmail,
-          orElse: () => usersBox.values.first,
+        // ✅ Always fetch the latest saved user data by email from Hive
+        final matchingUser = usersBox.values.firstWhere(
+          (user) =>
+              user.email.trim().toLowerCase() ==
+              currentUserEmail.trim().toLowerCase(),
+          orElse:
+              () => User(
+                name: '',
+                email: '',
+                phone: '',
+                role: '',
+                upiId: '',
+                imageUrl: '',
+                password: '',
+              ),
         );
+
+        // Return only if user exists
+        if (matchingUser.upiId.isNotEmpty) {
+          return matchingUser;
+        } else {
+          debugPrint('UPI ID is empty for the current user in Hive.');
+          return matchingUser;
+        }
       } else {
-        return usersBox.values.first;
+        debugPrint('No current user email found in session.');
+        return usersBox.values.isNotEmpty ? usersBox.values.first : null;
       }
     } catch (e) {
       debugPrint('Error getting current user: $e');
-      return usersBox.values.first;
+      return usersBox.values.isNotEmpty ? usersBox.values.first : null;
     }
   }
 

@@ -2,7 +2,7 @@ import 'package:hive/hive.dart';
 
 part 'user_model.g.dart';
 
-@HiveType(typeId: 0) // 👈 Unique ID
+@HiveType(typeId: 0)
 class User extends HiveObject {
   @HiveField(0)
   String name;
@@ -22,6 +22,9 @@ class User extends HiveObject {
   @HiveField(5)
   String upiId;
 
+  @HiveField(6)
+  String imageUrl;
+
   User({
     required this.name,
     required this.email,
@@ -29,5 +32,6 @@ class User extends HiveObject {
     required this.password,
     required this.role,
     this.upiId = '',
+    this.imageUrl = '', // ✅ Default value avoids missing argument errors
   });
 }

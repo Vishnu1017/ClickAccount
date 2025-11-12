@@ -71,26 +71,11 @@ class _LoginScreenState extends State<LoginScreen>
     });
   }
 
-  // Phone number validation function
   bool _isValidPhoneNumber(String phone) {
-    // Remove any non-digit characters
     String cleanedPhone = phone.replaceAll(RegExp(r'[^\d]'), '');
-
-    // Check if phone number has 10 digits (standard US number)
-    if (cleanedPhone.length != 10) {
-      return false;
-    }
-
-    // Check if all characters are digits
-    if (!RegExp(r'^\d+$').hasMatch(cleanedPhone)) {
-      return false;
-    }
-
-    // Check if phone number doesn't start with 0
-    if (cleanedPhone.startsWith('0')) {
-      return false;
-    }
-
+    if (cleanedPhone.length != 10) return false;
+    if (!RegExp(r'^\d+$').hasMatch(cleanedPhone)) return false;
+    if (cleanedPhone.startsWith('0')) return false;
     return true;
   }
 
@@ -108,7 +93,6 @@ class _LoginScreenState extends State<LoginScreen>
       return;
     }
 
-    // Phone number validation
     if (!_isValidPhoneNumber(phone)) {
       showError("Please enter a valid 10-digit phone number");
       return;
@@ -141,24 +125,23 @@ class _LoginScreenState extends State<LoginScreen>
         phone: phone,
         password: password,
         role: selectedRole,
+        imageUrl: '', // ✅ added to match updated User model
       );
       await box.add(user);
 
-      // Save session
       final sessionBox = await Hive.openBox('session');
       await sessionBox.put('currentUser', email);
 
       showSuccess("Account created successfully!");
 
-      // ✅ Navigate to AuthGateScreen instead of NavBarPage
       if (mounted) {
         Navigator.pushReplacement(
           context,
           PageRouteBuilder(
             pageBuilder: (_, __, ___) => AuthGateScreen(user: user),
-            transitionsBuilder: (_, animation, __, child) {
-              return FadeTransition(opacity: animation, child: child);
-            },
+            transitionsBuilder:
+                (_, animation, __, child) =>
+                    FadeTransition(opacity: animation, child: child),
           ),
         );
       }
@@ -187,21 +170,27 @@ class _LoginScreenState extends State<LoginScreen>
             (u.email == identifier || u.phone == identifier) &&
             u.password == password,
         orElse:
-            () => User(name: '', email: '', phone: '', password: '', role: ''),
+            () => User(
+              name: '',
+              email: '',
+              phone: '',
+              password: '',
+              role: '',
+              imageUrl: '', // ✅ added
+            ),
       );
 
       if (user.name.isNotEmpty) {
         final sessionBox = await Hive.openBox('session');
         await sessionBox.put('currentUser', user.email);
 
-        // ✅ Navigate to AuthGateScreen
         Navigator.pushReplacement(
           context,
           PageRouteBuilder(
             pageBuilder: (_, __, ___) => AuthGateScreen(user: user),
-            transitionsBuilder: (_, animation, __, child) {
-              return FadeTransition(opacity: animation, child: child);
-            },
+            transitionsBuilder:
+                (_, animation, __, child) =>
+                    FadeTransition(opacity: animation, child: child),
           ),
         );
       } else {
@@ -225,19 +214,24 @@ class _LoginScreenState extends State<LoginScreen>
         final user = usersBox.values.firstWhere(
           (u) => u.email == currentUserEmail,
           orElse:
-              () =>
-                  User(name: '', email: '', phone: '', password: '', role: ''),
+              () => User(
+                name: '',
+                email: '',
+                phone: '',
+                password: '',
+                role: '',
+                imageUrl: '', // ✅ added
+              ),
         );
 
         if (user.name.isNotEmpty) {
-          // ✅ Go through AuthGateScreen when session exists
           Navigator.pushReplacement(
             context,
             PageRouteBuilder(
               pageBuilder: (_, __, ___) => AuthGateScreen(user: user),
-              transitionsBuilder: (_, animation, __, child) {
-                return FadeTransition(opacity: animation, child: child);
-              },
+              transitionsBuilder:
+                  (_, animation, __, child) =>
+                      FadeTransition(opacity: animation, child: child),
             ),
           );
         }
@@ -246,8 +240,6 @@ class _LoginScreenState extends State<LoginScreen>
       debugPrint('Session check error: $e');
     }
   }
-
-  // ---------------- Snackbar helpers ----------------
 
   void showError(String message) {
     AppSnackBar.showError(
@@ -260,8 +252,6 @@ class _LoginScreenState extends State<LoginScreen>
   void showSuccess(String message) {
     AppSnackBar.showSuccess(context, message: message);
   }
-
-  // ---------------- Forgot password dialog ----------------
 
   void _showResetPasswordDialog() {
     resetEmailController.clear();
@@ -383,7 +373,6 @@ class _LoginScreenState extends State<LoginScreen>
 
   void _handlePasswordReset() {
     final email = resetEmailController.text.trim();
-
     if (email.isEmpty || !email.contains('@')) {
       showError("Please enter a valid email address");
       return;
@@ -399,8 +388,6 @@ class _LoginScreenState extends State<LoginScreen>
       showError("No account found with this email");
     }
   }
-
-  // ---------------- UI ----------------
 
   @override
   Widget build(BuildContext context) {
@@ -446,7 +433,7 @@ class _LoginScreenState extends State<LoginScreen>
                 ),
                 SizedBox(height: screenHeight * 0.05),
 
-                // Form
+                // 👇 no UI changes below
                 AnimatedSize(
                   duration: const Duration(milliseconds: 300),
                   child: Column(

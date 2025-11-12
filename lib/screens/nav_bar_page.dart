@@ -1,7 +1,6 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'package:bizmate/screens/Camera%20rental%20page/camera_rental_nav_bar.dart';
 import 'package:flutter/material.dart';
-
 import 'package:bizmate/models/user_model.dart';
 import 'package:bizmate/screens/CalendarPage.dart';
 import 'package:shared_preferences/shared_preferences.dart'
@@ -50,9 +49,10 @@ class _NavBarPageState extends State<NavBarPage> {
     });
   }
 
-  // Add this method to reload rental status when needed
+  // ✅ Add this method to reload rental status and rebuild HomePage instantly
   Future<void> _reloadRentalStatus() async {
     await _loadRentalStatus();
+    setState(() {}); // Force refresh UI when role or rental status changes
   }
 
   List<Widget> get _pages => [
@@ -60,8 +60,17 @@ class _NavBarPageState extends State<NavBarPage> {
     DashboardPage(),
     CustomersPage(),
     ProductsPage(),
-    // Update ProfilePage to include callback for rental status updates
-    ProfilePage(user: widget.user, onRentalStatusChanged: _reloadRentalStatus),
+    // ✅ Pass callback to ProfilePage
+    ProfilePage(
+      user: widget.user,
+      onRentalStatusChanged: () async {
+        await _reloadRentalStatus();
+        setState(() {
+          // 🔥 This ensures UI refreshes with new role immediately
+          widget.user.role = widget.user.role;
+        });
+      },
+    ),
   ];
 
   Widget _buildAddSaleButton() {
@@ -403,7 +412,7 @@ class _NavBarPageState extends State<NavBarPage> {
                 await Future.delayed(Duration(milliseconds: 100));
                 setState(() {});
               }
-              // Reload rental status when switching to any tab
+              // ✅ Reload rental status when switching tabs
               _loadRentalStatus();
             },
             backgroundColor: Colors.transparent,

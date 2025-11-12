@@ -13,7 +13,7 @@ import 'login_screen.dart';
 
 class ProfilePage extends StatefulWidget {
   final User user;
-  final VoidCallback? onRentalStatusChanged;
+  final Future<void> Function()? onRentalStatusChanged; // ✅ Add this
 
   const ProfilePage({
     super.key,
@@ -64,11 +64,19 @@ class _ProfilePageState extends State<ProfilePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _verifySession();
     });
-    name = widget.user.name;
-    email = widget.user.email;
-    phone = widget.user.phone;
-    role = widget.user.role;
-    upiId = widget.user.upiId; // Ensure upiId is never null
+
+    // 🔥 Load the latest user data from Hive instead of using the old widget.user
+    final box = Hive.box<User>('users');
+    final user = box.values.firstWhere(
+      (u) => u.email == widget.user.email,
+      orElse: () => widget.user,
+    );
+
+    name = user.name;
+    email = user.email;
+    phone = user.phone;
+    role = user.role;
+    upiId = user.upiId; // ✅ this ensures updated UPI ID persists
 
     _nameController = TextEditingController(text: name);
     _roleController = TextEditingController(text: role);
@@ -159,6 +167,10 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _enableRental() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('${widget.user.email}_rentalEnabled', true);
+    if (widget.onRentalStatusChanged != null) {
+      await widget.onRentalStatusChanged!();
+    }
+
     setState(() {
       _isRentalEnabled = true;
     });
@@ -279,21 +291,34 @@ class _ProfilePageState extends State<ProfilePage> {
         await box.put(userKey, updatedUser);
 
         setState(() {
-          // Update state variables with saved values
           name = updatedUser.name;
-          role = updatedUser.role; // ✅ This updates the role state
+          role = updatedUser.role;
           email = updatedUser.email;
           phone = updatedUser.phone;
           upiId = updatedUser.upiId;
           _isEditing = false;
 
-          // Update controllers in case user edits again immediately
           _nameController.text = name;
           _roleController.text = role;
           _emailController.text = email;
           _phoneController.text = phone;
           _upiController.text = upiId;
         });
+
+        // ✅ Manage rental control visibility instantly
+        final prefs = await SharedPreferences.getInstance();
+        if (role == 'Photographer') {
+          await prefs.setBool('${updatedUser.email}_rentalEnabled', true);
+          setState(() => _isRentalEnabled = true);
+        } else {
+          await prefs.setBool('${updatedUser.email}_rentalEnabled', false);
+          setState(() => _isRentalEnabled = false);
+        }
+
+        // ✅ Update HomePage instantly without refreshing
+        if (widget.onRentalStatusChanged != null) {
+          await widget.onRentalStatusChanged!();
+        }
 
         AppSnackBar.showSuccess(
           context,
@@ -303,7 +328,7 @@ class _ProfilePageState extends State<ProfilePage> {
         AppSnackBar.showError(
           context,
           message: 'User not found in database.',
-          duration: Duration(seconds: 2),
+          duration: const Duration(seconds: 2),
         );
       }
     } catch (e) {
@@ -312,7 +337,7 @@ class _ProfilePageState extends State<ProfilePage> {
       AppSnackBar.showError(
         context,
         message: 'Error saving profile. Please try again.',
-        duration: Duration(seconds: 2),
+        duration: const Duration(seconds: 2),
       );
     }
   }
@@ -630,11 +655,34 @@ class _ProfilePageState extends State<ProfilePage> {
                                 fontWeight: FontWeight.w600,
                                 color: Colors.white,
                               ),
-                              onChanged: (String? newValue) {
+                              onChanged: (String? newValue) async {
+                                if (newValue == null) return;
+
+                                // Update role locally
                                 setState(() {
-                                  role = newValue!;
+                                  role = newValue;
                                   _roleController.text = newValue;
                                 });
+
+                                // Save and update instantly
+                                final prefs =
+                                    await SharedPreferences.getInstance();
+
+                                if (newValue == 'Photographer') {
+                                  await prefs.setBool(
+                                    '${widget.user.email}_rentalEnabled',
+                                    true,
+                                  );
+                                  setState(() => _isRentalEnabled = true);
+                                  widget.onRentalStatusChanged?.call();
+                                } else {
+                                  await prefs.setBool(
+                                    '${widget.user.email}_rentalEnabled',
+                                    false,
+                                  );
+                                  setState(() => _isRentalEnabled = false);
+                                  widget.onRentalStatusChanged?.call();
+                                }
                               },
                               items:
                                   roles.map<DropdownMenuItem<String>>((
