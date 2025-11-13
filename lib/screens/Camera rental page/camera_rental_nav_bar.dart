@@ -8,7 +8,15 @@ import 'rental_customers_page.dart';
 import 'rental_settings_page.dart';
 
 class CameraRentalNavBar extends StatefulWidget {
-  const CameraRentalNavBar({super.key});
+  final String userName;
+  final String userPhone; // Add this
+  final String userEmail;
+  const CameraRentalNavBar({
+    super.key,
+    required this.userName,
+    required this.userPhone,
+    required this.userEmail,
+  });
 
   @override
   State<CameraRentalNavBar> createState() => _CameraRentalNavBarState();
@@ -25,13 +33,23 @@ class _CameraRentalNavBarState extends State<CameraRentalNavBar> {
     "Settings",
   ];
 
-  final List<Widget> _pages = [
-    const CameraRentalPage(),
-    const RentalOrdersPage(),
-    RentalItems(),
-    const RentalCustomersPage(),
-    const RentalSettingsPage(),
-  ];
+  late final List<Widget> _pages;
+
+  @override
+  void initState() {
+    super.initState();
+    _pages = [
+      CameraRentalPage(
+        userName: widget.userName,
+        userPhone: widget.userPhone,
+        userEmail: widget.userEmail,
+      ),
+      const RentalOrdersPage(),
+      RentalItems(),
+      const RentalCustomersPage(),
+      const RentalSettingsPage(),
+    ];
+  }
 
   Widget _buildAddRentalButton() {
     if (_currentIndex != 2) return const SizedBox.shrink();

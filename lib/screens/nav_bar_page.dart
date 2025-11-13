@@ -17,7 +17,14 @@ import 'select_items_screen.dart';
 
 class NavBarPage extends StatefulWidget {
   final User user;
-  const NavBarPage({super.key, required this.user});
+  final String userPhone; // Add this
+  final String userEmail;
+  const NavBarPage({
+    super.key,
+    required this.user,
+    required this.userPhone,
+    required this.userEmail,
+  });
 
   @override
   State<NavBarPage> createState() => _NavBarPageState();
@@ -309,8 +316,11 @@ class _NavBarPageState extends State<NavBarPage> {
                                     context,
                                     MaterialPageRoute(
                                       builder:
-                                          (context) =>
-                                              const CameraRentalNavBar(),
+                                          (context) => CameraRentalNavBar(
+                                            userName: widget.user.name,
+                                            userPhone: widget.userPhone,
+                                            userEmail: widget.userEmail,
+                                          ),
                                     ),
                                   );
                                 },

@@ -553,11 +553,18 @@ class SaleOptionsMenu extends StatelessWidget {
         final profileFile = File(profileImagePath);
         if (await profileFile.exists()) {
           final imageBytes = await profileFile.readAsBytes();
+          debugPrint('Profile image loaded successfully: $profileImagePath');
           return pw.MemoryImage(imageBytes);
+        } else {
+          debugPrint('Profile image file not found: $profileImagePath');
         }
+      } else {
+        debugPrint('No profile image path found in SharedPreferences.');
       }
+    } else {
+      debugPrint('No current user email found in Hive session.');
     }
-    return null;
+    return null; // Return null if image not found
   }
 
   pw.Widget _buildPdfPage(
@@ -597,12 +604,13 @@ class SaleOptionsMenu extends StatelessWidget {
                     ),
                   ),
                   pw.SizedBox(height: 4),
-                  pw.Text('Phone Number: +91 $currentUserPhone'),
+                  pw.Text('Phone: +91 $currentUserPhone'),
                   pw.Text('Email: $currentUserEmail'),
                 ],
               ),
             ],
           ),
+
           pw.SizedBox(height: 12),
           pw.Divider(),
           pw.Center(
@@ -786,7 +794,13 @@ class SaleOptionsMenu extends StatelessWidget {
           pw.SizedBox(height: 16),
           pw.Align(
             alignment: pw.Alignment.centerRight,
-            child: pw.Text('For: $currentUserName'),
+            child: pw.Text(
+              'For: ${sale.customerName}',
+              style: pw.TextStyle(
+                fontWeight: pw.FontWeight.bold, // Makes text bold
+                fontSize: 14, // Optional: adjust size
+              ),
+            ),
           ),
         ],
       ),

@@ -28,13 +28,16 @@ class RentalSaleModelAdapter extends TypeAdapter<RentalSaleModel> {
       toDateTime: fields[8] as DateTime,
       imageUrl: fields[9] as String?,
       pdfFilePath: fields[10] as String?,
+      paymentMode: fields[11] as String,
+      amountPaid: fields[12] as double,
+      rentalDateTime: fields[13] as DateTime?,
     );
   }
 
   @override
   void write(BinaryWriter writer, RentalSaleModel obj) {
     writer
-      ..writeByte(11)
+      ..writeByte(14)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -56,7 +59,13 @@ class RentalSaleModelAdapter extends TypeAdapter<RentalSaleModel> {
       ..writeByte(9)
       ..write(obj.imageUrl)
       ..writeByte(10)
-      ..write(obj.pdfFilePath);
+      ..write(obj.pdfFilePath)
+      ..writeByte(11)
+      ..write(obj.paymentMode)
+      ..writeByte(12)
+      ..write(obj.amountPaid)
+      ..writeByte(13)
+      ..write(obj.rentalDateTime);
   }
 
   @override

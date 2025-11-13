@@ -1,18 +1,21 @@
-import 'package:bizmate/widgets/app_snackbar.dart' show AppSnackBar;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
 import 'package:share_plus/share_plus.dart';
-import '../models/sale.dart'; // Ensure this file includes the new getters
+import '../../../models/rental_sale_model.dart';
+import 'package:cross_file/cross_file.dart';
+import '../../widgets/app_snackbar.dart';
 
-class PdfPreviewScreen extends StatelessWidget {
+class RentalPdfPreviewScreen extends StatelessWidget {
   final String filePath;
-  final Sale sale;
+  final RentalSaleModel sale;
+  final String userName;
 
-  const PdfPreviewScreen({
+  const RentalPdfPreviewScreen({
     super.key,
     required this.filePath,
     required this.sale,
+    required this.userName, required String customerName,
   });
 
   @override
@@ -24,13 +27,13 @@ class PdfPreviewScreen extends StatelessWidget {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: PreferredSize(
-        preferredSize: Size.fromHeight(60),
+        preferredSize: const Size.fromHeight(60),
         child: AppBar(
           elevation: 0,
           backgroundColor: Colors.transparent,
-          iconTheme: IconThemeData(color: Colors.white),
+          iconTheme: const IconThemeData(color: Colors.white),
           flexibleSpace: Container(
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               gradient: LinearGradient(
                 colors: [Color(0xFF1A237E), Color(0xFF00BCD4)],
                 begin: Alignment.centerLeft,
@@ -38,8 +41,8 @@ class PdfPreviewScreen extends StatelessWidget {
               ),
             ),
           ),
-          title: Text(
-            "Invoice Preview",
+          title: const Text(
+            "Rental Invoice Preview",
             style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
           ),
           centerTitle: true,
@@ -50,7 +53,7 @@ class PdfPreviewScreen extends StatelessWidget {
           builder: (context, constraints) {
             return Container(
               margin: EdgeInsets.all(outerMargin),
-              padding: EdgeInsets.all(10),
+              padding: const EdgeInsets.all(10),
               child: Center(
                 child: Container(
                   margin: EdgeInsets.symmetric(
@@ -61,7 +64,7 @@ class PdfPreviewScreen extends StatelessWidget {
                     color: Colors.white,
                     border: Border.all(color: Colors.black, width: 3),
                     borderRadius: BorderRadius.circular(8),
-                    boxShadow: [
+                    boxShadow: const [
                       BoxShadow(
                         color: Colors.black12,
                         blurRadius: 10,
@@ -88,7 +91,7 @@ class PdfPreviewScreen extends StatelessWidget {
       ),
       floatingActionButton: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
+          gradient: const LinearGradient(
             colors: [Color(0xFF1A237E), Color(0xFF00BCD4)],
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
@@ -98,50 +101,47 @@ class PdfPreviewScreen extends StatelessWidget {
         child: FloatingActionButton.extended(
           backgroundColor: Colors.transparent,
           elevation: 0,
-          icon: Icon(Icons.share, color: Colors.white),
-          label: Text("Share", style: TextStyle(color: Colors.white)),
+          icon: const Icon(Icons.share, color: Colors.white),
+          label: const Text("Share", style: TextStyle(color: Colors.white)),
           onPressed: () async {
             final message = '''
 Hi ${sale.customerName},
 
-🧾 *Invoice Summary*
-• Total Amount: ₹${sale.totalAmount}
-• Received: ₹${sale.receivedAmount}
-• Balance Due: ₹${sale.balanceAmount}
-• Date: ${sale.formattedDate}
+🧾 *Rental Invoice Summary*
+• Item: ${sale.itemName}
+• Rate/day: ₹${sale.ratePerDay.toStringAsFixed(2)}
+• Days: ${sale.numberOfDays}
+• Total: ₹${(sale.ratePerDay * sale.numberOfDays).toStringAsFixed(2)}
+• From: ${sale.fromDateTime.day}/${sale.fromDateTime.month}/${sale.fromDateTime.year}
+• To: ${sale.toDateTime.day}/${sale.toDateTime.month}/${sale.toDateTime.year}
 
-📲 Scan the QR code to pay via UPI.
-
-Thanks for choosing *Shutter Life Photography*!
-– *Team Shutter Life Photography*
+Thanks for renting with us!
 ''';
 
             final file = XFile(filePath);
 
-            // 1. First copy to clipboard for WhatsApp
+            // 1️⃣ Copy message to clipboard
             await Clipboard.setData(ClipboardData(text: message));
-
-            // Show snackbar about clipboard copy
             AppSnackBar.showSuccess(
               context,
               message:
                   "Message copied! Paste it in WhatsApp after selecting contact.",
             );
 
-            await Future.delayed(Duration(milliseconds: 300)); // Small wait
+            await Future.delayed(const Duration(milliseconds: 300));
 
-            // 2. Then share both PDF and message via other apps
+            // 2️⃣ Share PDF and message
             try {
               await Share.shareXFiles(
                 [file],
-                text: message, // This will work in Telegram, Gmail etc.
-                subject: '📸 Your Invoice from Shutter Life Photography',
+                text: message,
+                subject: '📸 Rental Invoice from Shutter Life Photography',
               );
             } catch (e) {
               AppSnackBar.showError(
                 context,
                 message: "Failed to share: ${e.toString()}",
-                duration: Duration(seconds: 2),
+                duration: const Duration(seconds: 2),
               );
             }
           },

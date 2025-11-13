@@ -11,7 +11,7 @@ class RentalSaleModel extends HiveObject {
   String customerName;
 
   @HiveField(2)
-  String customerPhone; // Added
+  String customerPhone;
 
   @HiveField(3)
   String itemName;
@@ -35,12 +35,21 @@ class RentalSaleModel extends HiveObject {
   String? imageUrl;
 
   @HiveField(10)
-  String? pdfFilePath; // Added for PDF
+  String? pdfFilePath;
+
+  @HiveField(11)
+  String paymentMode; // e.g., 'Cash', 'UPI'
+
+  @HiveField(12)
+  double amountPaid; // How much has been received
+
+  @HiveField(13)
+  DateTime rentalDateTime; // For record of rental creation
 
   RentalSaleModel({
     required this.id,
     required this.customerName,
-    required this.customerPhone, // Added
+    required this.customerPhone,
     required this.itemName,
     required this.ratePerDay,
     required this.numberOfDays,
@@ -49,5 +58,21 @@ class RentalSaleModel extends HiveObject {
     required this.toDateTime,
     this.imageUrl,
     this.pdfFilePath,
-  });
+    this.paymentMode = 'Cash',
+    this.amountPaid = 0,
+    DateTime? rentalDateTime,
+  }) : rentalDateTime = rentalDateTime ?? DateTime.now();
+
+  /// 🔹 Computed property for Sale Status
+  String get saleStatus {
+    if (amountPaid >= totalCost) {
+      return 'PAID';
+    } else if (amountPaid > 0 && amountPaid < totalCost) {
+      return 'PARTIAL';
+    } else {
+      return 'DUE';
+    }
+  }
+
+  double get balanceDue => totalCost - amountPaid;
 }

@@ -28,9 +28,10 @@ class SaleAdapter extends TypeAdapter<Sale> {
       deliveryStatus: fields[7] as String,
       deliveryLink: fields[8] as String,
       paymentMode: fields[9] as String,
-      deliveryStatusHistory: (fields[10] as List?)
-          ?.map((dynamic e) => (e as Map).cast<String, dynamic>())
-          .toList(),
+      deliveryStatusHistory:
+          (fields[10] as List?)
+              ?.map((dynamic e) => (e as Map).cast<String, dynamic>())
+              .toList(),
     );
   }
 

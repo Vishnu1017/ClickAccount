@@ -13,7 +13,14 @@ enum PasscodeType { numeric, alphanumeric }
 
 class AuthGateScreen extends StatelessWidget {
   final User user;
-  const AuthGateScreen({super.key, required this.user});
+  final String userPhone;
+  final String userEmail;
+  const AuthGateScreen({
+    super.key,
+    required this.user,
+    required this.userPhone,
+    required this.userEmail,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -93,7 +100,14 @@ class _PasscodeCreationScreenState extends State<PasscodeCreationScreen> {
     if (check != null && check == passcode) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => NavBarPage(user: widget.user)),
+        MaterialPageRoute(
+          builder:
+              (_) => NavBarPage(
+                user: widget.user,
+                userPhone: widget.user.phone,
+                userEmail: widget.user.email,
+              ),
+        ),
       );
     } else {
       AppSnackBar.showError(
@@ -561,7 +575,14 @@ class _EnterPasscodeScreenState extends State<EnterPasscodeScreen> {
     if (enteredPass == savedPasscode) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => NavBarPage(user: widget.user)),
+        MaterialPageRoute(
+          builder:
+              (_) => NavBarPage(
+                user: widget.user,
+                userPhone: widget.user.phone,
+                userEmail: widget.user.email,
+              ),
+        ),
       );
     } else {
       setState(() {

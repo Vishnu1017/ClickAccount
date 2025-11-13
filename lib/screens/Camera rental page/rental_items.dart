@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:ui';
 import 'package:bizmate/screens/Camera%20rental%20page/view_rental_details_page.dart'
     show ViewRentalDetailsPage;
 import 'package:bizmate/widgets/confirm_delete_dialog.dart'
@@ -33,25 +32,16 @@ class _RentalItemsState extends State<RentalItems> {
       icon: Icons.delete_forever_rounded,
       iconColor: Colors.redAccent,
       onConfirm: () {
-        _rentalBox.deleteAt(index); // your existing delete logic
+        _rentalBox.deleteAt(index); // existing delete logic
       },
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-
     return Scaffold(
       extendBodyBehindAppBar: true,
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF1A237E), Color(0xFF0D47A1), Color(0xFF00BCD4)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
         child: ValueListenableBuilder(
           valueListenable: _rentalBox.listenable(),
           builder: (context, Box<RentalItem> box, _) {
@@ -81,53 +71,69 @@ class _RentalItemsState extends State<RentalItems> {
 
             final items = box.values.toList().cast<RentalItem>();
 
-            return GridView.builder(
-              padding: const EdgeInsets.fromLTRB(16, 40, 16, 16),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount:
-                    width > 900
-                        ? 4
-                        : width > 600
-                        ? 3
-                        : 2,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio: 0.6,
-              ),
-              itemCount: items.length,
-              itemBuilder: (context, index) {
-                final item = items[index];
-                return GestureDetector(
-                  onLongPress: () => _deleteItem(index),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder:
-                            (_) => EditRentalItemPage(item: item, index: index),
+            return LayoutBuilder(
+              builder: (context, constraints) {
+                int crossAxisCount = 2;
+                double childAspectRatio = 0.65;
+
+                if (constraints.maxWidth >= 1200) {
+                  crossAxisCount = 5;
+                  childAspectRatio = 0.65;
+                } else if (constraints.maxWidth >= 900) {
+                  crossAxisCount = 4;
+                  childAspectRatio = 0.65;
+                } else if (constraints.maxWidth >= 600) {
+                  crossAxisCount = 3;
+                  childAspectRatio = 0.6;
+                }
+
+                return GridView.builder(
+                  padding: const EdgeInsets.fromLTRB(16, 40, 16, 16),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossAxisCount,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    childAspectRatio: childAspectRatio,
+                  ),
+                  itemCount: items.length,
+                  itemBuilder: (context, index) {
+                    final item = items[index];
+                    return GestureDetector(
+                      onLongPress: () => _deleteItem(index),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (_) => EditRentalItemPage(
+                                  item: item,
+                                  index: index,
+                                ),
+                          ),
+                        );
+                      },
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(22),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.25),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFE3F2FD), Color(0xFFB2EBF2)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
+                        child: _buildCardContent(item, index),
                       ),
                     );
                   },
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeInOut,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(22),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.25),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFE3F2FD), Color(0xFFB2EBF2)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                    ),
-                    child: _buildCardContent(item, index),
-                  ),
                 );
               },
             );
@@ -213,9 +219,13 @@ class _RentalItemsState extends State<RentalItems> {
                 ],
               ),
             ),
-            Expanded(
+            // Flexible bottom content
+            Flexible(
               child: Padding(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -253,7 +263,7 @@ class _RentalItemsState extends State<RentalItems> {
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 10,
-                        vertical: 8,
+                        vertical: 6,
                       ),
                       decoration: BoxDecoration(
                         color: Colors.white,
@@ -292,38 +302,42 @@ class _RentalItemsState extends State<RentalItems> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF0D47A1),
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder:
-                                      (_) => ViewRentalDetailsPage(
-                                        item: item,
-                                        name: item.name,
-                                        imageUrl:
-                                            item.imagePath, // ✅ image from file
-                                        pricePerDay:
-                                            item.price, // ✅ double value
-                                        availability: item.availability,
-                                      ),
+                          const SizedBox(height: 6),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF0D47A1),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8,
+                                  horizontal: 20,
                                 ),
-                              );
-                            },
-                            child: const Text(
-                              'View Details',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder:
+                                        (_) => ViewRentalDetailsPage(
+                                          item: item,
+                                          name: item.name,
+                                          imageUrl: item.imagePath,
+                                          pricePerDay: item.price,
+                                          availability: item.availability,
+                                        ),
+                                  ),
+                                );
+                              },
+                              child: const Text(
+                                'View Details',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ),

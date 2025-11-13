@@ -138,7 +138,12 @@ class _LoginScreenState extends State<LoginScreen>
         Navigator.pushReplacement(
           context,
           PageRouteBuilder(
-            pageBuilder: (_, __, ___) => AuthGateScreen(user: user),
+            pageBuilder:
+                (_, __, ___) => AuthGateScreen(
+                  user: user,
+                  userPhone: user.phone, // pass actual phone from user object
+                  userEmail: user.email,
+                ),
             transitionsBuilder:
                 (_, animation, __, child) =>
                     FadeTransition(opacity: animation, child: child),
@@ -187,7 +192,12 @@ class _LoginScreenState extends State<LoginScreen>
         Navigator.pushReplacement(
           context,
           PageRouteBuilder(
-            pageBuilder: (_, __, ___) => AuthGateScreen(user: user),
+            pageBuilder:
+                (_, __, ___) => AuthGateScreen(
+                  user: user,
+                  userPhone: user.phone, // pass actual phone from user object
+                  userEmail: user.email,
+                ),
             transitionsBuilder:
                 (_, animation, __, child) =>
                     FadeTransition(opacity: animation, child: child),
@@ -228,7 +238,12 @@ class _LoginScreenState extends State<LoginScreen>
           Navigator.pushReplacement(
             context,
             PageRouteBuilder(
-              pageBuilder: (_, __, ___) => AuthGateScreen(user: user),
+              pageBuilder:
+                  (_, __, ___) => AuthGateScreen(
+                    user: user,
+                    userPhone: user.phone, // pass actual phone from user object
+                    userEmail: user.email,
+                  ),
               transitionsBuilder:
                   (_, animation, __, child) =>
                       FadeTransition(opacity: animation, child: child),

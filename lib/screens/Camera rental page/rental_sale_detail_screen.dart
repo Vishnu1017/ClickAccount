@@ -1,30 +1,35 @@
-import 'package:bizmate/models/payment.dart';
-import 'package:bizmate/widgets/app_snackbar.dart' show AppSnackBar;
+import 'package:bizmate/widgets/app_snackbar.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:hive/hive.dart';
 import 'package:intl/intl.dart';
-import '../models/sale.dart';
+import 'package:flutter/services.dart'; // ✅ Added for input formatter
+import '../../../models/rental_sale_model.dart';
 
-class SaleDetailScreen extends StatefulWidget {
-  final Sale sale;
+class RentalSaleDetailScreen extends StatefulWidget {
+  final RentalSaleModel sale;
   final int index;
 
-  const SaleDetailScreen({super.key, required this.sale, required this.index});
+  const RentalSaleDetailScreen({
+    super.key,
+    required this.sale,
+    required this.index,
+  });
 
   @override
-  State<SaleDetailScreen> createState() => _SaleDetailScreenState();
+  State<RentalSaleDetailScreen> createState() => _RentalSaleDetailScreenState();
 }
 
-class _SaleDetailScreenState extends State<SaleDetailScreen> {
+class _RentalSaleDetailScreenState extends State<RentalSaleDetailScreen> {
   late TextEditingController customerController;
   late TextEditingController phoneController;
-  late TextEditingController productController;
+  late TextEditingController itemController;
+  late TextEditingController rateController;
+  late TextEditingController daysController;
+  late TextEditingController totalController;
   late TextEditingController amountController;
-  late TextEditingController totalAmountController;
-  bool isFullyPaid = false;
-  String _selectedMode = 'Cash';
 
+  bool isFullyPaid = false;
+
+  String _selectedMode = 'Cash';
   final List<String> _paymentModes = [
     'Cash',
     'UPI',
@@ -34,44 +39,31 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
     'Wallet',
   ];
 
-  IconData _getIconForMode(String mode) {
-    switch (mode) {
-      case 'Cash':
-        return Icons.money;
-      case 'UPI':
-        return Icons.qr_code_scanner;
-      case 'Card':
-        return Icons.credit_card;
-      case 'Bank Transfer':
-        return Icons.account_balance;
-      case 'Cheque':
-        return Icons.receipt_long;
-      case 'Wallet':
-        return Icons.account_balance_wallet;
-      default:
-        return Icons.payments;
-    }
-  }
-
   @override
   void initState() {
     super.initState();
     customerController = TextEditingController(text: widget.sale.customerName);
-    phoneController = TextEditingController(text: widget.sale.phoneNumber);
-    productController = TextEditingController(text: widget.sale.productName);
+    phoneController = TextEditingController(text: widget.sale.customerPhone);
+    itemController = TextEditingController(text: widget.sale.itemName);
+    rateController = TextEditingController(
+      text: widget.sale.ratePerDay.toString(),
+    );
+    daysController = TextEditingController(
+      text: widget.sale.numberOfDays.toString(),
+    );
+    totalController = TextEditingController(
+      text: widget.sale.totalCost.toStringAsFixed(2),
+    );
     amountController = TextEditingController(
-      text: widget.sale.amount.toString(),
+      text: widget.sale.amountPaid.toStringAsFixed(2),
     );
-    totalAmountController = TextEditingController(
-      text: widget.sale.totalAmount.toString(),
-    );
+
     _selectedMode =
         widget.sale.paymentMode.isNotEmpty ? widget.sale.paymentMode : 'Cash';
-    isFullyPaid = widget.sale.amount >= widget.sale.totalAmount;
+    isFullyPaid = widget.sale.amountPaid >= widget.sale.totalCost;
   }
 
   void saveChanges() async {
-    // ✅ VALIDATION
     if (customerController.text.trim().isEmpty) {
       AppSnackBar.showError(
         context,
@@ -92,21 +84,12 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
       return;
     }
 
-    double total = double.tryParse(totalAmountController.text) ?? 0;
+    double total = double.tryParse(totalController.text) ?? 0;
     double paid =
         double.tryParse(
           amountController.text.isEmpty ? "0" : amountController.text,
         ) ??
         0;
-
-    if (total <= 0) {
-      AppSnackBar.showError(
-        context,
-        message: "Total amount must be greater than 0!",
-        duration: const Duration(seconds: 2),
-      );
-      return;
-    }
 
     if (!isFullyPaid && paid < 0) {
       AppSnackBar.showError(
@@ -126,32 +109,20 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
       return;
     }
 
-    final box = Hive.box<Sale>('sales');
-    final newPayment = Payment(
-      amount: paid == 0 && isFullyPaid ? total : paid,
-      date: DateTime.now(),
-      mode: _selectedMode,
+    widget.sale.customerName = customerController.text;
+    widget.sale.customerPhone = phoneController.text;
+    widget.sale.totalCost = total;
+    widget.sale.amountPaid = paid == 0 && isFullyPaid ? total : paid;
+    widget.sale.paymentMode = _selectedMode;
+
+    await widget.sale.save();
+
+    AppSnackBar.showSuccess(
+      context,
+      message: 'Rental sale updated successfully!',
     );
 
-    final updatedSale = Sale(
-      customerName: customerController.text,
-      phoneNumber: phoneController.text,
-      productName: productController.text,
-      amount: newPayment.amount,
-      totalAmount: total,
-      dateTime: widget.sale.dateTime,
-      paymentMode: _selectedMode,
-      deliveryStatus: widget.sale.deliveryStatus,
-      deliveryLink: widget.sale.deliveryLink,
-      paymentHistory: [newPayment, ...widget.sale.paymentHistory],
-      discount: widget.sale.discount,
-    );
-
-    await box.putAt(widget.index, updatedSale);
-
-    AppSnackBar.showSuccess(context, message: 'Sale updated successfully!');
-
-    Navigator.pop(context);
+    Navigator.pop(context, widget.sale);
   }
 
   InputDecoration customInput(String label, IconData icon) {
@@ -171,7 +142,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: Color(0xFF90CAF9)),
+        borderSide: BorderSide(color: Colors.blueAccent, width: 0.8),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
@@ -184,28 +155,28 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
   Widget build(BuildContext context) {
     final formatted = DateFormat(
       'dd MMM yyyy, hh:mm a',
-    ).format(widget.sale.dateTime);
+    ).format(widget.sale.rentalDateTime);
 
-    double total = double.tryParse(totalAmountController.text) ?? 0;
+    double total = double.tryParse(totalController.text) ?? 0;
     double paid =
         double.tryParse(
           amountController.text.isEmpty ? "0" : amountController.text,
         ) ??
         0;
-    double balance = total - paid;
+    double balanceDue = total - paid;
 
-    String statusText;
-    Color statusColor;
+    String balanceText;
+    Color balanceColor;
 
-    if (paid == total) {
-      statusText = "Paid in Full";
-      statusColor = Colors.green;
-    } else if (paid > total) {
-      statusText = "Overpaid";
-      statusColor = Colors.green;
+    if (balanceDue > 0) {
+      balanceText = "Balance Due";
+      balanceColor = Colors.red;
+    } else if (balanceDue < 0) {
+      balanceText = "Overpaid";
+      balanceColor = Colors.green;
     } else {
-      statusText = "Balance Due";
-      statusColor = Colors.red;
+      balanceText = "Paid in Full";
+      balanceColor = Colors.green;
     }
 
     return Scaffold(
@@ -224,7 +195,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
             ),
           ),
           title: const Text(
-            "Sale Details",
+            "Rental Sale Details",
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
           iconTheme: const IconThemeData(color: Colors.white),
@@ -250,7 +221,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(" $formatted", style: TextStyle(color: Colors.grey[700])),
+                Text(formatted, style: TextStyle(color: Colors.grey[700])),
                 const SizedBox(height: 20),
                 TextField(
                   controller: customerController,
@@ -264,44 +235,50 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                 ),
                 const SizedBox(height: 20),
                 TextField(
-                  controller: productController,
-                  enabled: false,
-                  decoration: customInput(
-                    "Product Name (Locked)",
-                    Icons.shopping_bag,
-                  ).copyWith(filled: true, fillColor: Colors.grey.shade200),
+                  controller: itemController,
+                  decoration: customInput("Item Name", Icons.camera_alt),
+                  readOnly: true,
                 ),
-                const SizedBox(height: 30),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: rateController,
+                  keyboardType: TextInputType.number,
+                  decoration: customInput("Rate per Day", Icons.currency_rupee),
+                  readOnly: true,
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: daysController,
+                  keyboardType: TextInputType.number,
+                  decoration: customInput("Number of Days", Icons.today),
+                  readOnly: true,
+                ),
+                const SizedBox(height: 20),
 
                 // 💰 Payment Section
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Total
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text(
-                          "Total Amount",
+                          "Total Cost",
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
-                            color: Colors.black87,
                           ),
                         ),
                         Text(
-                          "₹ ${totalAmountController.text.isEmpty ? '0.00' : totalAmountController.text}",
+                          "₹ ${totalController.text.isEmpty ? '0.00' : totalController.text}",
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
-                            color: Colors.black87,
                           ),
                         ),
                       ],
                     ),
                     const Divider(),
-
-                    // Received
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -310,8 +287,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                             setState(() {
                               isFullyPaid = !isFullyPaid;
                               if (isFullyPaid) {
-                                amountController.text =
-                                    totalAmountController.text;
+                                amountController.text = totalController.text;
                               } else {
                                 amountController.clear();
                               }
@@ -365,12 +341,13 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                           child:
                               isFullyPaid
                                   ? Text(
-                                    "₹ ${(double.tryParse(totalAmountController.text) ?? 0).toStringAsFixed(2)}",
+                                    "₹ ${(double.tryParse(totalController.text) ?? 0).toStringAsFixed(2)}",
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 14,
                                       color: Colors.green[700],
                                     ),
+                                    textAlign: TextAlign.end,
                                   )
                                   : TextFormField(
                                     controller: amountController,
@@ -381,7 +358,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                                     inputFormatters: [
                                       FilteringTextInputFormatter.allow(
                                         RegExp(r'^\d*\.?\d{0,2}'),
-                                      ),
+                                      ), // ✅ only numbers & decimal
                                     ],
                                     textAlign: TextAlign.end,
                                     decoration: InputDecoration(
@@ -413,31 +390,29 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                     ),
                     const Divider(),
 
-                    // Balance / Status
+                    // ✅ Dynamic Balance Display
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          statusText,
+                          balanceText,
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
-                            color: statusColor,
+                            color: balanceColor,
                           ),
                         ),
                         Text(
-                          "₹ ${balance.abs().toStringAsFixed(2)}",
+                          "₹ ${balanceDue.abs().toStringAsFixed(2)}",
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
-                            color: statusColor,
+                            color: balanceColor,
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 20),
-
-                    // Payment Mode
                     DropdownButtonFormField<String>(
                       value: _selectedMode,
                       items:
@@ -459,11 +434,8 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                                 ),
                               )
                               .toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedMode = value!;
-                        });
-                      },
+                      onChanged:
+                          (value) => setState(() => _selectedMode = value!),
                       decoration: InputDecoration(
                         labelText: 'Payment Mode',
                         prefixIcon: const Icon(Icons.payment),
@@ -477,9 +449,9 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                           borderRadius: BorderRadius.circular(16),
                           borderSide: BorderSide(color: Colors.blue.shade100),
                         ),
-                        focusedBorder: const OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(16)),
-                          borderSide: BorderSide(
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: const BorderSide(
                             color: Color(0xFF1A237E),
                             width: 2,
                           ),
@@ -488,10 +460,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 30),
-
-                // Save Button
                 Container(
                   width: double.infinity,
                   decoration: BoxDecoration(
@@ -531,5 +500,24 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
         ),
       ),
     );
+  }
+
+  IconData _getIconForMode(String mode) {
+    switch (mode) {
+      case 'Cash':
+        return Icons.money;
+      case 'UPI':
+        return Icons.qr_code;
+      case 'Card':
+        return Icons.credit_card;
+      case 'Bank Transfer':
+        return Icons.account_balance;
+      case 'Cheque':
+        return Icons.receipt_long;
+      case 'Wallet':
+        return Icons.account_balance_wallet;
+      default:
+        return Icons.payments;
+    }
   }
 }
