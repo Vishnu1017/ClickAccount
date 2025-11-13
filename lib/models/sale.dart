@@ -38,8 +38,11 @@ class Sale extends HiveObject {
   @HiveField(10)
   List<Map<String, dynamic>>? deliveryStatusHistory;
 
-  @HiveField(11) // New field for total discount
+  @HiveField(11)
   double discount;
+
+  @HiveField(12)
+  String item; // ✅ Properly store the item
 
   Sale({
     required this.customerName,
@@ -54,6 +57,7 @@ class Sale extends HiveObject {
     this.deliveryLink = '',
     this.paymentMode = 'Cash',
     this.deliveryStatusHistory,
+    required this.item, // ✅ Fixed: now stored correctly
   }) : paymentHistory = paymentHistory ?? [];
 
   // ✅ Computed getters
@@ -81,7 +85,6 @@ class Sale extends HiveObject {
     deliveryStatus = status;
   }
 
-  // ✅ Override delete() to prevent deletion if discount > 0
   @override
   Future<void> delete() {
     if (discount > 0) {

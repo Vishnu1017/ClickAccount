@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'dart:io';
 import 'package:bizmate/screens/Camera%20rental%20page/rental_sale_detail_screen.dart'
     show RentalSaleDetailScreen;
@@ -64,6 +66,12 @@ class _CameraRentalPageState extends State<CameraRentalPage> {
     });
   }
 
+  void _notifyDashboardUpdate() {
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context, totalSalesAmount);
+    }
+  }
+
   Future<void> _loadSales() async {
     try {
       if (!Hive.isBoxOpen('rental_sales')) {
@@ -101,6 +109,7 @@ class _CameraRentalPageState extends State<CameraRentalPage> {
       context,
       message: '${sale.customerName} deleted successfully',
     );
+    _notifyDashboardUpdate();
   }
 
   Future<void> _confirmDelete(int index) async {
@@ -164,6 +173,10 @@ class _CameraRentalPageState extends State<CameraRentalPage> {
       default:
         return Colors.grey;
     }
+  }
+
+  double get totalSalesAmount {
+    return rentalSales.fold(0, (sum, sale) => sum + sale.totalCost);
   }
 
   Widget _buildTextDetails(RentalSaleModel sale, bool isWide, int index) {
@@ -611,20 +624,19 @@ class _CameraRentalPageState extends State<CameraRentalPage> {
       sale.pdfFilePath = file.path;
       await sale.save();
 
-      if (file.existsSync()) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder:
-                (context) => RentalPdfPreviewScreen(
-                  filePath: file.path,
-                  sale: sale,
-                  userName: widget.userName,
-                  customerName: widget.userName,
-                ),
-          ),
-        );
-      }
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder:
+              (context) => RentalPdfPreviewScreen(
+                filePath: file.path,
+                sale: sale,
+                userName: widget.userName,
+                customerName: widget.userName,
+              ),
+        ),
+      );
+      if (result == true) _notifyDashboardUpdate();
     } catch (e) {
       debugPrint('PDF generation error: $e');
       if (mounted) {
@@ -707,7 +719,7 @@ class _CameraRentalPageState extends State<CameraRentalPage> {
                           child: InkWell(
                             borderRadius: BorderRadius.circular(20),
                             onTap: () async {
-                              await Navigator.push(
+                              final result = await Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder:
@@ -717,10 +729,16 @@ class _CameraRentalPageState extends State<CameraRentalPage> {
                                       ),
                                 ),
                               );
-                              setState(() {
-                                rentalSales =
-                                    salesBox.values.toList().reversed.toList();
-                              });
+                              if (result == true) {
+                                setState(() {
+                                  rentalSales =
+                                      salesBox.values
+                                          .toList()
+                                          .reversed
+                                          .toList();
+                                });
+                                _notifyDashboardUpdate(); // 👈 Added line
+                              }
                             },
                             child: Padding(
                               padding: const EdgeInsets.all(16),

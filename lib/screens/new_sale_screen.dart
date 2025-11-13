@@ -467,7 +467,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
 
     final sale = Sale(
       customerName: customerController.text,
-      productName: productController.text,
+      item: productController.text, // ✅ fixed field name
       phoneNumber: phoneController.text,
       amount: newPayment.amount,
       totalAmount: double.tryParse(totalAmountController.text) ?? 0,
@@ -475,6 +475,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
       deliveryStatus: 'All Non Editing Images',
       paymentHistory: [newPayment],
       discount: totalDiscount,
+      productName: productController.text,
     );
 
     await saleBox.add(sale);

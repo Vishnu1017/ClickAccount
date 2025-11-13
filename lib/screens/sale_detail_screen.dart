@@ -145,6 +145,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
       deliveryLink: widget.sale.deliveryLink,
       paymentHistory: [newPayment, ...widget.sale.paymentHistory],
       discount: widget.sale.discount,
+      item: widget.sale.item,
     );
 
     await box.putAt(widget.index, updatedSale);

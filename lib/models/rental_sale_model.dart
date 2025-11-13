@@ -75,4 +75,6 @@ class RentalSaleModel extends HiveObject {
   }
 
   double get balanceDue => totalCost - amountPaid;
+
+  get rentalDate => null;
 }

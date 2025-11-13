@@ -5,6 +5,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:hive/hive.dart';
 import '../models/sale.dart';
+import '../models/rental_sale_model.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -22,14 +23,30 @@ class _DashboardPageState extends State<DashboardPage> {
   String _selectedRange = '3m';
   final ScrollController _scrollController = ScrollController();
 
-  double previousMonthsTotal = 0.0; // Total of previous months in range
-  double previousMonthsAvg = 0.0; // Average of previous months
-  int previousMonthsCount = 0; // Count of previous months
+  double previousMonthsTotal = 0.0;
+  double previousMonthsAvg = 0.0;
+  int previousMonthsCount = 0;
+
+  Box<Sale>? saleBox;
+  Box<RentalSaleModel>? rentalBox;
 
   @override
   void initState() {
     super.initState();
-    fetchSaleOverview('3m');
+    _initializeBoxesAndData();
+  }
+
+  Future<void> _initializeBoxesAndData() async {
+    saleBox =
+        Hive.isBoxOpen('sales')
+            ? Hive.box<Sale>('sales')
+            : await Hive.openBox<Sale>('sales');
+    rentalBox =
+        Hive.isBoxOpen('rental_sales')
+            ? Hive.box<RentalSaleModel>('rental_sales')
+            : await Hive.openBox<RentalSaleModel>('rental_sales');
+
+    fetchSaleOverview(_selectedRange);
   }
 
   int getMonthRange(String range) {
@@ -52,11 +69,11 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   void fetchSaleOverview(String range) {
-    final box = Hive.box<Sale>('sales');
+    if (saleBox == null || rentalBox == null) return;
+
     final now = DateTime.now();
     final rangeInMonths = getMonthRange(range);
 
-    // Generate month labels and keys for all months in range
     final months = List.generate(rangeInMonths, (i) {
       final date = DateTime(now.year, now.month - (rangeInMonths - 1 - i));
       return DateFormat('MMM').format(date);
@@ -67,11 +84,9 @@ class _DashboardPageState extends State<DashboardPage> {
       return '${date.year}-${date.month.toString().padLeft(2, '0')}';
     });
 
-    // Initialize monthly totals
     Map<String, double> monthlyTotals = {for (var key in keys) key: 0.0};
 
-    // Calculate totals for each month
-    for (var sale in box.values) {
+    for (var sale in saleBox!.values) {
       final saleKey =
           '${sale.dateTime.year}-${sale.dateTime.month.toString().padLeft(2, '0')}';
       if (monthlyTotals.containsKey(saleKey)) {
@@ -79,21 +94,25 @@ class _DashboardPageState extends State<DashboardPage> {
       }
     }
 
-    // Get monthly values in order
+    for (var rental in rentalBox!.values) {
+      final rentalKey =
+          '${rental.rentalDateTime.year}-${rental.rentalDateTime.month.toString().padLeft(2, '0')}';
+      if (monthlyTotals.containsKey(rentalKey)) {
+        monthlyTotals[rentalKey] =
+            monthlyTotals[rentalKey]! + rental.amountPaid;
+      }
+    }
+
     List<double> monthlyValues =
         keys.map((key) => monthlyTotals[key] ?? 0.0).toList();
 
-    // Current month is always the last in the list
     final currentMonthTotal =
         monthlyValues.isNotEmpty ? monthlyValues.last : 0.0;
-
-    // Previous months are all except the current month
     final previousMonths =
         monthlyValues.length > 1
             ? monthlyValues.sublist(0, monthlyValues.length - 1)
             : [];
 
-    // Calculate previous months data
     previousMonthsTotal = previousMonths.fold(0.0, (a, b) => a + b);
     previousMonthsAvg =
         previousMonths.isNotEmpty
@@ -101,7 +120,6 @@ class _DashboardPageState extends State<DashboardPage> {
             : 0.0;
     previousMonthsCount = previousMonths.length;
 
-    // Calculate growth percentage
     growthPercent =
         previousMonthsAvg > 0
             ? ((currentMonthTotal - previousMonthsAvg) / previousMonthsAvg) *
@@ -118,14 +136,14 @@ class _DashboardPageState extends State<DashboardPage> {
         keys.length,
         (i) => FlSpot(i.toDouble(), monthlyTotals[keys[i]]!),
       );
-      _selectedRange = range; // Make sure to update the selected range
+      _selectedRange = range;
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients && salesData.length > 5) {
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
-          duration: Duration(milliseconds: 400),
+          duration: const Duration(milliseconds: 400),
           curve: Curves.easeOut,
         );
       }
@@ -133,13 +151,29 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   void _navigateToSalesReport() {
-    final box = Hive.box<Sale>('sales');
-    final sales = box.values.toList();
-    sales.sort((a, b) => b.dateTime.compareTo(a.dateTime));
+    if (saleBox == null || rentalBox == null) return;
+
+    final allSales = [
+      ...saleBox!.values.map((e) => e as dynamic).toList(),
+      ...rentalBox!.values.map((e) => e as dynamic).toList(),
+    ];
+
+    allSales.sort((a, b) {
+      final aDate =
+          a is Sale ? a.dateTime : (a as RentalSaleModel).rentalDateTime;
+      final bDate =
+          b is Sale ? b.dateTime : (b as RentalSaleModel).rentalDateTime;
+      return bDate.compareTo(aDate);
+    });
 
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => SalesReportPage(sales: sales)),
+      MaterialPageRoute(
+        builder:
+            (context) => SalesReportPage(
+              sales: allSales.cast<Sale>(), // ✅ Cast here
+            ),
+      ),
     );
   }
 
@@ -156,18 +190,23 @@ class _DashboardPageState extends State<DashboardPage> {
       locale: 'en_IN',
       decimalDigits: 2,
     );
-
     final isProfit = growthPercent >= 0;
     final difference = (totalSale - previousMonthsAvg).abs();
     final currentMonthName = DateFormat('MMMM').format(DateTime.now());
 
+    if (saleBox == null || rentalBox == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     return SingleChildScrollView(
-      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // --- Sale Overview Card ---
+          // Keep your existing design intact
           Container(
-            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
@@ -207,14 +246,14 @@ class _DashboardPageState extends State<DashboardPage> {
                             color: Colors.blue.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          padding: EdgeInsets.all(8),
+                          padding: const EdgeInsets.all(8),
                           child: Icon(
                             FontAwesomeIcons.ellipsisV,
                             size: 15,
                             color: Colors.blueAccent,
                           ),
                         ),
-                        offset: Offset(0, 45),
+                        offset: const Offset(0, 45),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                           side: BorderSide(
@@ -252,7 +291,6 @@ class _DashboardPageState extends State<DashboardPage> {
                                 Colors.teal,
                               ),
                             ],
-                        child: null,
                       ),
                     ),
                   ],
@@ -267,7 +305,8 @@ class _DashboardPageState extends State<DashboardPage> {
                     ),
                   ),
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
+                // --- Growth Info ---
                 Column(
                   children: [
                     Row(
@@ -278,10 +317,10 @@ class _DashboardPageState extends State<DashboardPage> {
                           color: isProfit ? Colors.green : Colors.red,
                           size: 18,
                         ),
-                        SizedBox(width: 6),
+                        const SizedBox(width: 6),
                         RichText(
                           text: TextSpan(
-                            style: TextStyle(fontSize: 14),
+                            style: const TextStyle(fontSize: 14),
                             children: [
                               TextSpan(
                                 text: "${growthPercent.toStringAsFixed(2)}% ",
@@ -307,13 +346,13 @@ class _DashboardPageState extends State<DashboardPage> {
                         ),
                       ],
                     ),
-                    SizedBox(height: 4),
+                    const SizedBox(height: 4),
                     Text(
                       "In $currentMonthName compared to previous ${previousMonthsCount > 1 ? '$previousMonthsCount months' : 'month'} average",
                       style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                       textAlign: TextAlign.center,
                     ),
-                    SizedBox(height: 4),
+                    const SizedBox(height: 4),
                     Text(
                       "${isProfit ? 'Profit' : 'Loss'}: ₹${difference.toStringAsFixed(0)}",
                       style: TextStyle(
@@ -324,7 +363,8 @@ class _DashboardPageState extends State<DashboardPage> {
                     ),
                   ],
                 ),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
+                // --- Chart ---
                 SizedBox(
                   height: 300,
                   child: LayoutBuilder(
@@ -350,13 +390,13 @@ class _DashboardPageState extends State<DashboardPage> {
                                 lineTouchData: LineTouchData(
                                   enabled: true,
                                   touchTooltipData: LineTouchTooltipData(
-                                    tooltipPadding: EdgeInsets.all(8),
+                                    tooltipPadding: const EdgeInsets.all(8),
                                     tooltipMargin: 12,
                                     getTooltipItems: (touchedSpots) {
                                       return touchedSpots.map((spot) {
                                         return LineTooltipItem(
                                           '₹${spot.y.toStringAsFixed(2)}',
-                                          TextStyle(
+                                          const TextStyle(
                                             color: Colors.white,
                                             fontWeight: FontWeight.bold,
                                           ),
@@ -370,7 +410,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                   LineChartBarData(
                                     spots: salesData,
                                     isCurved: true,
-                                    gradient: LinearGradient(
+                                    gradient: const LinearGradient(
                                       colors: [
                                         Colors.blueAccent,
                                         Color(0xFF1A237E),
@@ -392,7 +432,9 @@ class _DashboardPageState extends State<DashboardPage> {
                                         if (index >= 0 &&
                                             index < monthLabels.length) {
                                           return Padding(
-                                            padding: EdgeInsets.only(top: 8),
+                                            padding: const EdgeInsets.only(
+                                              top: 8,
+                                            ),
                                             child: Text(
                                               monthLabels[index],
                                               style: TextStyle(
@@ -436,7 +478,7 @@ class _DashboardPageState extends State<DashboardPage> {
               ],
             ),
           ),
-          SizedBox(height: 15),
+          const SizedBox(height: 15),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 8),
             child: FloatingActionButton.extended(
@@ -450,20 +492,19 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
               ),
               icon: const Icon(Icons.data_usage, color: Colors.white, size: 22),
-              backgroundColor: Colors.blueAccent.shade400,
+              backgroundColor: Colors.blueAccent,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(30.0),
               ),
               elevation: 8,
             ),
           ),
-          SizedBox(height: 65),
+          const SizedBox(height: 65),
         ],
       ),
     );
   }
 
-  // Helper method to create styled menu items
   PopupMenuItem<String> _buildMenuItem(
     String value,
     IconData icon,
@@ -479,10 +520,10 @@ class _DashboardPageState extends State<DashboardPage> {
               color: color.withOpacity(0.2),
               shape: BoxShape.circle,
             ),
-            padding: EdgeInsets.all(6),
+            padding: const EdgeInsets.all(6),
             child: Icon(icon, size: 16, color: color),
           ),
-          SizedBox(width: 12),
+          const SizedBox(width: 12),
           Text(
             value,
             style: TextStyle(
