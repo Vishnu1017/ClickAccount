@@ -245,9 +245,24 @@ class _CameraRentalPageState extends State<CameraRentalPage> {
                       (context) => const [
                         PopupMenuItem(
                           value: 'share_pdf',
-                          child: Text('Share PDF'),
+                          child: Row(
+                            children: [
+                              Icon(Icons.picture_as_pdf, color: Colors.blue),
+                              SizedBox(width: 10),
+                              Text('Share PDF'),
+                            ],
+                          ),
                         ),
-                        PopupMenuItem(value: 'delete', child: Text('Delete')),
+                        PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete, color: Colors.red),
+                              SizedBox(width: 10),
+                              Text('Delete'),
+                            ],
+                          ),
+                        ),
                       ],
                   icon: const Icon(Icons.more_vert, color: Colors.blueGrey),
                 ),
