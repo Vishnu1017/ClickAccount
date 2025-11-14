@@ -39,6 +39,13 @@ class _LoginScreenState extends State<LoginScreen>
   final passwordController = TextEditingController();
   final resetEmailController = TextEditingController();
 
+  // Validation variables
+  bool _isFullNameValid = true;
+  bool _isPhoneValid = true;
+  bool _isEmailValid = true;
+  bool _isPasswordValid = true;
+  bool _isResetEmailValid = true;
+
   @override
   void initState() {
     super.initState();
@@ -68,7 +75,23 @@ class _LoginScreenState extends State<LoginScreen>
       } else {
         _controller.reverse();
       }
+      // Reset validation states when switching modes
+      _resetValidationStates();
     });
+  }
+
+  void _resetValidationStates() {
+    setState(() {
+      _isFullNameValid = true;
+      _isPhoneValid = true;
+      _isEmailValid = true;
+      _isPasswordValid = true;
+      _isResetEmailValid = true;
+    });
+  }
+
+  bool _isValidFullName(String name) {
+    return name.trim().length >= 2 && name.trim().length <= 50;
   }
 
   bool _isValidPhoneNumber(String phone) {
@@ -79,42 +102,73 @@ class _LoginScreenState extends State<LoginScreen>
     return true;
   }
 
+  bool _isValidEmail(String email) {
+    final emailRegex = RegExp(
+      r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+    );
+    return emailRegex.hasMatch(email.trim());
+  }
+
+  bool _isValidPassword(String password) {
+    return password.length >= 6 && password.length <= 50;
+  }
+
   Future<void> createAccount() async {
     final fullName = fullNameController.text.trim();
     final phone = phoneController.text.trim();
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
 
-    if (fullName.isEmpty ||
-        phone.isEmpty ||
-        email.isEmpty ||
-        password.isEmpty) {
-      showError("All fields are required");
-      return;
+    // Validate all fields
+    bool isValid = true;
+
+    if (!_isValidFullName(fullName)) {
+      setState(() => _isFullNameValid = false);
+      isValid = false;
+    } else {
+      setState(() => _isFullNameValid = true);
     }
 
     if (!_isValidPhoneNumber(phone)) {
-      showError("Please enter a valid 10-digit phone number");
+      setState(() => _isPhoneValid = false);
+      isValid = false;
+    } else {
+      setState(() => _isPhoneValid = true);
+    }
+
+    if (!_isValidEmail(email)) {
+      setState(() => _isEmailValid = false);
+      isValid = false;
+    } else {
+      setState(() => _isEmailValid = true);
+    }
+
+    if (!_isValidPassword(password)) {
+      setState(() => _isPasswordValid = false);
+      isValid = false;
+    } else {
+      setState(() => _isPasswordValid = true);
+    }
+
+    if (!isValid) {
+      showError("Please fix the validation errors above");
       return;
     }
 
-    if (password.length < 6) {
-      showError("Password must be at least 6 characters");
-      return;
-    }
-
-    if (!email.contains('@')) {
-      showError("Please enter a valid email address");
+    if (selectedRole == 'None') {
+      showError("Please select your profession");
       return;
     }
 
     final box = Hive.box<User>('users');
     if (box.values.any((u) => u.email == email)) {
       showError("Email already exists");
+      setState(() => _isEmailValid = false);
       return;
     }
     if (box.values.any((u) => u.phone == phone)) {
       showError("Phone number already exists");
+      setState(() => _isPhoneValid = false);
       return;
     }
 
@@ -162,8 +216,29 @@ class _LoginScreenState extends State<LoginScreen>
     final identifier = emailController.text.trim();
     final password = passwordController.text.trim();
 
-    if (identifier.isEmpty || password.isEmpty) {
-      showError("Please enter your email/phone and password");
+    // Reset validation states
+    setState(() {
+      _isEmailValid = true;
+      _isPasswordValid = true;
+    });
+
+    if (identifier.isEmpty) {
+      showError("Please enter your email or phone number");
+      setState(() => _isEmailValid = false);
+      _isLoggedIn = false;
+      return;
+    }
+
+    if (password.isEmpty) {
+      showError("Please enter your password");
+      setState(() => _isPasswordValid = false);
+      _isLoggedIn = false;
+      return;
+    }
+
+    if (!_isValidPassword(password)) {
+      showError("Invalid password format");
+      setState(() => _isPasswordValid = false);
       _isLoggedIn = false;
       return;
     }
@@ -205,10 +280,18 @@ class _LoginScreenState extends State<LoginScreen>
         );
       } else {
         showError("Invalid credentials. Please try again.");
+        setState(() {
+          _isEmailValid = false;
+          _isPasswordValid = false;
+        });
       }
     } catch (e) {
       debugPrint('Login error: $e');
       showError("Login failed. Please try again.");
+      setState(() {
+        _isEmailValid = false;
+        _isPasswordValid = false;
+      });
     } finally {
       _isLoggedIn = false;
     }
@@ -270,6 +353,8 @@ class _LoginScreenState extends State<LoginScreen>
 
   void _showResetPasswordDialog() {
     resetEmailController.clear();
+    setState(() => _isResetEmailValid = true);
+
     showDialog(
       context: context,
       builder:
@@ -334,7 +419,15 @@ class _LoginScreenState extends State<LoginScreen>
                         borderRadius: BorderRadius.circular(10),
                         borderSide: const BorderSide(color: Colors.white),
                       ),
+                      errorText:
+                          _isResetEmailValid ? null : 'Invalid email address',
+                      errorStyle: const TextStyle(color: Colors.yellow),
                     ),
+                    onChanged: (value) {
+                      if (value.isNotEmpty) {
+                        setState(() => _isResetEmailValid = true);
+                      }
+                    },
                   ),
                   const SizedBox(height: 25),
                   Row(
@@ -388,7 +481,9 @@ class _LoginScreenState extends State<LoginScreen>
 
   void _handlePasswordReset() {
     final email = resetEmailController.text.trim();
-    if (email.isEmpty || !email.contains('@')) {
+
+    if (!_isValidEmail(email)) {
+      setState(() => _isResetEmailValid = false);
       showError("Please enter a valid email address");
       return;
     }
@@ -400,6 +495,7 @@ class _LoginScreenState extends State<LoginScreen>
       Navigator.pop(context);
       showSuccess("Password reset link sent to $email");
     } else {
+      setState(() => _isResetEmailValid = false);
       showError("No account found with this email");
     }
   }
@@ -448,7 +544,6 @@ class _LoginScreenState extends State<LoginScreen>
                 ),
                 SizedBox(height: screenHeight * 0.05),
 
-                // 👇 no UI changes below
                 AnimatedSize(
                   duration: const Duration(milliseconds: 300),
                   child: Column(
@@ -474,14 +569,29 @@ class _LoginScreenState extends State<LoginScreen>
                               borderSide: const BorderSide(color: Colors.white),
                               borderRadius: BorderRadius.circular(10),
                             ),
+                            errorText:
+                                _isFullNameValid
+                                    ? null
+                                    : 'Name must be 2-50 characters',
+                            errorStyle: const TextStyle(color: Colors.yellow),
                           ),
+                          onChanged: (value) {
+                            if (value.isNotEmpty) {
+                              setState(() => _isFullNameValid = true);
+                            }
+                          },
                         ),
                       if (isCreating) SizedBox(height: screenHeight * 0.025),
                       if (isCreating)
                         Container(
                           margin: EdgeInsets.only(bottom: screenHeight * 0.025),
                           decoration: BoxDecoration(
-                            border: Border.all(color: Colors.white54),
+                            border: Border.all(
+                              color:
+                                  selectedRole == 'None'
+                                      ? Colors.red
+                                      : Colors.white54,
+                            ),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: DropdownButtonFormField<String>(
@@ -537,7 +647,17 @@ class _LoginScreenState extends State<LoginScreen>
                               borderSide: const BorderSide(color: Colors.white),
                               borderRadius: BorderRadius.circular(10),
                             ),
+                            errorText:
+                                _isPhoneValid
+                                    ? null
+                                    : 'Enter valid 10-digit phone number',
+                            errorStyle: const TextStyle(color: Colors.yellow),
                           ),
+                          onChanged: (value) {
+                            if (value.isNotEmpty) {
+                              setState(() => _isPhoneValid = true);
+                            }
+                          },
                         ),
                       if (isCreating) SizedBox(height: screenHeight * 0.025),
                       TextField(
@@ -559,7 +679,19 @@ class _LoginScreenState extends State<LoginScreen>
                             borderSide: const BorderSide(color: Colors.white),
                             borderRadius: BorderRadius.circular(10),
                           ),
+                          errorText:
+                              _isEmailValid
+                                  ? null
+                                  : isCreating
+                                  ? 'Enter valid email address'
+                                  : 'Enter valid email or phone',
+                          errorStyle: const TextStyle(color: Colors.yellow),
                         ),
+                        onChanged: (value) {
+                          if (value.isNotEmpty) {
+                            setState(() => _isEmailValid = true);
+                          }
+                        },
                       ),
                       SizedBox(height: screenHeight * 0.025),
                       TextField(
@@ -594,7 +726,17 @@ class _LoginScreenState extends State<LoginScreen>
                             borderSide: const BorderSide(color: Colors.white),
                             borderRadius: BorderRadius.circular(10),
                           ),
+                          errorText:
+                              _isPasswordValid
+                                  ? null
+                                  : 'Password must be 6-50 characters',
+                          errorStyle: const TextStyle(color: Colors.yellow),
                         ),
+                        onChanged: (value) {
+                          if (value.isNotEmpty) {
+                            setState(() => _isPasswordValid = true);
+                          }
+                        },
                       ),
                     ],
                   ),
