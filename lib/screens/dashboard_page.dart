@@ -41,6 +41,7 @@ class _DashboardPageState extends State<DashboardPage> {
         Hive.isBoxOpen('sales')
             ? Hive.box<Sale>('sales')
             : await Hive.openBox<Sale>('sales');
+
     rentalBox =
         Hive.isBoxOpen('rental_sales')
             ? Hive.box<RentalSaleModel>('rental_sales')
@@ -86,20 +87,21 @@ class _DashboardPageState extends State<DashboardPage> {
 
     Map<String, double> monthlyTotals = {for (var key in keys) key: 0.0};
 
+    // NORMAL SALES
     for (var sale in saleBox!.values) {
-      final saleKey =
+      final key =
           '${sale.dateTime.year}-${sale.dateTime.month.toString().padLeft(2, '0')}';
-      if (monthlyTotals.containsKey(saleKey)) {
-        monthlyTotals[saleKey] = monthlyTotals[saleKey]! + sale.amount;
+      if (monthlyTotals.containsKey(key)) {
+        monthlyTotals[key] = monthlyTotals[key]! + sale.amount;
       }
     }
 
+    // RENTAL SALES
     for (var rental in rentalBox!.values) {
-      final rentalKey =
+      final key =
           '${rental.rentalDateTime.year}-${rental.rentalDateTime.month.toString().padLeft(2, '0')}';
-      if (monthlyTotals.containsKey(rentalKey)) {
-        monthlyTotals[rentalKey] =
-            monthlyTotals[rentalKey]! + rental.amountPaid;
+      if (monthlyTotals.containsKey(key)) {
+        monthlyTotals[key] = monthlyTotals[key]! + rental.amountPaid;
       }
     }
 
@@ -108,6 +110,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
     final currentMonthTotal =
         monthlyValues.isNotEmpty ? monthlyValues.last : 0.0;
+
     final previousMonths =
         monthlyValues.length > 1
             ? monthlyValues.sublist(0, monthlyValues.length - 1)
@@ -118,6 +121,7 @@ class _DashboardPageState extends State<DashboardPage> {
         previousMonths.isNotEmpty
             ? previousMonthsTotal / previousMonths.length
             : 0.0;
+
     previousMonthsCount = previousMonths.length;
 
     growthPercent =
@@ -127,6 +131,7 @@ class _DashboardPageState extends State<DashboardPage> {
             : (currentMonthTotal > 0 ? 100 : 0);
 
     totalSale = currentMonthTotal;
+
     maxYValue =
         (monthlyValues.reduce((a, b) => a > b ? a : b) * 1.2).ceilToDouble();
 
@@ -139,6 +144,7 @@ class _DashboardPageState extends State<DashboardPage> {
       _selectedRange = range;
     });
 
+    // Auto-scroll
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients && salesData.length > 5) {
         _scrollController.animateTo(
@@ -150,30 +156,42 @@ class _DashboardPageState extends State<DashboardPage> {
     });
   }
 
+  // 🔥 Convert Rental → Sale (Required for SalesReportPage)
+  Sale convertRentalToSale(RentalSaleModel r) {
+    return Sale(
+      customerName: r.customerName,
+      amount: r.amountPaid,
+      productName: r.itemName,
+      dateTime: r.rentalDateTime,
+      phoneNumber: r.customerPhone,
+      totalAmount: r.totalCost,
+      discount: 0,
+      paymentHistory: [],
+      paymentMode: r.paymentMode,
+      item: r.itemName,
+    );
+  }
+
+  // 🔥 Navigate to Sales Report with merged data
   void _navigateToSalesReport() {
     if (saleBox == null || rentalBox == null) return;
 
-    final allSales = [
-      ...saleBox!.values.map((e) => e as dynamic).toList(),
-      ...rentalBox!.values.map((e) => e as dynamic).toList(),
-    ];
+    List<Sale> allSales = [];
 
-    allSales.sort((a, b) {
-      final aDate =
-          a is Sale ? a.dateTime : (a as RentalSaleModel).rentalDateTime;
-      final bDate =
-          b is Sale ? b.dateTime : (b as RentalSaleModel).rentalDateTime;
-      return bDate.compareTo(aDate);
-    });
+    // Normal sales
+    allSales.addAll(saleBox!.values.toList());
+
+    // Rental → Sale converted
+    allSales.addAll(
+      rentalBox!.values.map((r) => convertRentalToSale(r)).toList(),
+    );
+
+    // Sort by latest date
+    allSales.sort((a, b) => b.dateTime.compareTo(a.dateTime));
 
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder:
-            (context) => SalesReportPage(
-              sales: allSales.cast<Sale>(), // ✅ Cast here
-            ),
-      ),
+      MaterialPageRoute(builder: (context) => SalesReportPage(sales: allSales)),
     );
   }
 
@@ -203,8 +221,8 @@ class _DashboardPageState extends State<DashboardPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // --- Sale Overview Card ---
-          // Keep your existing design intact
+          // ------------------ Your existing layout kept as-is ------------------
+          // Sale Overview Card (unchanged)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
             decoration: BoxDecoration(
@@ -295,6 +313,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     ),
                   ],
                 ),
+
                 Center(
                   child: Text(
                     currencyFormat.format(totalSale),
@@ -305,8 +324,10 @@ class _DashboardPageState extends State<DashboardPage> {
                     ),
                   ),
                 ),
+
                 const SizedBox(height: 10),
-                // --- Growth Info ---
+
+                // Growth Info
                 Column(
                   children: [
                     Row(
@@ -363,8 +384,10 @@ class _DashboardPageState extends State<DashboardPage> {
                     ),
                   ],
                 ),
+
                 const SizedBox(height: 8),
-                // --- Chart ---
+
+                // Chart
                 SizedBox(
                   height: 300,
                   child: LayoutBuilder(
@@ -478,7 +501,10 @@ class _DashboardPageState extends State<DashboardPage> {
               ],
             ),
           ),
+
           const SizedBox(height: 15),
+
+          // ---------------- BUTTON ----------------
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 8),
             child: FloatingActionButton.extended(
@@ -499,6 +525,7 @@ class _DashboardPageState extends State<DashboardPage> {
               elevation: 8,
             ),
           ),
+
           const SizedBox(height: 65),
         ],
       ),

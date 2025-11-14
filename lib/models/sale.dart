@@ -18,7 +18,7 @@ class Sale extends HiveObject {
   DateTime dateTime;
 
   @HiveField(4)
-  String phoneNumber;
+  String phoneNumber; // THIS IS YOUR CONTACT NUMBER
 
   @HiveField(5)
   double totalAmount;
@@ -42,14 +42,14 @@ class Sale extends HiveObject {
   double discount;
 
   @HiveField(12)
-  String item; // ✅ Properly store the item
+  String item;
 
   Sale({
     required this.customerName,
     required this.amount,
     required this.productName,
     required this.dateTime,
-    required this.phoneNumber,
+    required this.phoneNumber, // FIXED HERE — This IS contactNumber
     required this.totalAmount,
     required this.discount,
     List<Payment>? paymentHistory,
@@ -57,10 +57,10 @@ class Sale extends HiveObject {
     this.deliveryLink = '',
     this.paymentMode = 'Cash',
     this.deliveryStatusHistory,
-    required this.item, // ✅ Fixed: now stored correctly
+    required this.item,
   }) : paymentHistory = paymentHistory ?? [];
 
-  // ✅ Computed getters
+  // ----------- COMPUTED GETTERS -----------
   double get receivedAmount {
     return paymentHistory.fold(0.0, (sum, p) => sum + p.amount);
   }
@@ -75,6 +75,7 @@ class Sale extends HiveObject {
         "${dateTime.year}";
   }
 
+  // ----------- DELIVERY STATUS UPDATE -----------
   void addDeliveryStatus(String status, String notes) {
     deliveryStatusHistory ??= [];
     deliveryStatusHistory!.add({
@@ -85,6 +86,7 @@ class Sale extends HiveObject {
     deliveryStatus = status;
   }
 
+  // ----------- DELETE VALIDATION -----------
   @override
   Future<void> delete() {
     if (discount > 0) {
