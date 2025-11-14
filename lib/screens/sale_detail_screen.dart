@@ -117,15 +117,6 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
       return;
     }
 
-    if (!isFullyPaid && paid > total) {
-      AppSnackBar.showError(
-        context,
-        message: "Paid amount cannot exceed total amount!",
-        duration: const Duration(seconds: 2),
-      );
-      return;
-    }
-
     final box = Hive.box<Sale>('sales');
     final newPayment = Payment(
       amount: paid == 0 && isFullyPaid ? total : paid,

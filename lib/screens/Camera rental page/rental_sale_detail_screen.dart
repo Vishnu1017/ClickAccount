@@ -100,15 +100,6 @@ class _RentalSaleDetailScreenState extends State<RentalSaleDetailScreen> {
       return;
     }
 
-    if (!isFullyPaid && paid > total) {
-      AppSnackBar.showError(
-        context,
-        message: "Paid amount cannot exceed total amount!",
-        duration: const Duration(seconds: 2),
-      );
-      return;
-    }
-
     widget.sale.customerName = customerController.text;
     widget.sale.customerPhone = phoneController.text;
     widget.sale.totalCost = total;

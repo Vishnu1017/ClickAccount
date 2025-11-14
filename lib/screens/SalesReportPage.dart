@@ -324,7 +324,9 @@ class _SalesReportPageState extends State<SalesReportPage> {
                         balance <= 0 ? 'Paid' : 'Unpaid',
                         s.paymentMode,
                         currencyFormat.format(s.amount),
-                        currencyFormat.format(balance),
+                        balance < 0
+                            ? "+${currencyFormat.format(balance.abs())}"
+                            : currencyFormat.format(balance),
                       ];
                     }).toList(),
               ),
@@ -774,7 +776,10 @@ class _SalesReportPageState extends State<SalesReportPage> {
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Text(
-                                    currencyFormat.format(balance),
+                                    balance < 0
+                                        ? "+${currencyFormat.format(balance.abs())}"
+                                        : currencyFormat.format(balance),
+
                                     style: TextStyle(
                                       color:
                                           balance > 0
