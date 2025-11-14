@@ -28,6 +28,7 @@
   <li>Manage users, products, and customers locally using Hive</li>
   <li>Create, edit, and manage GST-compliant invoices</li>
   <li>Generate and share PDF invoices with UPI QR codes</li>
+  <li>Camera Rental module (available only for <strong>Photographer</strong> role)</li>
   <li>Offline-first functionality for fast performance</li>
 </ul>
 
@@ -81,7 +82,6 @@ flutter build web    # Web
 
 <h2>📈 Roadmap</h2>
 <ul>
-  <li>Dark mode support</li>
   <li>Multi-user support</li>
   <li>Cloud sync and backup (optional)</li>
   <li>Analytics dashboard for invoices and revenue</li>
@@ -99,7 +99,6 @@ flutter build web    # Web
 <p>MIT License – see LICENSE file for details.</p>
 
 <h2>📸 Screenshots</h2>
-<p>Make sure to add your app screenshots in <code>assets/screenshots/</code> directory.</p>
 <ul>
   <li><img src="assets/screenshots/login.jpg" alt="Login Screen" width="250"/></li>
   <li><img src="assets/screenshots//signup.jpg" alt="Sign Up Screen" width="250"/></li>
