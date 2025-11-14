@@ -58,16 +58,6 @@ class _RentalItemsState extends State<RentalItems> {
   }
 
   // -------------------------
-  // ⭐ CATEGORY FILTER LOGIC ADDED
-  // -------------------------
-  void _handleCategorySelection(String category) {
-    setState(() {
-      _selectedCategory = category;
-      _filterItems();
-    });
-  }
-
-  // -------------------------
   // ⭐ UPDATED FILTERING
   // -------------------------
   void _filterItems() {
