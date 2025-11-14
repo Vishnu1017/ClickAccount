@@ -1,4 +1,4 @@
-<h1 align="center">📒 ClickAccount</h1>
+<h1 align="center">📒 BizMate</h1>
 <h3 align="center">A Flutter-based billing and accounting app</h3>
 
 <p align="center">
@@ -17,7 +17,7 @@
 </p>
 
 <h2>🧾 About the App</h2>
-<p><strong>ClickAccount</strong> is a Flutter application designed for small businesses, freelancers, and entrepreneurs to manage users, roles, customers, products, and invoices efficiently. It uses <strong>Hive</strong> for local offline-first storage and allows generating GST-compliant PDF invoices with embedded UPI QR codes.</p>
+<p><strong>BizMate</strong> is a Flutter application designed for small businesses, freelancers, and entrepreneurs to manage users, roles, customers, products, and invoices efficiently. It uses <strong>Hive</strong> for local offline-first storage and allows generating GST-compliant PDF invoices with embedded UPI QR codes.</p>
 
 <h2>🔧 Features</h2>
 <ul>
