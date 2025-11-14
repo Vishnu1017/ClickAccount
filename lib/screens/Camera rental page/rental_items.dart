@@ -22,6 +22,22 @@ class _RentalItemsState extends State<RentalItems> {
   String _searchQuery = "";
   List<RentalItem> filteredItems = [];
 
+  // -------------------------
+  // ⭐ CATEGORY LIST ADDED
+  // -------------------------
+  final List<String> _categories = [
+    'All',
+    'Camera',
+    'Lens',
+    'Light',
+    'Tripod',
+    'Drone',
+    'Gimbal',
+    'Microphone',
+  ];
+
+  String _selectedCategory = 'All';
+
   @override
   void initState() {
     super.initState();
@@ -41,21 +57,43 @@ class _RentalItemsState extends State<RentalItems> {
     });
   }
 
+  // -------------------------
+  // ⭐ CATEGORY FILTER LOGIC ADDED
+  // -------------------------
+  void _handleCategorySelection(String category) {
+    setState(() {
+      _selectedCategory = category;
+      _filterItems();
+    });
+  }
+
+  // -------------------------
+  // ⭐ UPDATED FILTERING
+  // -------------------------
   void _filterItems() {
     final allItems = _rentalBox.values.toList().cast<RentalItem>();
 
-    if (_searchQuery.isEmpty) {
-      filteredItems = allItems;
-    } else {
+    List<RentalItem> temp = allItems;
+
+    // Category filter
+    if (_selectedCategory != "All") {
+      temp = temp.where((item) => item.category == _selectedCategory).toList();
+    }
+
+    // Search filter
+    if (_searchQuery.isNotEmpty) {
       final query = _searchQuery.toLowerCase();
-      filteredItems =
-          allItems.where((item) {
+
+      temp =
+          temp.where((item) {
             return item.name.toLowerCase().contains(query) ||
                 item.brand.toLowerCase().contains(query) ||
                 item.availability.toLowerCase().contains(query) ||
                 item.price.toString().contains(query);
           }).toList();
     }
+
+    filteredItems = temp;
   }
 
   void _deleteItem(int index) {
@@ -66,7 +104,7 @@ class _RentalItemsState extends State<RentalItems> {
       icon: Icons.delete_forever_rounded,
       iconColor: Colors.redAccent,
       onConfirm: () {
-        _rentalBox.deleteAt(index); // existing delete logic
+        _rentalBox.deleteAt(index);
       },
     );
   }
@@ -84,6 +122,115 @@ class _RentalItemsState extends State<RentalItems> {
             onDateRangeChanged: _handleDateRangeChanged,
             showDateFilter: true,
           ),
+
+          // -------------------------
+          // ⭐ CATEGORY SELECTOR BAR
+          // -------------------------
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                // Determine screen size category
+                final bool isSmall = constraints.maxWidth < 380;
+                final bool isTablet = constraints.maxWidth > 600;
+
+                // Responsive values
+                final double chipHeight = isTablet ? 50 : (isSmall ? 36 : 40);
+                final double horizontalPadding =
+                    isTablet ? 22 : (isSmall ? 14 : 18);
+                final double verticalPadding =
+                    isTablet ? 12 : (isSmall ? 8 : 10);
+                final double fontSize = isTablet ? 16 : (isSmall ? 13 : 14);
+                final double iconSize = isTablet ? 20 : (isSmall ? 16 : 18);
+
+                return SizedBox(
+                  height: chipHeight,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _categories.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 10),
+                    itemBuilder: (context, index) {
+                      final category = _categories[index];
+                      final bool isSelected = _selectedCategory == category;
+
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _selectedCategory = category;
+                            _filterItems();
+                          });
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 250),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: horizontalPadding,
+                            vertical: verticalPadding,
+                          ),
+                          decoration: BoxDecoration(
+                            gradient:
+                                isSelected
+                                    ? LinearGradient(
+                                      colors: [
+                                        Colors.blue.shade600,
+                                        Colors.blue.shade900,
+                                      ],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    )
+                                    : LinearGradient(
+                                      colors: [
+                                        Colors.grey.shade200,
+                                        Colors.grey.shade300,
+                                      ],
+                                    ),
+                            borderRadius: BorderRadius.circular(30),
+                            boxShadow:
+                                isSelected
+                                    ? [
+                                      BoxShadow(
+                                        color: Colors.blue.withOpacity(0.25),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 3),
+                                      ),
+                                    ]
+                                    : [],
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.check_circle_rounded,
+                                color:
+                                    isSelected
+                                        ? Colors.white
+                                        : Colors.grey.shade700,
+                                size: iconSize,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                category,
+                                style: TextStyle(
+                                  fontSize: fontSize,
+                                  fontWeight:
+                                      isSelected
+                                          ? FontWeight.bold
+                                          : FontWeight.w500,
+                                  color:
+                                      isSelected
+                                          ? Colors.white
+                                          : Colors.black87,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
+
           Expanded(
             child: ValueListenableBuilder(
               valueListenable: _rentalBox.listenable(),
@@ -113,19 +260,19 @@ class _RentalItemsState extends State<RentalItems> {
                 }
 
                 final items =
-                    _searchQuery.isEmpty
+                    (_searchQuery.isEmpty && _selectedCategory == "All")
                         ? box.values.toList().cast<RentalItem>()
                         : filteredItems;
 
-                if (items.isEmpty && _searchQuery.isNotEmpty) {
-                  return Center(
+                if (items.isEmpty) {
+                  return const Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(Icons.search_off, color: Colors.white70, size: 80),
                         SizedBox(height: 16),
                         Text(
-                          "No items found for '$_searchQuery'",
+                          "No items match your filters",
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
@@ -144,13 +291,10 @@ class _RentalItemsState extends State<RentalItems> {
 
                     if (constraints.maxWidth >= 1200) {
                       crossAxisCount = 5;
-                      childAspectRatio = 0.65;
                     } else if (constraints.maxWidth >= 900) {
                       crossAxisCount = 4;
-                      childAspectRatio = 0.65;
                     } else if (constraints.maxWidth >= 600) {
                       crossAxisCount = 3;
-                      childAspectRatio = 0.6;
                     }
 
                     return GridView.builder(
@@ -184,21 +328,20 @@ class _RentalItemsState extends State<RentalItems> {
                           },
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeInOut,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(22),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.25),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
                               gradient: const LinearGradient(
                                 colors: [Color(0xFFE3F2FD), Color(0xFFB2EBF2)],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                               ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black26,
+                                  blurRadius: 10,
+                                  offset: Offset(0, 4),
+                                ),
+                              ],
                             ),
                             child: _buildCardContent(item, originalIndex),
                           ),
@@ -225,78 +368,21 @@ class _RentalItemsState extends State<RentalItems> {
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(22),
               ),
-              child: Stack(
-                children: [
-                  Image.file(
-                    File(item.imagePath),
-                    height: constraints.maxHeight * 0.45,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder:
-                        (context, _, __) => Container(
-                          height: constraints.maxHeight * 0.45,
-                          color: Colors.grey.shade200,
-                          child: const Icon(
-                            Icons.broken_image_rounded,
-                            size: 60,
-                            color: Colors.grey,
-                          ),
-                        ),
-                  ),
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color:
-                                item.availability == 'Available'
-                                    ? Colors.green.withOpacity(0.9)
-                                    : Colors.redAccent.withOpacity(0.9),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            item.availability,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        InkWell(
-                          onTap: () => _deleteItem(index),
-                          child: Container(
-                            decoration: const BoxDecoration(
-                              color: Colors.black54,
-                              shape: BoxShape.circle,
-                            ),
-                            padding: const EdgeInsets.all(6),
-                            child: const Icon(
-                              Icons.delete_outline,
-                              color: Colors.white,
-                              size: 18,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+              child: Image.file(
+                File(item.imagePath),
+                height: constraints.maxHeight * 0.45,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder:
+                    (_, __, ___) =>
+                        Container(height: constraints.maxHeight * 0.45),
               ),
             ),
-            // Flexible bottom content
             Flexible(
               child: Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,
-                  vertical: 8,
+                  vertical: 10,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -311,6 +397,8 @@ class _RentalItemsState extends State<RentalItems> {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
+
+                    // brand
                     Row(
                       children: [
                         const Icon(
@@ -331,7 +419,10 @@ class _RentalItemsState extends State<RentalItems> {
                         ),
                       ],
                     ),
+
                     const Spacer(),
+
+                    // Bottom price + view details
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 10,
@@ -342,14 +433,13 @@ class _RentalItemsState extends State<RentalItems> {
                         borderRadius: BorderRadius.circular(14),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
+                            color: Colors.black12,
                             blurRadius: 5,
+                            offset: Offset(0, 3),
                           ),
                         ],
                       ),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -359,7 +449,6 @@ class _RentalItemsState extends State<RentalItems> {
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: Colors.teal,
-                                  fontSize: 14,
                                 ),
                               ),
                               Icon(
@@ -375,41 +464,35 @@ class _RentalItemsState extends State<RentalItems> {
                             ],
                           ),
                           const SizedBox(height: 6),
-                          FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF0D47A1),
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 8,
-                                  horizontal: 20,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
+
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF0D47A1),
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 8,
+                                horizontal: 20,
                               ),
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder:
-                                        (_) => ViewRentalDetailsPage(
-                                          item: item,
-                                          name: item.name,
-                                          imageUrl: item.imagePath,
-                                          pricePerDay: item.price,
-                                          availability: item.availability,
-                                        ),
-                                  ),
-                                );
-                              },
-                              child: const Text(
-                                'View Details',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
+                            ),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder:
+                                      (_) => ViewRentalDetailsPage(
+                                        item: item,
+                                        name: item.name,
+                                        imageUrl: item.imagePath,
+                                        pricePerDay: item.price,
+                                        availability: item.availability,
+                                      ),
                                 ),
+                              );
+                            },
+                            child: const Text(
+                              'View Details',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),

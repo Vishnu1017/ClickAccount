@@ -782,7 +782,7 @@ class _CameraRentalPageState extends State<CameraRentalPage> {
                     : ListView.builder(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
-                        vertical: 12,
+                        vertical: 0,
                       ),
                       itemCount: filteredRentalSales.length,
                       itemBuilder: (context, index) {
