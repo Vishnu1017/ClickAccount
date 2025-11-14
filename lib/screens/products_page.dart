@@ -1,5 +1,7 @@
 import 'package:bizmate/widgets/confirm_delete_dialog.dart'
     show showConfirmDialog;
+import 'package:bizmate/widgets/advanced_search_bar.dart'
+    show AdvancedSearchBar;
 import 'package:flutter/material.dart';
 import 'package:bizmate/models/product_store.dart';
 import 'package:bizmate/models/product.dart';
@@ -13,106 +15,37 @@ class ProductsPage extends StatefulWidget {
 }
 
 class _ProductsPageState extends State<ProductsPage> {
-  final TextEditingController _searchController = TextEditingController();
-  final FocusNode _searchFocusNode = FocusNode();
-  bool _isSearchExpanded = false;
+  String _searchQuery = "";
   List<String> filteredProducts = [];
 
   @override
   void initState() {
     super.initState();
-    _searchFocusNode.addListener(() {
-      setState(() {
-        _isSearchExpanded =
-            _searchFocusNode.hasFocus || _searchController.text.isNotEmpty;
-      });
+  }
+
+  void _handleSearchChanged(String query) {
+    setState(() {
+      _searchQuery = query;
+      _filterProducts();
     });
   }
 
-  @override
-  void dispose() {
-    _searchController.dispose();
-    _searchFocusNode.dispose();
-    super.dispose();
+  void _handleDateRangeChanged(DateTimeRange? range) {
+    setState(() {
+      _filterProducts();
+    });
   }
 
-  Widget _buildAnimatedSearchBar() {
-    return AnimatedContainer(
-      duration: Duration(milliseconds: 300),
-      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      height: _isSearchExpanded ? 50 : 50,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: Offset(0, 3),
-          ),
-        ],
-        border: Border.all(
-          color:
-              _isSearchExpanded
-                  ? Colors.indigo.withOpacity(0.3)
-                  : Colors.transparent,
-          width: 1.5,
-        ),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Padding(
-              padding: EdgeInsets.only(left: 20, right: 10),
-              child: TextField(
-                controller: _searchController,
-                focusNode: _searchFocusNode,
-                decoration: InputDecoration(
-                  hintText: 'Search packages...',
-                  hintStyle: TextStyle(color: Colors.grey[600]),
-                  border: InputBorder.none,
-                ),
-                onChanged: (value) {
-                  setState(() {
-                    if (value.isEmpty) {
-                      filteredProducts.clear();
-                    } else {
-                      final query = value.toLowerCase();
-                      filteredProducts =
-                          ProductStore().all.where((product) {
-                            return product.toLowerCase().contains(query);
-                          }).toList();
-                    }
-                  });
-                },
-              ),
-            ),
-          ),
-          AnimatedSwitcher(
-            duration: Duration(milliseconds: 200),
-            child:
-                _searchController.text.isEmpty
-                    ? IconButton(
-                      icon: Icon(Icons.search, color: Colors.indigo),
-                      onPressed: () {
-                        _searchFocusNode.requestFocus();
-                      },
-                    )
-                    : IconButton(
-                      icon: Icon(Icons.close, color: Colors.grey),
-                      onPressed: () {
-                        _searchController.clear();
-                        _searchFocusNode.unfocus();
-                        setState(() {
-                          filteredProducts.clear();
-                          _isSearchExpanded = false;
-                        });
-                      },
-                    ),
-          ),
-        ],
-      ),
-    );
+  void _filterProducts() {
+    if (_searchQuery.isEmpty) {
+      filteredProducts.clear();
+    } else {
+      final query = _searchQuery.toLowerCase();
+      filteredProducts =
+          ProductStore().all.where((product) {
+            return product.toLowerCase().contains(query);
+          }).toList();
+    }
   }
 
   @override
@@ -121,14 +54,19 @@ class _ProductsPageState extends State<ProductsPage> {
       backgroundColor: Color(0xFFF4F6FA),
       body: Column(
         children: [
-          _buildAnimatedSearchBar(),
+          AdvancedSearchBar(
+            hintText: 'Search packages...',
+            onSearchChanged: _handleSearchChanged,
+            onDateRangeChanged: _handleDateRangeChanged,
+            showDateFilter: false, // No date filter needed for products page
+          ),
           Expanded(
             child: ValueListenableBuilder(
               valueListenable: ProductStore().box.listenable(),
               builder: (context, Box<Product> box, _) {
                 final allProducts = box.values.toList();
                 final products =
-                    _searchController.text.isEmpty
+                    _searchQuery.isEmpty
                         ? ProductStore().all
                         : filteredProducts;
 
@@ -138,7 +76,7 @@ class _ProductsPageState extends State<ProductsPage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          _searchController.text.isEmpty
+                          _searchQuery.isEmpty
                               ? Icons.inventory_2
                               : Icons.search_off,
                           size: 80,
@@ -146,7 +84,7 @@ class _ProductsPageState extends State<ProductsPage> {
                         ),
                         SizedBox(height: 16),
                         Text(
-                          _searchController.text.isEmpty
+                          _searchQuery.isEmpty
                               ? "No Packages Yet"
                               : "No matching packages found",
                           style: TextStyle(

@@ -1,21 +1,24 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'dart:io';
+
 import 'package:bizmate/screens/Camera%20rental%20page/rental_sale_detail_screen.dart'
     show RentalSaleDetailScreen;
 import 'package:bizmate/screens/rental_pdf_preview_screen.dart'
     show RentalPdfPreviewScreen;
+import 'package:bizmate/widgets/advanced_search_bar.dart'
+    show AdvancedSearchBar;
 import 'package:bizmate/widgets/app_snackbar.dart' show AppSnackBar;
 import 'package:bizmate/widgets/confirm_delete_dialog.dart'
     show showConfirmDialog;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
-import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart' show DateFormat;
+import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:path_provider/path_provider.dart';
+
 import '../../../models/rental_sale_model.dart';
 
 class CameraRentalPage extends StatefulWidget {
@@ -39,11 +42,69 @@ class _CameraRentalPageState extends State<CameraRentalPage> {
   bool _isLoading = true;
   List<RentalSaleModel> rentalSales = [];
 
+  // Search functionality variables
+  String _searchQuery = "";
+  DateTimeRange? _selectedRange;
+
   @override
   void initState() {
     super.initState();
     _initHiveListener();
     _loadSales();
+  }
+
+  void _handleSearchChanged(String query) {
+    setState(() {
+      _searchQuery = query;
+    });
+  }
+
+  void _handleDateRangeChanged(DateTimeRange? range) {
+    setState(() {
+      _selectedRange = range;
+    });
+  }
+
+  List<RentalSaleModel> _getFilteredRentalSales() {
+    List<RentalSaleModel> filteredSales = List.from(rentalSales);
+
+    // Filter by search query
+    if (_searchQuery.isNotEmpty) {
+      filteredSales =
+          filteredSales.where((sale) {
+            final customerName = sale.customerName.toLowerCase();
+            final itemName = sale.itemName.toLowerCase();
+            final customerPhone = sale.customerPhone.toLowerCase();
+            final totalCost = sale.totalCost.toString();
+            final amountPaid = sale.amountPaid.toString();
+            final fromDate = _formatDateTime(sale.fromDateTime).toLowerCase();
+            final toDate = _formatDateTime(sale.toDateTime).toLowerCase();
+            final query = _searchQuery.toLowerCase();
+
+            return customerName.contains(query) ||
+                itemName.contains(query) ||
+                customerPhone.contains(query) ||
+                totalCost.contains(query) ||
+                amountPaid.contains(query) ||
+                fromDate.contains(query) ||
+                toDate.contains(query);
+          }).toList();
+    }
+
+    // Filter by date range
+    if (_selectedRange != null) {
+      filteredSales =
+          filteredSales.where((sale) {
+            return sale.fromDateTime.isAfter(
+                  _selectedRange!.start.subtract(const Duration(days: 1)),
+                ) &&
+                sale.toDateTime.isBefore(
+                  _selectedRange!.end.add(const Duration(days: 1)),
+                );
+          }).toList();
+    }
+
+    return filteredSales;
   }
 
   Future<void> _initHiveListener() async {
@@ -669,117 +730,161 @@ class _CameraRentalPageState extends State<CameraRentalPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.blue.shade50,
-      body:
-          _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : rentalSales.isEmpty
-              ? const Center(
-                child: Text(
-                  "No Rental Sales Found",
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
-                ),
-              )
-              : ListView.builder(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                itemCount: rentalSales.length,
-                itemBuilder: (context, index) {
-                  final sale = rentalSales[index];
-                  return LayoutBuilder(
-                    builder: (context, constraints) {
-                      bool isWide = constraints.maxWidth > 600;
-                      double imageSize = isWide ? 120 : 100;
+    final filteredRentalSales = _getFilteredRentalSales();
 
-                      return Container(
-                        margin: const EdgeInsets.symmetric(vertical: 10),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              Colors.blue.shade100,
-                              Colors.blue.shade300,
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: Column(
+        children: [
+          AdvancedSearchBar(
+            hintText: 'Search by customer, item, phone, amount...',
+            onSearchChanged: _handleSearchChanged,
+            onDateRangeChanged: _handleDateRangeChanged,
+            showDateFilter: true,
+          ),
+          Expanded(
+            child:
+                _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : rentalSales.isEmpty
+                    ? const Center(
+                      child: Text(
+                        "No Rental Sales Found",
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                      ),
+                    )
+                    : filteredRentalSales.isEmpty
+                    ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.search_off,
+                            size: 64,
+                            color: Colors.grey[400],
                           ),
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.blue.shade300.withOpacity(0.4),
-                              blurRadius: 12,
-                              offset: const Offset(0, 6),
+                          const SizedBox(height: 16),
+                          Text(
+                            _searchQuery.isNotEmpty && _selectedRange != null
+                                ? "No results found for '$_searchQuery' in selected date range"
+                                : _searchQuery.isNotEmpty
+                                ? "No results found for '$_searchQuery'"
+                                : "No rentals found in selected date range",
+                            style: const TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey,
                             ),
-                          ],
-                        ),
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(20),
-                            onTap: () async {
-                              final result = await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder:
-                                      (_) => RentalSaleDetailScreen(
-                                        sale: rentalSales[index],
-                                        index: index,
-                                      ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    )
+                    : ListView.builder(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      itemCount: filteredRentalSales.length,
+                      itemBuilder: (context, index) {
+                        final sale = filteredRentalSales[index];
+                        final originalIndex = rentalSales.indexOf(sale);
+
+                        return LayoutBuilder(
+                          builder: (context, constraints) {
+                            bool isWide = constraints.maxWidth > 600;
+                            double imageSize = isWide ? 120 : 100;
+
+                            return Container(
+                              margin: const EdgeInsets.symmetric(vertical: 10),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Colors.blue.shade100,
+                                    Colors.blue.shade300,
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
                                 ),
-                              );
-                              if (result == true) {
-                                setState(() {
-                                  rentalSales =
-                                      salesBox.values
-                                          .toList()
-                                          .reversed
-                                          .toList();
-                                });
-                                _notifyDashboardUpdate(); // 👈 Added line
-                              }
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child:
-                                  isWide
-                                      ? Row(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          _buildImage(sale, imageSize),
-                                          const SizedBox(width: 20),
-                                          Expanded(
-                                            child: _buildTextDetails(
-                                              sale,
-                                              isWide,
-                                              index,
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.blue.shade300.withOpacity(
+                                      0.4,
+                                    ),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 6),
+                                  ),
+                                ],
+                              ),
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(20),
+                                  onTap: () async {
+                                    final result = await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder:
+                                            (_) => RentalSaleDetailScreen(
+                                              sale: filteredRentalSales[index],
+                                              index: originalIndex,
                                             ),
-                                          ),
-                                        ],
-                                      )
-                                      : Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.stretch,
-                                        children: [
-                                          _buildImage(sale, imageSize),
-                                          const SizedBox(height: 12),
-                                          _buildTextDetails(
-                                            sale,
-                                            isWide,
-                                            index,
-                                          ),
-                                        ],
                                       ),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
+                                    );
+                                    if (result == true) {
+                                      setState(() {
+                                        rentalSales =
+                                            salesBox.values
+                                                .toList()
+                                                .reversed
+                                                .toList();
+                                      });
+                                      _notifyDashboardUpdate();
+                                    }
+                                  },
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16),
+                                    child:
+                                        isWide
+                                            ? Row(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                _buildImage(sale, imageSize),
+                                                const SizedBox(width: 20),
+                                                Expanded(
+                                                  child: _buildTextDetails(
+                                                    sale,
+                                                    isWide,
+                                                    originalIndex,
+                                                  ),
+                                                ),
+                                              ],
+                                            )
+                                            : Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.stretch,
+                                              children: [
+                                                _buildImage(sale, imageSize),
+                                                const SizedBox(height: 12),
+                                                _buildTextDetails(
+                                                  sale,
+                                                  isWide,
+                                                  originalIndex,
+                                                ),
+                                              ],
+                                            ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
+          ),
+        ],
+      ),
     );
   }
 }

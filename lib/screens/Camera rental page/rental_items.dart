@@ -3,6 +3,8 @@ import 'package:bizmate/screens/Camera%20rental%20page/view_rental_details_page.
     show ViewRentalDetailsPage;
 import 'package:bizmate/widgets/confirm_delete_dialog.dart'
     show showConfirmDialog;
+import 'package:bizmate/widgets/advanced_search_bar.dart'
+    show AdvancedSearchBar;
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../../models/rental_item.dart';
@@ -17,11 +19,43 @@ class RentalItems extends StatefulWidget {
 
 class _RentalItemsState extends State<RentalItems> {
   late Box<RentalItem> _rentalBox;
+  String _searchQuery = "";
+  List<RentalItem> filteredItems = [];
 
   @override
   void initState() {
     super.initState();
     _rentalBox = Hive.box<RentalItem>('rental_items');
+  }
+
+  void _handleSearchChanged(String query) {
+    setState(() {
+      _searchQuery = query;
+      _filterItems();
+    });
+  }
+
+  void _handleDateRangeChanged(DateTimeRange? range) {
+    setState(() {
+      _filterItems();
+    });
+  }
+
+  void _filterItems() {
+    final allItems = _rentalBox.values.toList().cast<RentalItem>();
+
+    if (_searchQuery.isEmpty) {
+      filteredItems = allItems;
+    } else {
+      final query = _searchQuery.toLowerCase();
+      filteredItems =
+          allItems.where((item) {
+            return item.name.toLowerCase().contains(query) ||
+                item.brand.toLowerCase().contains(query) ||
+                item.availability.toLowerCase().contains(query) ||
+                item.price.toString().contains(query);
+          }).toList();
+    }
   }
 
   void _deleteItem(int index) {
@@ -40,105 +74,143 @@ class _RentalItemsState extends State<RentalItems> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       extendBodyBehindAppBar: true,
-      body: Container(
-        child: ValueListenableBuilder(
-          valueListenable: _rentalBox.listenable(),
-          builder: (context, Box<RentalItem> box, _) {
-            if (box.isEmpty) {
-              return const Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.inventory_2_rounded,
-                      color: Colors.white70,
-                      size: 80,
+      body: Column(
+        children: [
+          AdvancedSearchBar(
+            hintText: 'Search rental items...',
+            onSearchChanged: _handleSearchChanged,
+            onDateRangeChanged: _handleDateRangeChanged,
+            showDateFilter: true,
+          ),
+          Expanded(
+            child: ValueListenableBuilder(
+              valueListenable: _rentalBox.listenable(),
+              builder: (context, Box<RentalItem> box, _) {
+                if (box.isEmpty) {
+                  return const Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.inventory_2_rounded,
+                          color: Colors.white70,
+                          size: 80,
+                        ),
+                        SizedBox(height: 16),
+                        Text(
+                          'No items added yet!',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white70,
+                          ),
+                        ),
+                      ],
                     ),
-                    SizedBox(height: 16),
-                    Text(
-                      'No items added yet!',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white70,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }
-
-            final items = box.values.toList().cast<RentalItem>();
-
-            return LayoutBuilder(
-              builder: (context, constraints) {
-                int crossAxisCount = 2;
-                double childAspectRatio = 0.65;
-
-                if (constraints.maxWidth >= 1200) {
-                  crossAxisCount = 5;
-                  childAspectRatio = 0.65;
-                } else if (constraints.maxWidth >= 900) {
-                  crossAxisCount = 4;
-                  childAspectRatio = 0.65;
-                } else if (constraints.maxWidth >= 600) {
-                  crossAxisCount = 3;
-                  childAspectRatio = 0.6;
+                  );
                 }
 
-                return GridView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 40, 16, 16),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: crossAxisCount,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    childAspectRatio: childAspectRatio,
-                  ),
-                  itemCount: items.length,
-                  itemBuilder: (context, index) {
-                    final item = items[index];
-                    return GestureDetector(
-                      onLongPress: () => _deleteItem(index),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder:
-                                (_) => EditRentalItemPage(
-                                  item: item,
-                                  index: index,
+                final items =
+                    _searchQuery.isEmpty
+                        ? box.values.toList().cast<RentalItem>()
+                        : filteredItems;
+
+                if (items.isEmpty && _searchQuery.isNotEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.search_off, color: Colors.white70, size: 80),
+                        SizedBox(height: 16),
+                        Text(
+                          "No items found for '$_searchQuery'",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white70,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                return LayoutBuilder(
+                  builder: (context, constraints) {
+                    int crossAxisCount = 2;
+                    double childAspectRatio = 0.65;
+
+                    if (constraints.maxWidth >= 1200) {
+                      crossAxisCount = 5;
+                      childAspectRatio = 0.65;
+                    } else if (constraints.maxWidth >= 900) {
+                      crossAxisCount = 4;
+                      childAspectRatio = 0.65;
+                    } else if (constraints.maxWidth >= 600) {
+                      crossAxisCount = 3;
+                      childAspectRatio = 0.6;
+                    }
+
+                    return GridView.builder(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: crossAxisCount,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                        childAspectRatio: childAspectRatio,
+                      ),
+                      itemCount: items.length,
+                      itemBuilder: (context, index) {
+                        final item = items[index];
+                        final originalIndex = _rentalBox.values
+                            .toList()
+                            .indexOf(item);
+
+                        return GestureDetector(
+                          onLongPress: () => _deleteItem(originalIndex),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (_) => EditRentalItemPage(
+                                      item: item,
+                                      index: originalIndex,
+                                    ),
+                              ),
+                            );
+                          },
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(22),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.25),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
                                 ),
+                              ],
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFFE3F2FD), Color(0xFFB2EBF2)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                            ),
+                            child: _buildCardContent(item, originalIndex),
                           ),
                         );
                       },
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeInOut,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(22),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.25),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFFE3F2FD), Color(0xFFB2EBF2)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                        ),
-                        child: _buildCardContent(item, index),
-                      ),
                     );
                   },
                 );
               },
-            );
-          },
-        ),
+            ),
+          ),
+        ],
       ),
     );
   }

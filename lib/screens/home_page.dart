@@ -4,19 +4,12 @@ import 'package:bizmate/models/sale.dart';
 import 'package:bizmate/models/user_model.dart';
 import 'package:bizmate/screens/WhatsAppHelper.dart';
 import 'package:bizmate/screens/sale_detail_screen.dart';
+import 'package:bizmate/widgets/advanced_search_bar.dart'
+    show AdvancedSearchBar;
 import 'package:bizmate/widgets/sale_options_menu.dart' show SaleOptionsMenu;
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
-
-enum DateRangePreset {
-  today,
-  thisWeek,
-  thisMonth,
-  thisQuarter,
-  thisFinancialYear,
-  custom,
-}
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -30,30 +23,11 @@ class _HomePageState extends State<HomePage>
   String welcomeMessage = "";
   late AnimationController _controller;
   String _searchQuery = "";
-  final TextEditingController _searchController = TextEditingController();
-  final FocusNode _searchFocusNode = FocusNode();
-  bool _isSearchExpanded = false;
   DateTimeRange? selectedRange;
-  DateRangePreset? selectedPreset;
   String _currentUserName = '';
   String _currentUserEmail = '';
   String _currentUserPhone = '';
   // String _currentUserUpiId = '';
-
-  Future<void> _selectDateRange(BuildContext context) async {
-    final DateTimeRange? picked = await showDateRangePicker(
-      context: context,
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
-      initialDateRange: selectedRange,
-    );
-    if (picked != null) {
-      setState(() {
-        selectedRange = picked;
-        selectedPreset = DateRangePreset.custom;
-      });
-    }
-  }
 
   Future<void> _loadCurrentUserData() async {
     final currentUser = await _getCurrentUserName();
@@ -90,58 +64,6 @@ class _HomePageState extends State<HomePage>
     }
   }
 
-  void _handlePresetSelection(DateRangePreset preset) {
-    final now = DateTime.now();
-    DateTime startDate;
-    DateTime endDate;
-
-    switch (preset) {
-      case DateRangePreset.today:
-        startDate = DateTime(now.year, now.month, now.day);
-        endDate = DateTime(now.year, now.month, now.day);
-        break;
-      case DateRangePreset.thisWeek:
-        startDate = DateTime(now.year, now.month, now.day - now.weekday + 1);
-        endDate = DateTime(now.year, now.month, now.day - now.weekday + 7);
-        break;
-      case DateRangePreset.thisMonth:
-        startDate = DateTime(now.year, now.month, 1);
-        endDate = DateTime(now.year, now.month + 1, 0);
-        break;
-      case DateRangePreset.thisQuarter:
-        final quarter = (now.month - 1) ~/ 3 + 1;
-        startDate = DateTime(now.year, (quarter - 1) * 3 + 1, 1);
-        endDate = DateTime(now.year, quarter * 3 + 1, 0);
-        break;
-      case DateRangePreset.thisFinancialYear:
-        // Assuming financial year starts in April
-        startDate =
-            now.month >= 4
-                ? DateTime(now.year, 4, 1)
-                : DateTime(now.year - 1, 4, 1);
-        endDate =
-            now.month >= 4
-                ? DateTime(now.year + 1, 3, 31)
-                : DateTime(now.year, 3, 31);
-        break;
-      case DateRangePreset.custom:
-        _selectDateRange(context);
-        return;
-    }
-
-    setState(() {
-      selectedRange = DateTimeRange(start: startDate, end: endDate);
-      selectedPreset = preset;
-    });
-  }
-
-  void _clearDateFilter() {
-    setState(() {
-      selectedRange = null;
-      selectedPreset = null;
-    });
-  }
-
   void fetchWelcomeMessage() {
     final userBox = Hive.box<User>('users');
 
@@ -167,217 +89,24 @@ class _HomePageState extends State<HomePage>
     );
 
     _controller.forward();
-
-    _searchFocusNode.addListener(() {
-      setState(() {
-        _isSearchExpanded =
-            _searchFocusNode.hasFocus || _searchController.text.isNotEmpty;
-      });
-    });
   }
 
   @override
   void dispose() {
     _controller.dispose();
-    _searchController.dispose();
-    _searchFocusNode.dispose();
     super.dispose();
   }
 
-  Widget _buildAdvancedSearchBar() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final bool isSmallScreen = constraints.maxWidth < 600;
-        final bool isVerySmallScreen = constraints.maxWidth < 400;
+  void _handleSearchChanged(String query) {
+    setState(() {
+      _searchQuery = query;
+    });
+  }
 
-        return Column(
-          children: [
-            Container(
-              margin: EdgeInsets.symmetric(
-                horizontal:
-                    isVerySmallScreen
-                        ? 12
-                        : isSmallScreen
-                        ? 16
-                        : 20,
-                vertical: 15,
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: AnimatedContainer(
-                      duration: Duration(milliseconds: 300),
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(30),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 10,
-                            offset: Offset(0, 3),
-                          ),
-                        ],
-                        border: Border.all(
-                          color:
-                              _isSearchExpanded
-                                  ? Colors.indigo.withOpacity(0.3)
-                                  : Colors.transparent,
-                          width: 1.5,
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Padding(
-                              padding: EdgeInsets.only(
-                                left: isVerySmallScreen ? 16 : 20,
-                                right: 10,
-                              ),
-                              child: TextField(
-                                controller: _searchController,
-                                focusNode: _searchFocusNode,
-                                decoration: InputDecoration(
-                                  hintText:
-                                      isVerySmallScreen
-                                          ? 'Search...'
-                                          : isSmallScreen
-                                          ? 'Search sales...'
-                                          : 'Search by customer, product, phone, amount...',
-                                  hintStyle: TextStyle(
-                                    color: Colors.grey[600],
-                                    fontSize: isVerySmallScreen ? 14 : null,
-                                  ),
-                                  border: InputBorder.none,
-                                ),
-                                onChanged: (value) {
-                                  setState(() {
-                                    _searchQuery = value;
-                                    _isSearchExpanded =
-                                        value.isNotEmpty ||
-                                        _searchFocusNode.hasFocus;
-                                  });
-                                },
-                              ),
-                            ),
-                          ),
-                          AnimatedSwitcher(
-                            duration: Duration(milliseconds: 200),
-                            child:
-                                _searchController.text.isEmpty
-                                    ? IconButton(
-                                      icon: Icon(
-                                        Icons.search,
-                                        color: Colors.indigo,
-                                        size: isVerySmallScreen ? 20 : 24,
-                                      ),
-                                      onPressed: () {
-                                        _searchFocusNode.requestFocus();
-                                      },
-                                    )
-                                    : IconButton(
-                                      icon: Icon(
-                                        Icons.close,
-                                        color: Colors.grey,
-                                        size: isVerySmallScreen ? 20 : 24,
-                                      ),
-                                      onPressed: () {
-                                        _searchController.clear();
-                                        _searchFocusNode.unfocus();
-                                        setState(() {
-                                          _searchQuery = "";
-                                          _isSearchExpanded = false;
-                                        });
-                                      },
-                                    ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: isVerySmallScreen ? 8 : 10),
-                  Container(
-                    height: 50,
-                    width: isVerySmallScreen ? 50 : (isSmallScreen ? 50 : null),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(30),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 10,
-                          offset: Offset(0, 3),
-                        ),
-                      ],
-                    ),
-                    child: PopupMenuButton<DateRangePreset>(
-                      icon: Icon(
-                        Icons.tune_rounded,
-                        color: Colors.blue[800],
-                        size: isVerySmallScreen ? 20 : 24,
-                      ),
-                      onSelected: _handlePresetSelection,
-                      itemBuilder:
-                          (BuildContext context) =>
-                              <PopupMenuEntry<DateRangePreset>>[
-                                PopupMenuItem<DateRangePreset>(
-                                  value: DateRangePreset.today,
-                                  child: Text('Today'),
-                                ),
-                                PopupMenuItem<DateRangePreset>(
-                                  value: DateRangePreset.thisWeek,
-                                  child: Text('This Week'),
-                                ),
-                                PopupMenuItem<DateRangePreset>(
-                                  value: DateRangePreset.thisMonth,
-                                  child: Text('This Month'),
-                                ),
-                                PopupMenuItem<DateRangePreset>(
-                                  value: DateRangePreset.thisQuarter,
-                                  child: Text('This Quarter'),
-                                ),
-                                PopupMenuItem<DateRangePreset>(
-                                  value: DateRangePreset.thisFinancialYear,
-                                  child: Text('This Financial Year'),
-                                ),
-                                PopupMenuItem<DateRangePreset>(
-                                  value: DateRangePreset.custom,
-                                  child: Text('Custom Range'),
-                                ),
-                              ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (selectedRange != null)
-              Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal:
-                      isVerySmallScreen
-                          ? 12
-                          : isSmallScreen
-                          ? 16
-                          : 20,
-                ),
-                child: Row(
-                  children: [
-                    Chip(
-                      label: Text(
-                        '${DateFormat('dd MMM yyyy').format(selectedRange!.start)} - ${DateFormat('dd MMM yyyy').format(selectedRange!.end)}',
-                        style: TextStyle(fontSize: isVerySmallScreen ? 10 : 12),
-                      ),
-                      backgroundColor: Colors.blue[50],
-                      deleteIcon: Icon(Icons.close, size: 16),
-                      onDeleted: _clearDateFilter,
-                    ),
-                  ],
-                ),
-              ),
-          ],
-        );
-      },
-    );
+  void _handleDateRangeChanged(DateTimeRange? range) {
+    setState(() {
+      selectedRange = range;
+    });
   }
 
   Widget buildSalesList() {
@@ -430,7 +159,17 @@ class _HomePageState extends State<HomePage>
 
             return Column(
               children: [
-                _buildAdvancedSearchBar(),
+                AdvancedSearchBar(
+                  hintText:
+                      isVerySmallScreen
+                          ? 'Search...'
+                          : isSmallScreen
+                          ? 'Search sales...'
+                          : 'Search by customer, product, phone, amount...',
+                  onSearchChanged: _handleSearchChanged,
+                  onDateRangeChanged: _handleDateRangeChanged,
+                  showDateFilter: true,
+                ),
 
                 if (box.isEmpty &&
                     _searchQuery.isEmpty &&
@@ -855,7 +594,8 @@ class _HomePageState extends State<HomePage>
                                                   boxShadow: [
                                                     BoxShadow(
                                                       color: badgeColor
-                                                          .withOpacity(0.3),
+                                                      // ignore: deprecated_member_use
+                                                      .withOpacity(0.3),
                                                       blurRadius: 4,
                                                       offset: Offset(0, 2),
                                                     ),

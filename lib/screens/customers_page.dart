@@ -5,6 +5,8 @@ import 'dart:io';
 import 'package:bizmate/widgets/app_snackbar.dart' show AppSnackBar;
 import 'package:bizmate/widgets/confirm_delete_dialog.dart'
     show showConfirmDialog;
+import 'package:bizmate/widgets/advanced_search_bar.dart'
+    show AdvancedSearchBar;
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:intl/intl.dart';
@@ -25,20 +27,39 @@ class CustomersPage extends StatefulWidget {
 class _CustomersPageState extends State<CustomersPage> {
   List<Map<String, String>> customers = [];
   List<Map<String, String>> filteredCustomers = [];
-  final TextEditingController _searchController = TextEditingController();
-  final FocusNode _searchFocusNode = FocusNode();
-  bool _isSearchExpanded = false;
+  String _searchQuery = "";
 
   @override
   void initState() {
     super.initState();
     fetchUniqueCustomers();
-    _searchFocusNode.addListener(() {
-      setState(() {
-        _isSearchExpanded =
-            _searchFocusNode.hasFocus || _searchController.text.isNotEmpty;
-      });
+  }
+
+  void _handleSearchChanged(String query) {
+    setState(() {
+      _searchQuery = query;
+      _filterCustomers();
     });
+  }
+
+  void _handleDateRangeChanged(DateTimeRange? range) {
+    setState(() {
+      _filterCustomers();
+    });
+  }
+
+  void _filterCustomers() {
+    if (_searchQuery.isEmpty) {
+      filteredCustomers = List.from(customers);
+    } else {
+      filteredCustomers =
+          customers.where((customer) {
+            final name = customer['name']?.toLowerCase() ?? '';
+            final phone = customer['phone']?.toLowerCase() ?? '';
+            final query = _searchQuery.toLowerCase();
+            return name.contains(query) || phone.contains(query);
+          }).toList();
+    }
   }
 
   void fetchUniqueCustomers() {
@@ -64,89 +85,6 @@ class _CustomersPageState extends State<CustomersPage> {
       customers = uniqueList;
       filteredCustomers = List.from(uniqueList);
     });
-  }
-
-  Widget _buildAnimatedSearchBar() {
-    return AnimatedContainer(
-      duration: Duration(milliseconds: 300),
-      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      height: _isSearchExpanded ? 50 : 50,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: Offset(0, 3),
-          ),
-        ],
-        border: Border.all(
-          color:
-              _isSearchExpanded
-                  ? Colors.indigo.withOpacity(0.3)
-                  : Colors.transparent,
-          width: 1.5,
-        ),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Padding(
-              padding: EdgeInsets.only(left: 20, right: 10),
-              child: TextField(
-                controller: _searchController,
-                focusNode: _searchFocusNode,
-                decoration: InputDecoration(
-                  hintText: 'Search customers...',
-                  hintStyle: TextStyle(color: Colors.grey[600]),
-                  border: InputBorder.none,
-                ),
-                onChanged: (value) {
-                  setState(() {
-                    if (value.isEmpty) {
-                      filteredCustomers = List.from(customers);
-                    } else {
-                      filteredCustomers =
-                          customers.where((customer) {
-                            final name = customer['name']?.toLowerCase() ?? '';
-                            final phone =
-                                customer['phone']?.toLowerCase() ?? '';
-                            final query = value.toLowerCase();
-                            return name.contains(query) ||
-                                phone.contains(query);
-                          }).toList();
-                    }
-                  });
-                },
-              ),
-            ),
-          ),
-          AnimatedSwitcher(
-            duration: Duration(milliseconds: 200),
-            child:
-                _searchController.text.isEmpty
-                    ? IconButton(
-                      icon: Icon(Icons.search, color: Colors.indigo),
-                      onPressed: () {
-                        _searchFocusNode.requestFocus();
-                      },
-                    )
-                    : IconButton(
-                      icon: Icon(Icons.close, color: Colors.grey),
-                      onPressed: () {
-                        _searchController.clear();
-                        _searchFocusNode.unfocus();
-                        setState(() {
-                          filteredCustomers = List.from(customers);
-                          _isSearchExpanded = false;
-                        });
-                      },
-                    ),
-          ),
-        ],
-      ),
-    );
   }
 
   // All your existing methods remain unchanged below this point
@@ -464,7 +402,12 @@ class _CustomersPageState extends State<CustomersPage> {
       backgroundColor: Color(0xFFF4F6FA),
       body: Column(
         children: [
-          _buildAnimatedSearchBar(),
+          AdvancedSearchBar(
+            hintText: 'Search customers...',
+            onSearchChanged: _handleSearchChanged,
+            onDateRangeChanged: _handleDateRangeChanged,
+            showDateFilter: false, // No date filter needed for customers page
+          ),
           Expanded(
             child:
                 filteredCustomers.isEmpty
@@ -479,7 +422,7 @@ class _CustomersPageState extends State<CustomersPage> {
                           ),
                           SizedBox(height: 16),
                           Text(
-                            _searchController.text.isEmpty
+                            _searchQuery.isEmpty
                                 ? "No Customers Yet"
                                 : "No matching customers found",
                             style: TextStyle(
