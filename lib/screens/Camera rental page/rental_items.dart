@@ -1,10 +1,7 @@
 import 'dart:io';
-import 'package:bizmate/screens/Camera%20rental%20page/view_rental_details_page.dart'
-    show ViewRentalDetailsPage;
-import 'package:bizmate/widgets/confirm_delete_dialog.dart'
-    show showConfirmDialog;
-import 'package:bizmate/widgets/advanced_search_bar.dart'
-    show AdvancedSearchBar;
+import 'package:bizmate/screens/Camera%20rental%20page/view_rental_details_page.dart';
+import 'package:bizmate/widgets/confirm_delete_dialog.dart';
+import 'package:bizmate/widgets/advanced_search_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../../models/rental_item.dart';
@@ -103,11 +100,11 @@ class _RentalItemsState extends State<RentalItems> {
             showDateFilter: false,
           ),
 
-          /// CATEGORY CHIPS (Improved Responsive)
+          // CATEGORY CHIPS
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
             child: SizedBox(
-              height: 45,
+              height: 40,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: _categories.length,
@@ -187,7 +184,7 @@ class _RentalItemsState extends State<RentalItems> {
             ),
           ),
 
-          /// RENTAL GRID
+          // RENTAL GRID
           Expanded(
             child: ValueListenableBuilder(
               valueListenable: _rentalBox.listenable(),
@@ -280,7 +277,7 @@ class _RentalItemsState extends State<RentalItems> {
     );
   }
 
-  /// CARD UI FIXED FOR FULL RESPONSIVENESS
+  // ⭐⭐⭐ FULL CARD WITH YOUR MISSING POSITIONED ICON ROW
   Widget _buildCard(RentalItem item, int index) {
     return LayoutBuilder(
       builder: (context, c) {
@@ -298,132 +295,178 @@ class _RentalItemsState extends State<RentalItems> {
               ),
             ],
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+          child: Stack(
             children: [
-              ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(22),
-                ),
-                child: Image.file(
-                  File(item.imagePath),
-                  height: c.maxHeight * 0.42,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                ),
-              ),
-
-              /// TEXT + PRICE SECTION
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 8,
+              Column(
+                children: [
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(22),
+                    ),
+                    child: Image.file(
+                      File(item.imagePath),
+                      height: c.maxHeight * 0.42,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    ),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF0D47A1),
-                          fontSize: 15,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
 
-                      Row(
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.camera, size: 14),
-                          const SizedBox(width: 5),
-                          Expanded(
-                            child: Text(
-                              item.brand,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: 12),
+                          Text(
+                            item.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF0D47A1),
+                              fontSize: 15,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Row(
+                            children: [
+                              const Icon(Icons.camera, size: 14),
+                              const SizedBox(width: 5),
+                              Expanded(
+                                child: Text(
+                                  item.brand,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const Spacer(),
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Column(
+                              children: [
+                                Row(
+                                  children: [
+                                    Text(
+                                      '₹${item.price.toStringAsFixed(0)}/day',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.teal,
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    Icon(
+                                      item.availability == 'Available'
+                                          ? Icons.check_circle
+                                          : Icons.cancel,
+                                      color:
+                                          item.availability == 'Available'
+                                              ? Colors.green
+                                              : Colors.red,
+                                      size: 18,
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF0D47A1),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 8,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                    ),
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder:
+                                              (_) => ViewRentalDetailsPage(
+                                                item: item,
+                                                name: item.name,
+                                                imageUrl: item.imagePath,
+                                                pricePerDay: item.price,
+                                                availability: item.availability,
+                                              ),
+                                        ),
+                                      );
+                                    },
+                                    child: const Text(
+                                      'View Details',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
+                    ),
+                  ),
+                ],
+              ),
 
-                      const Spacer(),
-
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
+              // ⭐⭐⭐ YOUR MISSING POSITIONED DESIGN RESTORED ⭐⭐⭐
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color:
+                            item.availability == 'Available'
+                                ? Colors.green.withOpacity(0.9)
+                                : Colors.redAccent.withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        item.availability,
+                        style: const TextStyle(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Column(
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  '₹${item.price.toStringAsFixed(0)}/day',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.teal,
-                                  ),
-                                ),
-                                Icon(
-                                  item.availability == 'Available'
-                                      ? Icons.check_circle
-                                      : Icons.cancel,
-                                  color:
-                                      item.availability == 'Available'
-                                          ? Colors.green
-                                          : Colors.red,
-                                  size: 18,
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 6),
-                            SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF0D47A1),
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 8,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                ),
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder:
-                                          (_) => ViewRentalDetailsPage(
-                                            item: item,
-                                            name: item.name,
-                                            imageUrl: item.imagePath,
-                                            pricePerDay: item.price,
-                                            availability: item.availability,
-                                          ),
-                                    ),
-                                  );
-                                },
-                                child: const Text(
-                                  'View Details',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 6),
+                    InkWell(
+                      onTap: () => _deleteItem(index),
+                      child: Container(
+                        decoration: const BoxDecoration(
+                          color: Colors.black54,
+                          shape: BoxShape.circle,
+                        ),
+                        padding: const EdgeInsets.all(6),
+                        child: const Icon(
+                          Icons.delete_outline,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

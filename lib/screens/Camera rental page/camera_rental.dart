@@ -187,30 +187,73 @@ class _CameraRentalPageState extends State<CameraRentalPage> {
   Widget _buildImage(RentalSaleModel sale, double size) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(20),
-      child:
-          sale.imageUrl != null &&
-                  sale.imageUrl!.isNotEmpty &&
-                  File(sale.imageUrl!).existsSync()
-              ? Image.file(
-                File(sale.imageUrl!),
-                height: size,
-                width: size,
-                fit: BoxFit.cover,
-              )
-              : Container(
-                height: size,
-                width: size,
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade200,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Icon(
-                  Icons.camera_alt,
-                  color: Colors.white,
-                  size: 40,
-                ),
+      child: FutureBuilder<bool>(
+        future: _checkImageExists(sale.imageUrl),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Container(
+              height: size,
+              width: size,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(20),
               ),
+              child: const Icon(
+                Icons.camera_alt,
+                color: Colors.white,
+                size: 30,
+              ),
+            );
+          }
+
+          if (snapshot.hasData && snapshot.data == true) {
+            return Image.file(
+              File(sale.imageUrl!),
+              height: size,
+              width: size,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return _buildPlaceholderImage(size);
+              },
+            );
+          } else {
+            return _buildPlaceholderImage(size);
+          }
+        },
+      ),
     );
+  }
+
+  Widget _buildPlaceholderImage(double size) {
+    return Container(
+      height: size,
+      width: size,
+      decoration: BoxDecoration(
+        color: Colors.blue.shade200,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: const Icon(Icons.camera_alt, color: Colors.white, size: 40),
+    );
+  }
+
+  Future<bool> _checkImageExists(String? imageUrl) async {
+    if (imageUrl == null || imageUrl.isEmpty) {
+      return false;
+    }
+
+    try {
+      final file = File(imageUrl);
+      final exists = await file.exists();
+      if (exists) {
+        // Additional check to ensure the file is readable
+        final length = await file.length();
+        return length > 0;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('Error checking image file: $e');
+      return false;
+    }
   }
 
   String getSaleStatus(RentalSaleModel sale) {
@@ -441,7 +484,6 @@ class _CameraRentalPageState extends State<CameraRentalPage> {
                 RichText(
                   text: TextSpan(
                     style: const TextStyle(fontSize: 15),
-
                     children: [
                       const TextSpan(
                         text: 'Balance: ',
@@ -505,7 +547,7 @@ class _CameraRentalPageState extends State<CameraRentalPage> {
       pw.Widget? saleImage;
       if (sale.imageUrl != null &&
           sale.imageUrl!.isNotEmpty &&
-          File(sale.imageUrl!).existsSync()) {
+          await _checkImageExists(sale.imageUrl)) {
         try {
           final bytes = File(sale.imageUrl!).readAsBytesSync();
           if (bytes.isNotEmpty) {

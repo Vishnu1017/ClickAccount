@@ -4,6 +4,8 @@ import 'package:bizmate/widgets/app_snackbar.dart' show AppSnackBar;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:path_provider/path_provider.dart'
+    show getApplicationDocumentsDirectory;
 
 class AddRentalItemPage extends StatefulWidget {
   const AddRentalItemPage({super.key});
@@ -35,10 +37,28 @@ class _AddRentalItemPageState extends State<AddRentalItemPage> {
 
   final ImagePicker _picker = ImagePicker();
 
+  Future<File> _saveImagePermanently(String path) async {
+    final directory = await getApplicationDocumentsDirectory();
+    final folder = Directory("${directory.path}/rental_images");
+
+    if (!await folder.exists()) {
+      await folder.create(recursive: true);
+    }
+
+    final fileName = "${DateTime.now().millisecondsSinceEpoch}.jpg";
+    final newImage = File("${folder.path}/$fileName");
+
+    return File(path).copy(newImage.path);
+  }
+
   Future<void> _pickImage() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+
     if (pickedFile != null) {
-      setState(() => _selectedImage = File(pickedFile.path));
+      // SAVE IT PERMANENTLY
+      final savedFile = await _saveImagePermanently(pickedFile.path);
+
+      setState(() => _selectedImage = savedFile);
     }
   }
 
@@ -46,24 +66,23 @@ class _AddRentalItemPageState extends State<AddRentalItemPage> {
     if (_formKey.currentState!.validate()) {
       if (_selectedImage == null) {
         AppSnackBar.showWarning(context, message: 'Please upload an image!');
-
         return;
       }
 
       final box = Hive.box<RentalItem>('rental_items');
+
       final item = RentalItem(
         name: _nameController.text.trim(),
         brand: _brandController.text.trim(),
         category: _selectedCategory,
         price: double.parse(_priceController.text.trim()),
         availability: _availability,
-        imagePath: _selectedImage!.path,
+        imagePath: _selectedImage!.path, // <-- NOW PERMANENT PATH
       );
 
       await box.add(item);
 
       AppSnackBar.showSuccess(context, message: 'Item added successfully!');
-
       _clearForm();
     }
   }
