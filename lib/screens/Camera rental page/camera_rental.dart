@@ -18,6 +18,7 @@ import 'package:intl/intl.dart' show DateFormat;
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../models/rental_sale_model.dart';
 
@@ -41,6 +42,7 @@ class _CameraRentalPageState extends State<CameraRentalPage> {
   late Box<RentalSaleModel> salesBox;
   bool _isLoading = true;
   List<RentalSaleModel> rentalSales = [];
+  File? _profileImage;
 
   // Search functionality variables
   String _searchQuery = "";
@@ -51,6 +53,7 @@ class _CameraRentalPageState extends State<CameraRentalPage> {
     super.initState();
     _initHiveListener();
     _loadSales();
+    _loadProfileImage();
   }
 
   void _handleSearchChanged(String query) {
@@ -63,6 +66,27 @@ class _CameraRentalPageState extends State<CameraRentalPage> {
     setState(() {
       _selectedRange = range;
     });
+  }
+
+  Future<void> _loadProfileImage() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final path = prefs.getString('${widget.userEmail}_profileImagePath');
+
+      if (path != null && path.isNotEmpty) {
+        final file = File(path);
+        final exists = await file.exists();
+        if (exists) {
+          setState(() {
+            _profileImage = file;
+          });
+        } else {
+          await prefs.remove('${widget.userEmail}_profileImagePath');
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading profile image for PDF: $e');
+    }
   }
 
   List<RentalSaleModel> _getFilteredRentalSales() {
@@ -544,17 +568,25 @@ class _CameraRentalPageState extends State<CameraRentalPage> {
       final totalCost = sale.totalCost.toStringAsFixed(2);
       final invoiceDate = DateFormat('dd-MM-yyyy').format(DateTime.now());
 
-      pw.Widget? saleImage;
-      if (sale.imageUrl != null &&
-          sale.imageUrl!.isNotEmpty &&
-          await _checkImageExists(sale.imageUrl)) {
+      // Load profile image for PDF
+      pw.Widget? profileImageWidget;
+      if (_profileImage != null) {
         try {
-          final bytes = File(sale.imageUrl!).readAsBytesSync();
-          if (bytes.isNotEmpty) {
-            saleImage = pw.Image(pw.MemoryImage(bytes), fit: pw.BoxFit.cover);
+          final profileBytes = _profileImage!.readAsBytesSync();
+          if (profileBytes.isNotEmpty) {
+            profileImageWidget = pw.Container(
+              width: 60,
+              height: 60,
+              child: pw.ClipOval(
+                child: pw.Image(
+                  pw.MemoryImage(profileBytes),
+                  fit: pw.BoxFit.cover,
+                ),
+              ),
+            );
           }
-        } catch (_) {
-          saleImage = null;
+        } catch (e) {
+          debugPrint('Error loading profile image for PDF: $e');
         }
       }
 
@@ -570,26 +602,29 @@ class _CameraRentalPageState extends State<CameraRentalPage> {
                 pw.Row(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
-                    if (saleImage != null)
-                      pw.Container(width: 60, height: 60, child: saleImage),
-                    if (saleImage != null) pw.SizedBox(width: 16),
-                    pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.start,
-                      children: [
-                        pw.Text(
-                          userName,
-                          style: pw.TextStyle(
-                            fontSize: 22,
-                            fontWeight: pw.FontWeight.bold,
+                    // Profile Image
+                    if (profileImageWidget != null) profileImageWidget,
+                    if (profileImageWidget != null) pw.SizedBox(width: 16),
+
+                    pw.Expanded(
+                      child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text(
+                            userName,
+                            style: pw.TextStyle(
+                              fontSize: 22,
+                              fontWeight: pw.FontWeight.bold,
+                            ),
                           ),
-                        ),
-                        pw.Text(
-                          'Phone: +91 ${widget.userPhone.isNotEmpty ? widget.userPhone : "N/A"}',
-                        ),
-                        pw.Text(
-                          'Email: ${widget.userEmail.isNotEmpty ? widget.userEmail : "N/A"}',
-                        ),
-                      ],
+                          pw.Text(
+                            'Phone: +91 ${widget.userPhone.isNotEmpty ? widget.userPhone : "N/A"}',
+                          ),
+                          pw.Text(
+                            'Email: ${widget.userEmail.isNotEmpty ? widget.userEmail : "N/A"}',
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),

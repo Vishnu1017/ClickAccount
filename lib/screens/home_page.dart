@@ -27,37 +27,62 @@ class _HomePageState extends State<HomePage>
   String _currentUserName = '';
   String _currentUserEmail = '';
   String _currentUserPhone = '';
-  // String _currentUserUpiId = '';
+  bool _isUserDataLoaded = false;
 
   Future<void> _loadCurrentUserData() async {
-    final currentUser = await _getCurrentUserName();
-    setState(() {
-      _currentUserName = currentUser?.name ?? '';
-      _currentUserEmail = currentUser?.email ?? '';
-      _currentUserPhone = currentUser?.phone ?? '';
-      // _currentUserUpiId = currentUser?.upiId ?? '';
-    });
+    try {
+      final user = await _getCurrentUserName();
+      if (user != null) {
+        setState(() {
+          _currentUserName = user.name;
+          _currentUserEmail = user.email;
+          _currentUserPhone = user.phone;
+          _isUserDataLoaded = true;
+        });
+      } else {
+        setState(() {
+          _isUserDataLoaded = true;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading current user data: $e');
+      setState(() {
+        _isUserDataLoaded = true;
+      });
+    }
   }
 
-  // Add this method to your _HomePageState class
   Future<User?> _getCurrentUserName() async {
     try {
-      final usersBox = await Hive.openBox<User>('users');
-      final sessionBox = await Hive.openBox('session');
-      final currentUserEmail = sessionBox.get('currentUserEmail');
+      final usersBox = Hive.box<User>('users');
+      final sessionBox = Hive.openBox('session');
+      final currentUserEmail = (await sessionBox).get('currentUserEmail');
 
       if (currentUserEmail != null) {
-        return usersBox.values.firstWhere(
+        final matchingUser = usersBox.values.firstWhere(
           (user) => user.email == currentUserEmail,
-          orElse: () => usersBox.values.first,
+          orElse:
+              () =>
+                  usersBox.values.isNotEmpty
+                      ? usersBox.values.first
+                      : User(
+                        name: '',
+                        email: '',
+                        phone: '',
+                        role: '',
+                        upiId: '',
+                        imageUrl: '',
+                        password: '',
+                      ),
         );
+        return matchingUser;
       } else {
         // If no session, get the first user
         if (usersBox.isNotEmpty) {
           return usersBox.values.first;
         }
       }
-      return null; // Return null if no user found
+      return null;
     } catch (e) {
       debugPrint('Error getting current user: $e');
       return null;
@@ -80,7 +105,6 @@ class _HomePageState extends State<HomePage>
   void initState() {
     super.initState();
     fetchWelcomeMessage();
-    _getCurrentUserName();
     _loadCurrentUserData();
 
     _controller = AnimationController(
@@ -624,31 +648,57 @@ class _HomePageState extends State<HomePage>
                                   ),
                                 ),
                                 if (!isVerySmallScreen) ...[
-                                  // In your HomePage, replace the entire PopupMenuButton section with:
-                                  SaleOptionsMenu(
-                                    sale: sale,
-                                    originalIndex: originalIndex,
-                                    box: box,
-                                    isSmallScreen: isSmallScreen,
-                                    invoiceNumber: invoiceNumber.toString(),
-                                    currentUserName: _currentUserName,
-                                    currentUserPhone: _currentUserPhone,
-                                    currentUserEmail: _currentUserEmail,
-                                    parentContext: context,
-                                  ),
+                                  // SaleOptionsMenu with proper user data
+                                  _isUserDataLoaded
+                                      ? SaleOptionsMenu(
+                                        sale: sale,
+                                        originalIndex: originalIndex,
+                                        box: box,
+                                        isSmallScreen: isSmallScreen,
+                                        invoiceNumber: invoiceNumber.toString(),
+                                        currentUserName: _currentUserName,
+                                        currentUserPhone: _currentUserPhone,
+                                        currentUserEmail: _currentUserEmail,
+                                        parentContext: context,
+                                      )
+                                      : Container(
+                                        width: isSmallScreen ? 20 : 24,
+                                        child: Center(
+                                          child: SizedBox(
+                                            width: 16,
+                                            height: 16,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
                                 ] else ...[
                                   // For very small screens
-                                  SaleOptionsMenu(
-                                    sale: sale,
-                                    originalIndex: originalIndex,
-                                    box: box,
-                                    isSmallScreen: true,
-                                    invoiceNumber: invoiceNumber.toString(),
-                                    currentUserName: _currentUserName,
-                                    currentUserPhone: _currentUserPhone,
-                                    currentUserEmail: _currentUserEmail,
-                                    parentContext: context,
-                                  ),
+                                  _isUserDataLoaded
+                                      ? SaleOptionsMenu(
+                                        sale: sale,
+                                        originalIndex: originalIndex,
+                                        box: box,
+                                        isSmallScreen: true,
+                                        invoiceNumber: invoiceNumber.toString(),
+                                        currentUserName: _currentUserName,
+                                        currentUserPhone: _currentUserPhone,
+                                        currentUserEmail: _currentUserEmail,
+                                        parentContext: context,
+                                      )
+                                      : Container(
+                                        width: 16,
+                                        child: Center(
+                                          child: SizedBox(
+                                            width: 12,
+                                            height: 12,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 1.5,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
                                 ],
                               ],
                             ),

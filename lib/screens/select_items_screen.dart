@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:bizmate/models/product_store.dart';
+import 'package:bizmate/widgets/discount_tax_widget.dart';
 import 'package:flutter/material.dart';
 
 class SelectItemsScreen extends StatefulWidget {
@@ -282,103 +283,24 @@ class _SelectItemsScreenState extends State<SelectItemsScreen> {
                     _buildCardSection(
                       title: "Discount & Tax",
                       children: [
-                        _buildSummaryRow("Subtotal", summary['subtotal']!),
-                        SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildTextField(
-                                discountPercentController,
-                                "Discount %",
-                                suffixText: "%",
-                                onTap:
-                                    () =>
-                                        setState(() => isEditingPercent = true),
-                                validator:
-                                    isEditingPercent
-                                        ? (value) {
-                                          if (value == null ||
-                                              value.trim().isEmpty) {
-                                            return null; // Allow empty discount
-                                          }
-                                          final percent = double.tryParse(
-                                            value,
-                                          );
-                                          if (percent == null ||
-                                              percent < 0 ||
-                                              percent > 100) {
-                                            return 'Enter 0-100%';
-                                          }
-                                          return null;
-                                        }
-                                        : null,
-                              ),
-                            ),
-                            SizedBox(width: 12),
-                            Expanded(
-                              child: _buildTextField(
-                                discountAmountController,
-                                "Discount ₹",
-                                prefixText: "₹ ",
-                                onTap:
-                                    () => setState(
-                                      () => isEditingPercent = false,
-                                    ),
-                                validator:
-                                    !isEditingPercent
-                                        ? (value) {
-                                          if (value == null ||
-                                              value.trim().isEmpty) {
-                                            return null; // Allow empty discount
-                                          }
-                                          final amount = double.tryParse(value);
-                                          if (amount == null || amount < 0) {
-                                            return 'Invalid amount';
-                                          }
-                                          if (amount > summary['subtotal']!) {
-                                            return 'Cannot exceed subtotal';
-                                          }
-                                          return null;
-                                        }
-                                        : null,
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 16),
-                        IgnorePointer(
-                          ignoring: selectedTaxType != 'With Tax',
-                          child: Opacity(
-                            opacity: selectedTaxType == 'With Tax' ? 1.0 : 0.4,
-                            child: _buildDropdown(
-                              "Select Tax Rate",
-                              selectedTaxRate,
-                              taxRateOptions,
+                        DiscountTaxWidget(
+                          discountPercentController: discountPercentController,
+                          discountAmountController: discountAmountController,
+                          isEditingPercent: isEditingPercent,
+                          onModeChange:
+                              (value) =>
+                                  setState(() => isEditingPercent = value),
+
+                          subtotal: summary['subtotal']!,
+                          selectedTaxRate: selectedTaxRate,
+                          selectedTaxType: selectedTaxType,
+                          taxRateOptions: taxRateOptions,
+                          onTaxRateChanged:
                               (val) => setState(() => selectedTaxRate = val),
-                            ),
-                          ),
+
+                          parsedTaxRate: parseTaxRate(),
+                          taxAmount: summary['taxAmount']!,
                         ),
-                        if (selectedTaxType == 'With Tax' &&
-                            parseTaxRate() > 0) ...[
-                          SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildInfoCard(
-                                  "Tax Rate",
-                                  "${parseTaxRate().toStringAsFixed(2)}%",
-                                ),
-                              ),
-                              SizedBox(width: 12),
-                              Expanded(
-                                child: _buildInfoCard(
-                                  "Tax Amount",
-                                  "₹ ${summary['taxAmount']!.toStringAsFixed(2)}",
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
                       ],
                     ),
                     SizedBox(height: 24),
@@ -706,23 +628,6 @@ class _SelectItemsScreenState extends State<SelectItemsScreen> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildInfoCard(String label, String value) {
-    return Container(
-      padding: EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Column(
-        children: [
-          Text(label, style: TextStyle(fontSize: 13, color: Colors.black54)),
-          SizedBox(height: 4),
-          Text(value, style: TextStyle(fontWeight: FontWeight.bold)),
-        ],
-      ),
     );
   }
 

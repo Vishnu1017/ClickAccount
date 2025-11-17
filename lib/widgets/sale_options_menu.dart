@@ -13,6 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
+import 'dart:typed_data'; // Add this import for Uint8List
 
 // Import your models and screens
 import '../models/sale.dart';
@@ -308,7 +309,7 @@ class SaleOptionsMenu extends StatelessWidget {
 
     final qrData = _generateQrData(enteredAmount, currentUser!);
 
-    final headerImage = await _getProfileImage();
+    final profileImageBytes = await _getProfileImageBytes();
 
     pdf.addPage(
       pw.Page(
@@ -316,9 +317,9 @@ class SaleOptionsMenu extends StatelessWidget {
             (pw.Context context) => _buildPdfPage(
               balanceAmount.toDouble(),
               rupeeFont,
-              qrData, // Pass the QR data string instead of SVG
-              headerImage,
-              currentUser, // Pass the actual current user
+              qrData,
+              profileImageBytes,
+              currentUser,
             ),
       ),
     );
@@ -541,38 +542,67 @@ class SaleOptionsMenu extends StatelessWidget {
     }
   }
 
-  Future<pw.MemoryImage?> _getProfileImage() async {
-    final prefs = await SharedPreferences.getInstance();
-    final currentUserEmail = await _getCurrentUserEmailFromHive();
+  Future<Uint8List?> _getProfileImageBytes() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final currentUserEmail = await _getCurrentUserEmailFromHive();
 
-    if (currentUserEmail != null) {
-      final profileImagePath = prefs.getString(
-        '${currentUserEmail}_profileImagePath',
-      );
-      if (profileImagePath != null) {
-        final profileFile = File(profileImagePath);
-        if (await profileFile.exists()) {
-          final imageBytes = await profileFile.readAsBytes();
-          debugPrint('Profile image loaded successfully: $profileImagePath');
-          return pw.MemoryImage(imageBytes);
+      debugPrint('=== DEBUG PROFILE IMAGE LOADING ===');
+      debugPrint('Current User Email: $currentUserEmail');
+
+      if (currentUserEmail != null) {
+        final profileImagePath = prefs.getString(
+          '${currentUserEmail}_profileImagePath',
+        );
+
+        debugPrint(
+          'Profile Image Path from SharedPreferences: $profileImagePath',
+        );
+
+        if (profileImagePath != null && profileImagePath.isNotEmpty) {
+          final profileFile = File(profileImagePath);
+          final fileExists = await profileFile.exists();
+          debugPrint('Profile file exists: $fileExists');
+
+          if (fileExists) {
+            final imageBytes = await profileFile.readAsBytes();
+            debugPrint(
+              'Image bytes loaded successfully. Size: ${imageBytes.length} bytes',
+            );
+
+            if (imageBytes.isNotEmpty) {
+              debugPrint('=== PROFILE IMAGE LOADED SUCCESSFULLY ===');
+              return Uint8List.fromList(imageBytes);
+            } else {
+              debugPrint('ERROR: Image bytes are empty');
+            }
+          } else {
+            debugPrint(
+              'ERROR: Profile image file does not exist at path: $profileImagePath',
+            );
+            // Remove invalid path from shared preferences
+            await prefs.remove('${currentUserEmail}_profileImagePath');
+          }
         } else {
-          debugPrint('Profile image file not found: $profileImagePath');
+          debugPrint('ERROR: No profile image path found in SharedPreferences');
         }
       } else {
-        debugPrint('No profile image path found in SharedPreferences.');
+        debugPrint('ERROR: No current user email found in Hive session');
       }
-    } else {
-      debugPrint('No current user email found in Hive session.');
+    } catch (e) {
+      debugPrint('ERROR loading profile image: $e');
     }
-    return null; // Return null if image not found
+
+    debugPrint('=== PROFILE IMAGE LOADING FAILED ===');
+    return null;
   }
 
   pw.Widget _buildPdfPage(
     double balanceAmount,
     pw.Font rupeeFont,
-    String qrData, // QR data string
-    pw.MemoryImage? headerImage,
-    User currentUser, // Pass the actual current user object
+    String qrData,
+    Uint8List? profileImageBytes,
+    User currentUser,
   ) {
     return pw.Container(
       decoration: pw.BoxDecoration(
@@ -583,30 +613,85 @@ class SaleOptionsMenu extends StatelessWidget {
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
+          // Header with Profile Image
           pw.Row(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              if (headerImage != null)
+              // Profile Image - Circular with proper styling
+              if (profileImageBytes != null && profileImageBytes.isNotEmpty)
                 pw.Container(
                   width: 60,
                   height: 60,
-                  child: pw.Image(headerImage, fit: pw.BoxFit.cover),
-                ),
-              if (headerImage != null) pw.SizedBox(width: 16),
-              pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Text(
-                    currentUserName,
-                    style: pw.TextStyle(
-                      fontSize: 22,
-                      fontWeight: pw.FontWeight.bold,
+                  decoration: pw.BoxDecoration(
+                    shape: pw.BoxShape.circle,
+                    border: pw.Border.all(color: PdfColors.grey, width: 1),
+                  ),
+                  child: pw.ClipOval(
+                    child: pw.Image(
+                      pw.MemoryImage(profileImageBytes),
+                      fit: pw.BoxFit.cover,
                     ),
                   ),
-                  pw.SizedBox(height: 4),
-                  pw.Text('Phone: +91 $currentUserPhone'),
-                  pw.Text('Email: $currentUserEmail'),
-                ],
+                )
+              else
+                // Fallback when no profile image
+                pw.Container(
+                  width: 60,
+                  height: 60,
+                  decoration: pw.BoxDecoration(
+                    shape: pw.BoxShape.circle,
+                    color: PdfColors.grey300,
+                    border: pw.Border.all(color: PdfColors.grey, width: 1),
+                  ),
+                  child: pw.Center(
+                    child: pw.Text(
+                      currentUserName.isNotEmpty
+                          ? currentUserName[0].toUpperCase()
+                          : currentUser.name.isNotEmpty
+                          ? currentUser.name[0].toUpperCase()
+                          : 'U',
+                      style: pw.TextStyle(
+                        fontSize: 20,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.white,
+                      ),
+                    ),
+                  ),
+                ),
+
+              pw.SizedBox(width: 16),
+
+              // User Information
+              pw.Expanded(
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      currentUserName.isNotEmpty
+                          ? currentUserName
+                          : currentUser.name,
+                      style: pw.TextStyle(
+                        fontSize: 22,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
+                    ),
+                    pw.SizedBox(height: 4),
+                    pw.Text(
+                      'Phone: +91 ${currentUserPhone.isNotEmpty ? currentUserPhone : currentUser.phone}',
+                    ),
+                    pw.Text(
+                      'Email: ${currentUserEmail.isNotEmpty ? currentUserEmail : currentUser.email}',
+                    ),
+                    if (currentUser.upiId.isNotEmpty)
+                      pw.Text(
+                        'UPI ID: ${currentUser.upiId}',
+                        style: pw.TextStyle(
+                          fontSize: 10,
+                          color: PdfColors.grey600,
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -640,7 +725,7 @@ class SaleOptionsMenu extends StatelessWidget {
                     pw.Text('Contact No.: +91 ${sale.phoneNumber}'),
                     pw.SizedBox(height: 12),
                     if (balanceAmount > 0) ...[
-                      // Use BarcodeWidget for QR code
+                      // QR Code
                       pw.Center(
                         child: pw.BarcodeWidget(
                           data: qrData,
@@ -796,10 +881,7 @@ class SaleOptionsMenu extends StatelessWidget {
             alignment: pw.Alignment.centerRight,
             child: pw.Text(
               'For: ${sale.customerName}',
-              style: pw.TextStyle(
-                fontWeight: pw.FontWeight.bold, // Makes text bold
-                fontSize: 14, // Optional: adjust size
-              ),
+              style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14),
             ),
           ),
         ],

@@ -32,6 +32,8 @@ class _RentalAddCustomerPageState extends State<RentalAddCustomerPage> {
   final _formKey = GlobalKey<FormState>();
   final nameController = TextEditingController();
   final phoneController = TextEditingController();
+  final discountPercentController = TextEditingController();
+  final discountAmountController = TextEditingController();
 
   DateTime? fromDateTime;
   DateTime? toDateTime;
@@ -41,6 +43,29 @@ class _RentalAddCustomerPageState extends State<RentalAddCustomerPage> {
 
   bool _isLoading = true;
   bool _isSaving = false;
+  bool isEditingPercent = true;
+  String selectedTaxType = 'Without Tax';
+  String? selectedTaxRate;
+
+  final List<String> taxChoiceOptions = ['With Tax', 'Without Tax'];
+  final List<String> taxRateOptions = [
+    'None',
+    'Exempted',
+    'GST@0.0%',
+    'IGST@0.0%',
+    'GST@0.25%',
+    'IGST@0.25%',
+    'GST@3.0%',
+    'IGST@3.0%',
+    'GST@5.0%',
+    'IGST@5.0%',
+    'GST@12.0%',
+    'IGST@12.0%',
+    'GST@18.0%',
+    'IGST@18.0%',
+    'GST@28.0%',
+    'IGST@28.0%',
+  ];
 
   @override
   void initState() {
@@ -48,6 +73,86 @@ class _RentalAddCustomerPageState extends State<RentalAddCustomerPage> {
     fromDateTime = widget.fromDateTime;
     toDateTime = widget.toDateTime;
     _initBoxes();
+  }
+
+  double parseTaxRate() {
+    if (selectedTaxRate == null || !selectedTaxRate!.contains('%')) return 0;
+    return double.tryParse(
+          selectedTaxRate!.replaceAll(RegExp(r'[^\d.]'), ''),
+        ) ??
+        0;
+  }
+
+  Map<String, double> calculateSummary() {
+    final subtotal = widget.totalAmount;
+    final discountPercent =
+        isEditingPercent
+            ? (double.tryParse(discountPercentController.text) ?? 0.0)
+            : 0.0;
+    final discountAmount =
+        !isEditingPercent
+            ? (double.tryParse(discountAmountController.text) ?? 0.0)
+            : 0.0;
+
+    final taxPercent = parseTaxRate();
+    final taxType = selectedTaxType;
+
+    double taxAmount = 0.0;
+    double calculatedDiscountAmount = 0.0;
+    double totalAmount = 0.0;
+
+    if (taxType == 'With Tax' && taxPercent > 0) {
+      // Tax-inclusive: totalAmount includes tax
+      final taxableAmountBeforeDiscount = subtotal;
+      calculatedDiscountAmount =
+          isEditingPercent
+              ? (taxableAmountBeforeDiscount * discountPercent / 100).toDouble()
+              : discountAmount;
+
+      final taxableAmount =
+          taxableAmountBeforeDiscount - calculatedDiscountAmount;
+
+      taxAmount =
+          calculatedDiscountAmount >= taxableAmountBeforeDiscount
+              ? 0.0
+              : (taxableAmount * taxPercent / 100).toDouble();
+
+      totalAmount = taxableAmount + taxAmount;
+    } else {
+      // Tax-exclusive or Without Tax
+      calculatedDiscountAmount =
+          isEditingPercent
+              ? (subtotal * discountPercent / 100).toDouble()
+              : discountAmount > subtotal
+              ? subtotal
+              : discountAmount;
+
+      final taxableAmount = subtotal - calculatedDiscountAmount;
+
+      taxAmount =
+          taxPercent > 0 ? (taxableAmount * taxPercent / 100).toDouble() : 0.0;
+
+      totalAmount = taxableAmount + taxAmount;
+    }
+
+    // Update controllers for real-time UI sync
+    if (isEditingPercent) {
+      discountAmountController.text = calculatedDiscountAmount.toStringAsFixed(
+        2,
+      );
+    } else {
+      discountPercentController.text =
+          subtotal > 0
+              ? ((calculatedDiscountAmount / subtotal) * 100).toStringAsFixed(2)
+              : '0.00';
+    }
+
+    return {
+      'subtotal': subtotal,
+      'discountAmount': calculatedDiscountAmount,
+      'taxAmount': taxAmount,
+      'total': totalAmount,
+    };
   }
 
   Future<void> _initBoxes() async {
@@ -107,6 +212,33 @@ class _RentalAddCustomerPageState extends State<RentalAddCustomerPage> {
     });
   }
 
+  // Fixed validator functions
+  String? _validateDiscountPercent(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return null;
+    }
+    final percent = double.tryParse(value);
+    if (percent == null || percent < 0 || percent > 100) {
+      return 'Enter 0-100%';
+    }
+    return null;
+  }
+
+  String? _validateDiscountAmount(String? value) {
+    final summary = calculateSummary();
+    if (value == null || value.trim().isEmpty) {
+      return null;
+    }
+    final amount = double.tryParse(value);
+    if (amount == null || amount < 0) {
+      return 'Invalid amount';
+    }
+    if (amount > summary['subtotal']!) {
+      return 'Cannot exceed subtotal';
+    }
+    return null;
+  }
+
   Future<void> saveCustomerAndSale() async {
     if (!_formKey.currentState!.validate()) return;
     if (fromDateTime == null || toDateTime == null) {
@@ -114,7 +246,6 @@ class _RentalAddCustomerPageState extends State<RentalAddCustomerPage> {
         context,
         message: 'Please select both From & To dates',
       );
-
       return;
     }
     if (_isSaving) return;
@@ -122,6 +253,8 @@ class _RentalAddCustomerPageState extends State<RentalAddCustomerPage> {
     setState(() => _isSaving = true);
 
     try {
+      final summary = calculateSummary();
+
       // Save customer
       final newCustomer = CustomerModel(
         name: nameController.text.trim(),
@@ -130,15 +263,15 @@ class _RentalAddCustomerPageState extends State<RentalAddCustomerPage> {
       );
       await customerBox.add(newCustomer);
 
-      // Save rental sale
+      // Save rental sale - using only existing parameters
       final newRental = RentalSaleModel(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         customerName: nameController.text.trim(),
-        customerPhone: phoneController.text.trim(), // <-- get phone from form
+        customerPhone: phoneController.text.trim(),
         itemName: widget.rentalItem.name,
         ratePerDay: widget.ratePerDay,
         numberOfDays: widget.noOfDays,
-        totalCost: widget.totalAmount,
+        totalCost: summary['total']!, // Use calculated total with discount/tax
         fromDateTime: fromDateTime!,
         toDateTime: toDateTime!,
         imageUrl: widget.rentalItem.imagePath,
@@ -173,8 +306,12 @@ class _RentalAddCustomerPageState extends State<RentalAddCustomerPage> {
     required String label,
     required IconData icon,
     required TextEditingController controller,
-    required String? Function(String?) validator,
+    String? Function(String?)? validator,
+
     TextInputType? keyboardType,
+    VoidCallback? onTap,
+    String? suffixText,
+    String? prefixText,
   }) {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
@@ -200,6 +337,7 @@ class _RentalAddCustomerPageState extends State<RentalAddCustomerPage> {
       child: TextFormField(
         controller: controller,
         keyboardType: keyboardType,
+        onTap: onTap,
         style: const TextStyle(
           color: Colors.white,
           fontSize: 16,
@@ -212,6 +350,8 @@ class _RentalAddCustomerPageState extends State<RentalAddCustomerPage> {
             fontWeight: FontWeight.w600,
           ),
           prefixIcon: Icon(icon, color: Colors.white.withOpacity(0.8)),
+          suffixText: suffixText,
+          prefixText: prefixText,
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 20,
@@ -219,6 +359,90 @@ class _RentalAddCustomerPageState extends State<RentalAddCustomerPage> {
           ),
         ),
         validator: validator,
+        onChanged: (value) => setState(() {}),
+      ),
+    );
+  }
+
+  Widget _buildDropdown(
+    String label,
+    String? value,
+    List<String> options,
+    Function(String?) onChanged, {
+    bool enabled = true,
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: LinearGradient(
+          colors: [
+            Colors.white.withOpacity(0.15),
+            Colors.white.withOpacity(0.08),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        border: Border.all(color: Colors.white.withOpacity(0.3), width: 1.5),
+      ),
+      child: DropdownButtonFormField<String>(
+        value: value,
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(
+            color: Colors.white.withOpacity(0.8),
+            fontWeight: FontWeight.w600,
+          ),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+        ),
+        dropdownColor: const Color(0xFF667eea),
+        style: const TextStyle(color: Colors.white),
+        icon: Icon(Icons.arrow_drop_down, color: Colors.white.withOpacity(0.8)),
+        items:
+            options
+                .map((opt) => DropdownMenuItem(value: opt, child: Text(opt)))
+                .toList(),
+        onChanged: enabled ? onChanged : null,
+      ),
+    );
+  }
+
+  Widget _buildInfoCard(String label, String value) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          colors: [
+            Colors.white.withOpacity(0.1),
+            Colors.white.withOpacity(0.05),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        border: Border.all(color: Colors.white.withOpacity(0.2)),
+      ),
+      child: Column(
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.white.withOpacity(0.8),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -278,6 +502,8 @@ class _RentalAddCustomerPageState extends State<RentalAddCustomerPage> {
   }
 
   Widget _buildRentalInfoCard() {
+    final summary = calculateSummary();
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -326,8 +552,22 @@ class _RentalAddCustomerPageState extends State<RentalAddCustomerPage> {
           _buildInfoRow("Rate/Day", "₹${widget.ratePerDay.toStringAsFixed(2)}"),
           const Divider(color: Colors.white30, height: 20),
           _buildInfoRow(
+            "Subtotal",
+            "₹${summary['subtotal']!.toStringAsFixed(2)}",
+          ),
+          _buildInfoRow(
+            "Discount",
+            "-₹${summary['discountAmount']!.toStringAsFixed(2)}",
+          ),
+          if (summary['taxAmount']! > 0)
+            _buildInfoRow(
+              "Tax",
+              "+₹${summary['taxAmount']!.toStringAsFixed(2)}",
+            ),
+          const Divider(color: Colors.white30, height: 20),
+          _buildInfoRow(
             "Total Cost",
-            "₹${widget.totalAmount.toStringAsFixed(2)}",
+            "₹${summary['total']!.toStringAsFixed(2)}",
             isTotal: true,
           ),
         ],
@@ -357,6 +597,128 @@ class _RentalAddCustomerPageState extends State<RentalAddCustomerPage> {
               fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDiscountTaxSection() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: LinearGradient(
+          colors: [
+            Colors.white.withOpacity(0.15),
+            Colors.white.withOpacity(0.08),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        border: Border.all(color: Colors.white.withOpacity(0.2), width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.percent, color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                "Discount & Tax",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Discount Section
+          Row(
+            children: [
+              Expanded(
+                child: _buildGlassTextField(
+                  label: "Discount %",
+                  icon: Icons.percent,
+                  controller: discountPercentController,
+                  suffixText: "%",
+                  onTap: () => setState(() => isEditingPercent = true),
+                  validator: isEditingPercent ? _validateDiscountPercent : null,
+                  keyboardType: TextInputType.numberWithOptions(decimal: true),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildGlassTextField(
+                  label: "Discount ₹",
+                  icon: Icons.currency_rupee,
+                  controller: discountAmountController,
+                  prefixText: "₹ ",
+                  onTap: () => setState(() => isEditingPercent = false),
+                  validator: !isEditingPercent ? _validateDiscountAmount : null,
+                  keyboardType: TextInputType.numberWithOptions(decimal: true),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Tax Type
+          _buildDropdown(
+            "Tax Type",
+            selectedTaxType,
+            taxChoiceOptions,
+            (val) => setState(() => selectedTaxType = val!),
+          ),
+          const SizedBox(height: 12),
+
+          // Tax Rate
+          IgnorePointer(
+            ignoring: selectedTaxType != 'With Tax',
+            child: Opacity(
+              opacity: selectedTaxType == 'With Tax' ? 1.0 : 0.4,
+              child: _buildDropdown(
+                "Select Tax Rate",
+                selectedTaxRate,
+                taxRateOptions,
+                (val) => setState(() => selectedTaxRate = val),
+                enabled: selectedTaxType == 'With Tax',
+              ),
+            ),
+          ),
+
+          // Tax Info Cards
+          if (selectedTaxType == 'With Tax' && parseTaxRate() > 0) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildInfoCard(
+                    "Tax Rate",
+                    "${parseTaxRate().toStringAsFixed(2)}%",
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildInfoCard(
+                    "Tax Amount",
+                    "₹ ${calculateSummary()['taxAmount']!.toStringAsFixed(2)}",
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -753,6 +1115,9 @@ class _RentalAddCustomerPageState extends State<RentalAddCustomerPage> {
                           ],
                         ),
                       ),
+
+                      // Discount & Tax Section
+                      _buildDiscountTaxSection(),
 
                       // Rental Summary
                       _buildRentalInfoCard(),
