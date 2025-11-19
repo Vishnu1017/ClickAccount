@@ -179,12 +179,13 @@ class _LoginScreenState extends State<LoginScreen>
         phone: phone,
         password: password,
         role: selectedRole,
+        upiId: '',
         imageUrl: '', // ✅ added to match updated User model
       );
       await box.add(user);
 
       final sessionBox = await Hive.openBox('session');
-      await sessionBox.put('currentUser', email);
+      await sessionBox.put('currentUserEmail', email);
 
       showSuccess("Account created successfully!");
 
@@ -216,7 +217,6 @@ class _LoginScreenState extends State<LoginScreen>
     final identifier = emailController.text.trim();
     final password = passwordController.text.trim();
 
-    // Reset validation states
     setState(() {
       _isEmailValid = true;
       _isPasswordValid = true;
@@ -256,13 +256,16 @@ class _LoginScreenState extends State<LoginScreen>
               phone: '',
               password: '',
               role: '',
-              imageUrl: '', // ✅ added
+              upiId: '',
+              imageUrl: '',
             ),
       );
 
       if (user.name.isNotEmpty) {
         final sessionBox = await Hive.openBox('session');
-        await sessionBox.put('currentUser', user.email);
+
+        // 🔥 FIXED SESSION KEY
+        await sessionBox.put('currentUserEmail', user.email);
 
         Navigator.pushReplacement(
           context,
@@ -270,7 +273,7 @@ class _LoginScreenState extends State<LoginScreen>
             pageBuilder:
                 (_, __, ___) => AuthGateScreen(
                   user: user,
-                  userPhone: user.phone, // pass actual phone from user object
+                  userPhone: user.phone,
                   userEmail: user.email,
                 ),
             transitionsBuilder:
@@ -300,7 +303,7 @@ class _LoginScreenState extends State<LoginScreen>
   Future<void> _checkExistingSession() async {
     try {
       final sessionBox = await Hive.openBox('session');
-      final currentUserEmail = sessionBox.get('currentUser');
+      final currentUserEmail = sessionBox.get('currentUserEmail');
 
       if (currentUserEmail != null && mounted) {
         final usersBox = Hive.box<User>('users');
@@ -313,6 +316,7 @@ class _LoginScreenState extends State<LoginScreen>
                 phone: '',
                 password: '',
                 role: '',
+                upiId: '',
                 imageUrl: '', // ✅ added
               ),
         );

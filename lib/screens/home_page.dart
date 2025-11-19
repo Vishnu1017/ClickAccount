@@ -30,61 +30,53 @@ class _HomePageState extends State<HomePage>
   bool _isUserDataLoaded = false;
 
   Future<void> _loadCurrentUserData() async {
-    try {
-      final user = await _getCurrentUserName();
+    final user = await _getCurrentUserName();
+
+    setState(() {
       if (user != null) {
-        setState(() {
-          _currentUserName = user.name;
-          _currentUserEmail = user.email;
-          _currentUserPhone = user.phone;
-          _isUserDataLoaded = true;
-        });
-      } else {
-        setState(() {
-          _isUserDataLoaded = true;
-        });
+        _currentUserName = user.name;
+        _currentUserEmail = user.email;
+        _currentUserPhone = user.phone;
       }
-    } catch (e) {
-      debugPrint('Error loading current user data: $e');
-      setState(() {
-        _isUserDataLoaded = true;
-      });
-    }
+      _isUserDataLoaded = true;
+    });
   }
 
   Future<User?> _getCurrentUserName() async {
     try {
+      // Ensure users box is loaded
       final usersBox = Hive.box<User>('users');
-      final sessionBox = Hive.openBox('session');
-      final currentUserEmail = (await sessionBox).get('currentUserEmail');
 
-      if (currentUserEmail != null) {
-        final matchingUser = usersBox.values.firstWhere(
-          (user) => user.email == currentUserEmail,
-          orElse:
-              () =>
-                  usersBox.values.isNotEmpty
-                      ? usersBox.values.first
-                      : User(
-                        name: '',
-                        email: '',
-                        phone: '',
-                        role: '',
-                        upiId: '',
-                        imageUrl: '',
-                        password: '',
-                      ),
-        );
-        return matchingUser;
-      } else {
-        // If no session, get the first user
-        if (usersBox.isNotEmpty) {
-          return usersBox.values.first;
-        }
+      // Open or get session box
+      if (!Hive.isBoxOpen('session')) {
+        await Hive.openBox('session');
       }
-      return null;
+
+      final sessionBox = Hive.box('session');
+      final currentUserEmail = sessionBox.get('currentUserEmail');
+
+      // 🔹 No email stored → show log and return null
+      if (currentUserEmail == null || currentUserEmail.toString().isEmpty) {
+        debugPrint("No current user email found in session.");
+        return null;
+      }
+
+      // 🔹 Fetch EXACT user that logged in
+      try {
+        final matchedUser = usersBox.values.firstWhere(
+          (u) =>
+              u.email.trim().toLowerCase() ==
+              currentUserEmail.toString().trim().toLowerCase(),
+        );
+
+        debugPrint("Loaded logged-in user: ${matchedUser.email}");
+        return matchedUser;
+      } catch (e) {
+        debugPrint("User with email $currentUserEmail not found in users box");
+        return null;
+      }
     } catch (e) {
-      debugPrint('Error getting current user: $e');
+      debugPrint("Error loading current user: $e");
       return null;
     }
   }

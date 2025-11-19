@@ -76,7 +76,7 @@ class _ProfilePageState extends State<ProfilePage> {
     email = user.email;
     phone = user.phone;
     role = user.role;
-    upiId = user.upiId; // ✅ this ensures updated UPI ID persists
+    upiId = user.upiId;
 
     _nameController = TextEditingController(text: name);
     _roleController = TextEditingController(text: role);
@@ -279,65 +279,38 @@ class _ProfilePageState extends State<ProfilePage> {
       );
 
       if (userKey != null) {
-        final updatedUser = User(
-          name: _nameController.text.trim(),
-          email: _emailController.text.trim(),
-          phone: _phoneController.text.trim(),
-          role: _roleController.text.trim(),
-          password: widget.user.password,
-          upiId: _upiController.text.trim(),
-        );
+        // 🔥 UPDATE EXISTING USER INSTEAD OF CREATING NEW ONE
+        final existingUser = box.get(userKey)!;
 
-        await box.put(userKey, updatedUser);
+        existingUser.name = _nameController.text.trim();
+        existingUser.email = _emailController.text.trim();
+        existingUser.phone = _phoneController.text.trim();
+        existingUser.role = _roleController.text.trim();
+        existingUser.upiId = _upiController.text.trim();
+        // imageUrl & passcode remain SAFE — not overwritten
+
+        await existingUser.save(); // 🔥 This is important
 
         setState(() {
-          name = updatedUser.name;
-          role = updatedUser.role;
-          email = updatedUser.email;
-          phone = updatedUser.phone;
-          upiId = updatedUser.upiId;
+          name = existingUser.name;
+          role = existingUser.role;
+          email = existingUser.email;
+          phone = existingUser.phone;
+          upiId = existingUser.upiId;
           _isEditing = false;
-
-          _nameController.text = name;
-          _roleController.text = role;
-          _emailController.text = email;
-          _phoneController.text = phone;
-          _upiController.text = upiId;
         });
-
-        // ✅ Manage rental control visibility instantly
-        final prefs = await SharedPreferences.getInstance();
-        if (role == 'Photographer') {
-          await prefs.setBool('${updatedUser.email}_rentalEnabled', true);
-          setState(() => _isRentalEnabled = true);
-        } else {
-          await prefs.setBool('${updatedUser.email}_rentalEnabled', false);
-          setState(() => _isRentalEnabled = false);
-        }
-
-        // ✅ Update HomePage instantly without refreshing
-        if (widget.onRentalStatusChanged != null) {
-          await widget.onRentalStatusChanged!();
-        }
 
         AppSnackBar.showSuccess(
           context,
           message: 'Profile updated successfully!',
         );
-      } else {
-        AppSnackBar.showError(
-          context,
-          message: 'User not found in database.',
-          duration: const Duration(seconds: 2),
-        );
       }
     } catch (e) {
       debugPrint('Save profile error: $e');
-      if (!mounted) return;
       AppSnackBar.showError(
         context,
         message: 'Error saving profile. Please try again.',
-        duration: const Duration(seconds: 2),
+        duration: Duration(seconds: 2),
       );
     }
   }
