@@ -24,14 +24,30 @@ class AuthGateScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Future.microtask(() {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder:
-              (_) => EnterPasscodeScreen(user: user, secureStorage: _storage),
-        ),
-      );
+    Future.microtask(() async {
+      final key = 'passcode_${user.email}';
+      final savedPasscode = await _storage.read(key: key);
+
+      if (savedPasscode == null || savedPasscode.isEmpty) {
+        // 👉 User has NO PASSCODE → coming from SIGNUP
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder:
+                (_) =>
+                    PasscodeCreationScreen(user: user, secureStorage: _storage),
+          ),
+        );
+      } else {
+        // 👉 User already has passcode → LOGIN
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder:
+                (_) => EnterPasscodeScreen(user: user, secureStorage: _storage),
+          ),
+        );
+      }
     });
 
     return Scaffold(

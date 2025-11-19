@@ -38,13 +38,13 @@ class RentalSaleModel extends HiveObject {
   String? pdfFilePath;
 
   @HiveField(11)
-  String paymentMode; // e.g., 'Cash', 'UPI'
+  String paymentMode;
 
   @HiveField(12)
-  double amountPaid; // How much has been received
+  double amountPaid;
 
   @HiveField(13)
-  DateTime rentalDateTime; // For record of rental creation
+  DateTime rentalDateTime;
 
   RentalSaleModel({
     required this.id,
@@ -63,7 +63,7 @@ class RentalSaleModel extends HiveObject {
     DateTime? rentalDateTime,
   }) : rentalDateTime = rentalDateTime ?? DateTime.now();
 
-  /// 🔹 Computed property for Sale Status
+  /// 🔹 Computed Sale Status: PAID, PARTIAL, DUE
   String get saleStatus {
     if (amountPaid >= totalCost) {
       return 'PAID';
@@ -74,7 +74,6 @@ class RentalSaleModel extends HiveObject {
     }
   }
 
+  /// 🔹 Remaining Balance
   double get balanceDue => totalCost - amountPaid;
-
-  get rentalDate => null;
 }

@@ -372,39 +372,70 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> deleteCurrentUser(String email) async {
     try {
-      final box = Hive.box<User>('users');
-      final userKey = box.keys.firstWhere(
-        (key) => box.get(key)?.email == email,
+      // ------------------------------------
+      // 1️⃣ DELETE USER FROM HIVE USERS BOX
+      // ------------------------------------
+      final userBox = Hive.box<User>('users');
+      final userKey = userBox.keys.firstWhere(
+        (key) => userBox.get(key)?.email == email,
         orElse: () => null,
       );
 
       if (userKey != null) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.remove('${widget.user.email}_profileImagePath');
-        await prefs.remove('${widget.user.email}_rentalEnabled');
-
-        await box.delete(userKey);
-
-        if (!mounted) return;
-        AppSnackBar.showSuccess(
-          context,
-          message: "Account deleted successfully!",
-        );
-
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => LoginScreen()),
-        );
-      } else {
-        if (!mounted) return;
-        AppSnackBar.showError(
-          context,
-          message: "User not found",
-          duration: Duration(seconds: 2),
-        );
+        await userBox.delete(userKey);
       }
+
+      // ------------------------------------
+      // 2️⃣ DELETE USER SESSION
+      // ------------------------------------
+      if (Hive.isBoxOpen('session')) {
+        final sessionBox = Hive.box('session');
+        await sessionBox.clear();
+      } else {
+        final sessionBox = await Hive.openBox('session');
+        await sessionBox.clear();
+      }
+
+      // ------------------------------------
+      // 3️⃣ DELETE ALL USER-RELATED SharedPreferences
+      // ------------------------------------
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('${email}_profileImagePath');
+      await prefs.remove('${email}_rentalEnabled');
+
+      // ------------------------------------
+      // 4️⃣ DELETE PROFILE IMAGE FILE FROM STORAGE
+      // ------------------------------------
+      final path = prefs.getString('${email}_profileImagePath');
+      if (path != null) {
+        final file = File(path);
+        if (await file.exists()) {
+          await file.delete();
+        }
+      }
+
+      // ------------------------------------
+      // 5️⃣ OPTIONAL: DELETE ALL HIVE BOXES
+      //    (Use only if you want total wipeout)
+      // ------------------------------------
+      // await Hive.deleteBoxFromDisk('users');
+      // await Hive.deleteBoxFromDisk('session');
+
+      // ------------------------------------
+      // 6️⃣ NAVIGATE TO LOGIN
+      // ------------------------------------
+      if (!mounted) return;
+
+      AppSnackBar.showSuccess(context, message: "Account deleted fully!");
+
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => LoginScreen()),
+        (route) => false,
+      );
     } catch (e) {
-      debugPrint('Delete user error: $e');
+      debugPrint("Delete user error: $e");
+
       if (!mounted) return;
       AppSnackBar.showError(
         context,

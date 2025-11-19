@@ -13,6 +13,7 @@ import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'utils/responsive.dart'; // ⭐ ADDED
 
 void main() async {
   try {
@@ -39,6 +40,9 @@ void main() async {
   }
 }
 
+/// ------------------------------------------------------
+/// HIVE INITIALIZATION
+/// ------------------------------------------------------
 Future<void> _initializeHive() async {
   try {
     await Hive.initFlutter();
@@ -106,7 +110,6 @@ Future<void> _initializeDefaultProfileImage() async {
   }
 }
 
-// ✅ Keep this exactly as you had it — do not remove
 // Future<void> _deleteAllHiveBoxes() async {
 //   final List<String> boxNames = [
 //     'users',
@@ -138,10 +141,18 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      title: 'Click Account',
-      debugShowCheckedModeBanner: false,
-      home: CustomSplashScreen(),
+    return LayoutBuilder(
+      builder: (context, _) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Responsive.init(context); // ⭐ GLOBAL MEDIAQUERY INITIALIZED HERE
+        });
+
+        return const MaterialApp(
+          title: 'Click Account',
+          debugShowCheckedModeBanner: false,
+          home: CustomSplashScreen(),
+        );
+      },
     );
   }
 }
