@@ -1,29 +1,17 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 
-/// A reusable confirmation dialog with blurred background and smooth animation.
-///
-/// Example usage:
-/// ```dart
-/// showConfirmDialog(
-///   context: context,
-///   title: "Delete Sale?",
-///   message: "Are you sure you want to remove this item permanently?",
-///   icon: Icons.delete_forever_rounded,
-///   onConfirm: () {
-///     // perform delete
-///   },
-/// );
-/// ```
-Future<Future<Object?>> showConfirmDialog({
+Future<bool> showConfirmDialog({
   required BuildContext context,
   required String title,
   required String message,
+  required VoidCallback onConfirm, // <-- REQUIRED (same as before)
   IconData icon = Icons.delete_forever_rounded,
   Color iconColor = Colors.redAccent,
-  required VoidCallback onConfirm,
 }) async {
-  return showGeneralDialog(
+  bool confirmed = false;
+
+  await showGeneralDialog(
     context: context,
     barrierDismissible: true,
     barrierLabel: '',
@@ -42,13 +30,6 @@ Future<Future<Object?>> showConfirmDialog({
                 color: Colors.white.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(color: Colors.white.withOpacity(0.3)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.25),
-                    blurRadius: 10,
-                    offset: const Offset(0, 5),
-                  ),
-                ],
               ),
               child: Material(
                 color: Colors.transparent,
@@ -80,48 +61,26 @@ Future<Future<Object?>> showConfirmDialog({
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
                         ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white.withOpacity(0.2),
-                            elevation: 0,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 24,
-                              vertical: 12,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
                           onPressed: () => Navigator.pop(ctx),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white12,
+                          ),
                           child: const Text(
                             'Cancel',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
+                            style: TextStyle(color: Colors.white),
                           ),
                         ),
                         ElevatedButton(
+                          onPressed: () {
+                            confirmed = true;
+                            Navigator.pop(ctx);
+                          },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.redAccent,
-                            elevation: 3,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 24,
-                              vertical: 12,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
                           ),
-                          onPressed: () {
-                            Navigator.pop(ctx);
-                            onConfirm();
-                          },
                           child: const Text(
                             'Delete',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
+                            style: TextStyle(color: Colors.white),
                           ),
                         ),
                       ],
@@ -141,4 +100,10 @@ Future<Future<Object?>> showConfirmDialog({
       );
     },
   );
+
+  if (confirmed) {
+    onConfirm(); // <-- YOU WANTED THIS
+  }
+
+  return confirmed;
 }

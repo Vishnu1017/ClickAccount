@@ -345,61 +345,57 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> deleteCurrentUser(String email) async {
     try {
-      // ------------------------------------
-      // 1️⃣ DELETE USER FROM HIVE USERS BOX
-      // ------------------------------------
+      print("Deleting account for: $email");
+
       final userBox = Hive.box<User>('users');
-      final userKey = userBox.keys.firstWhere(
-        (key) => userBox.get(key)?.email == email,
-        orElse: () => null,
-      );
+      dynamic userKey;
+
+      for (var key in userBox.keys) {
+        final u = userBox.get(key);
+        if (u != null && u.email.trim() == email.trim()) {
+          userKey = key;
+          break;
+        }
+      }
 
       if (userKey != null) {
         await userBox.delete(userKey);
+        print("User deleted from Hive");
+      } else {
+        print("User not found");
       }
 
-      // ------------------------------------
-      // 2️⃣ DELETE USER SESSION
-      // ------------------------------------
+      final prefs = await SharedPreferences.getInstance();
+      final imgPath = prefs.getString('${email}_profileImagePath');
+
+      if (imgPath != null) {
+        final file = File(imgPath);
+        if (await file.exists()) {
+          await file.delete();
+          print("Profile image deleted");
+        }
+      }
+
+      await prefs.remove('${email}_profileImagePath');
+      await prefs.remove('${email}_rentalEnabled');
+
+      print("SharedPrefs cleared");
+
       if (Hive.isBoxOpen('session')) {
-        final sessionBox = Hive.box('session');
-        await sessionBox.clear();
+        await Hive.box('session').clear();
       } else {
         final sessionBox = await Hive.openBox('session');
         await sessionBox.clear();
       }
 
-      // ------------------------------------
-      // 3️⃣ DELETE ALL USER-RELATED SharedPreferences
-      // ------------------------------------
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('${email}_profileImagePath');
-      await prefs.remove('${email}_rentalEnabled');
+      print("Session cleared");
 
-      // ------------------------------------
-      // 4️⃣ DELETE PROFILE IMAGE FILE FROM STORAGE
-      // ------------------------------------
-      final path = prefs.getString('${email}_profileImagePath');
-      if (path != null) {
-        final file = File(path);
-        if (await file.exists()) {
-          await file.delete();
-        }
-      }
-
-      // ------------------------------------
-      // 5️⃣ OPTIONAL: DELETE ALL HIVE BOXES
-      //    (Use only if you want total wipeout)
-      // ------------------------------------
-      // await Hive.deleteBoxFromDisk('users');
-      // await Hive.deleteBoxFromDisk('session');
-
-      // ------------------------------------
-      // 6️⃣ NAVIGATE TO LOGIN
-      // ------------------------------------
       if (!mounted) return;
 
-      AppSnackBar.showSuccess(context, message: "Account deleted fully!");
+      AppSnackBar.showSuccess(
+        context,
+        message: "Account deleted successfully!",
+      );
 
       Navigator.pushAndRemoveUntil(
         context,
@@ -407,9 +403,9 @@ class _ProfilePageState extends State<ProfilePage> {
         (route) => false,
       );
     } catch (e) {
-      debugPrint("Delete user error: $e");
-
+      print("Delete error: $e");
       if (!mounted) return;
+
       AppSnackBar.showError(
         context,
         message: "Error deleting account",
@@ -1217,22 +1213,14 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _showEnhancedDeleteDialog(BuildContext context) async {
-    bool confirmed = false;
-
     await showConfirmDialog(
       context: context,
       title: "Delete Account?",
       message:
           "This will permanently remove all your data.\nThis action cannot be undone.",
-      icon: Icons.warning_amber_rounded,
-      iconColor: Colors.redAccent,
       onConfirm: () {
-        confirmed = true;
+        deleteCurrentUser(widget.user.email);
       },
     );
-
-    if (confirmed) {
-      await deleteCurrentUser(widget.user.email);
-    }
   }
 }
