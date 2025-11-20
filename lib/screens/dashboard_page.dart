@@ -37,11 +37,29 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Future<void> _initializeBoxesAndData() async {
-    saleBox =
-        Hive.isBoxOpen('sales')
-            ? Hive.box<Sale>('sales')
-            : await Hive.openBox<Sale>('sales');
+    // Load current user email
+    final sessionBox = await Hive.openBox('session');
+    final email = sessionBox.get("currentUserEmail");
 
+    if (email == null) {
+      saleBox = null;
+      rentalBox = null;
+      return;
+    }
+
+    // Open user-specific box
+    final safeEmail = email.replaceAll('.', '_').replaceAll('@', '_');
+    final userBox = await Hive.openBox('userdata_$safeEmail');
+
+    // Load sales from user box instead of global 'sales'
+    List<Sale> sales = List<Sale>.from(userBox.get("sales", defaultValue: []));
+
+    // Store them in memory (not a Hive box anymore)
+    saleBox = await Hive.openBox<Sale>('temp_sales_dashboard');
+    await saleBox!.clear();
+    await saleBox!.addAll(sales);
+
+    // Rental sales (you did NOT move them to user storage, so global stays)
     rentalBox =
         Hive.isBoxOpen('rental_sales')
             ? Hive.box<RentalSaleModel>('rental_sales')
@@ -87,7 +105,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
     Map<String, double> monthlyTotals = {for (var key in keys) key: 0.0};
 
-    // NORMAL SALES
+    // USER-SPECIFIC SALES
     for (var sale in saleBox!.values) {
       final key =
           '${sale.dateTime.year}-${sale.dateTime.month.toString().padLeft(2, '0')}';
@@ -96,7 +114,7 @@ class _DashboardPageState extends State<DashboardPage> {
       }
     }
 
-    // RENTAL SALES
+    // RENTAL SALES (global)
     for (var rental in rentalBox!.values) {
       final key =
           '${rental.rentalDateTime.year}-${rental.rentalDateTime.month.toString().padLeft(2, '0')}';
@@ -144,7 +162,6 @@ class _DashboardPageState extends State<DashboardPage> {
       _selectedRange = range;
     });
 
-    // Auto-scroll
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients && salesData.length > 5) {
         _scrollController.animateTo(
@@ -173,20 +190,19 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   // 🔥 Navigate to Sales Report with merged data
-  void _navigateToSalesReport() {
+  void _navigateToSalesReport() async {
     if (saleBox == null || rentalBox == null) return;
 
     List<Sale> allSales = [];
 
-    // Normal sales
+    // USER-SPECIFIC SALES
     allSales.addAll(saleBox!.values.toList());
 
-    // Rental → Sale converted
+    // RENTAL SALES CONVERTED TO NORMAL
     allSales.addAll(
       rentalBox!.values.map((r) => convertRentalToSale(r)).toList(),
     );
 
-    // Sort by latest date
     allSales.sort((a, b) => b.dateTime.compareTo(a.dateTime));
 
     Navigator.push(

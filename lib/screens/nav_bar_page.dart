@@ -1,4 +1,6 @@
+// lib/screens/nav_bar_page.dart
 // ignore_for_file: public_member_api_docs, sort_constructors_first
+
 import 'package:bizmate/screens/Camera%20rental%20page/camera_rental_nav_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:bizmate/models/user_model.dart';
@@ -50,16 +52,18 @@ class _NavBarPageState extends State<NavBarPage> {
 
   Future<void> _loadRentalStatus() async {
     final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
     setState(() {
       _isRentalEnabled =
           prefs.getBool('${widget.user.email}_rentalEnabled') ?? false;
     });
   }
 
-  // ✅ Add this method to reload rental status and rebuild HomePage instantly
+  // Reload rental status and rebuild HomePage instantly
   Future<void> _reloadRentalStatus() async {
     await _loadRentalStatus();
-    setState(() {}); // Force refresh UI when role or rental status changes
+    if (!mounted) return;
+    setState(() {});
   }
 
   List<Widget> get _pages => [
@@ -67,27 +71,26 @@ class _NavBarPageState extends State<NavBarPage> {
     DashboardPage(),
     CustomersPage(),
     ProductsPage(),
-    // ✅ Pass callback to ProfilePage
+    // Pass callback to ProfilePage so profile can signal changes
     ProfilePage(
       user: widget.user,
       onRentalStatusChanged: () async {
         await _reloadRentalStatus();
+        if (!mounted) return;
         setState(() {
-          // 🔥 This ensures UI refreshes with new role immediately
-          widget.user.role = widget.user.role;
+          // No-op here except to rebuild; kept intentionally minimal
         });
       },
     ),
   ];
 
   Widget _buildAddSaleButton() {
-    if (![_currentIndex].contains(0) &&
-        ![_currentIndex].contains(1) &&
-        ![_currentIndex].contains(2)) {
-      return SizedBox.shrink();
+    // Show Add Sale for tabs: Home (0), Dashboard (1), Customers (2)
+    if (![0, 1, 2].contains(_currentIndex)) {
+      return const SizedBox.shrink();
     }
 
-    String labelText =
+    final labelText =
         _currentIndex == 0
             ? "Add New Sale"
             : _currentIndex == 1
@@ -97,15 +100,15 @@ class _NavBarPageState extends State<NavBarPage> {
     return Align(
       alignment: Alignment.bottomCenter,
       child: Padding(
-        padding: EdgeInsets.only(bottom: 16.0, left: 16.0, right: 16.0),
+        padding: const EdgeInsets.only(bottom: 16.0, left: 16.0, right: 16.0),
         child: SizedBox(
           width: double.infinity,
           child: Container(
-            constraints: BoxConstraints(maxWidth: 500),
+            constraints: const BoxConstraints(maxWidth: 500),
             height: 55,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(28),
-              gradient: LinearGradient(
+              gradient: const LinearGradient(
                 colors: [Color(0xFF1A237E), Color(0xFF00BCD4)],
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
@@ -113,33 +116,33 @@ class _NavBarPageState extends State<NavBarPage> {
             ),
             child: ElevatedButton.icon(
               onPressed: () {
+                // Navigate to NewSaleScreen
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => NewSaleScreen()),
+                  MaterialPageRoute(
+                    builder: (context) => const NewSaleScreen(),
+                  ),
                 );
               },
               icon: Container(
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: LinearGradient(
+                  gradient: const LinearGradient(
                     colors: [Colors.white, Colors.white70],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  border: Border.all(
-                    color: Colors.deepPurple.shade100,
-                    width: 2,
-                  ),
+                  border: Border.all(color: Colors.deepPurpleAccent, width: 2),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.white.withOpacity(0.3),
                       blurRadius: 5,
-                      offset: Offset(0, 2),
+                      offset: const Offset(0, 2),
                     ),
                   ],
                 ),
-                padding: EdgeInsets.all(5),
-                child: Icon(
+                padding: const EdgeInsets.all(5),
+                child: const Icon(
                   Icons.currency_rupee,
                   color: Color(0xFF1A237E),
                   size: 20,
@@ -149,7 +152,7 @@ class _NavBarPageState extends State<NavBarPage> {
                 fit: BoxFit.scaleDown,
                 child: Text(
                   labelText,
-                  style: TextStyle(color: Colors.white, fontSize: 16),
+                  style: const TextStyle(color: Colors.white, fontSize: 16),
                 ),
               ),
               style: ElevatedButton.styleFrom(
@@ -168,28 +171,32 @@ class _NavBarPageState extends State<NavBarPage> {
   }
 
   Widget _buildAddItemButton() {
-    if (_currentIndex != 3) return SizedBox.shrink();
+    if (_currentIndex != 3) return const SizedBox.shrink();
 
     return Align(
       alignment: Alignment.bottomCenter,
       child: Padding(
-        padding: EdgeInsets.only(bottom: 16.0, left: 16.0, right: 16.0),
+        padding: const EdgeInsets.only(bottom: 16.0, left: 16.0, right: 16.0),
         child: SizedBox(
           width: double.infinity,
           child: Container(
-            constraints: BoxConstraints(maxWidth: 500),
+            constraints: const BoxConstraints(maxWidth: 500),
             height: 55,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(28),
-              gradient: LinearGradient(
+              gradient: const LinearGradient(
                 colors: [Color(0xFF1A237E), Color(0xFF00BCD4)],
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
               ),
             ),
             child: ElevatedButton.icon(
-              icon: Icon(Icons.add_box_rounded, color: Colors.white, size: 26),
-              label: FittedBox(
+              icon: const Icon(
+                Icons.add_box_rounded,
+                color: Colors.white,
+                size: 26,
+              ),
+              label: const FittedBox(
                 fit: BoxFit.scaleDown,
                 child: Text(
                   'Add Packages',
@@ -202,7 +209,7 @@ class _NavBarPageState extends State<NavBarPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.transparent,
                 shadowColor: Colors.transparent,
-                padding: EdgeInsets.symmetric(vertical: 16),
+                padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(28),
                 ),
@@ -216,15 +223,21 @@ class _NavBarPageState extends State<NavBarPage> {
                     MaterialPageRoute(builder: (_) => SelectItemsScreen()),
                   );
 
-                  if (result != null && result['itemName'] != null) {
+                  if (result != null &&
+                      result is Map &&
+                      result['itemName'] != null) {
                     final itemName = result['itemName'];
                     final rate = result['rate'] ?? 0.0;
 
                     ProductStore().add(itemName, rate);
+                    if (!mounted) return;
                     setState(() {});
                   }
 
-                  continueAdding = result != null && result['continue'] == true;
+                  continueAdding =
+                      result != null &&
+                      result is Map &&
+                      result['continue'] == true;
                 }
               },
             ),
@@ -245,7 +258,7 @@ class _NavBarPageState extends State<NavBarPage> {
           fit: BoxFit.scaleDown,
           child: Text(
             _titles[_currentIndex],
-            style: TextStyle(
+            style: const TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
               fontSize: 32,
@@ -256,7 +269,7 @@ class _NavBarPageState extends State<NavBarPage> {
         elevation: 0,
         backgroundColor: Colors.transparent,
         flexibleSpace: Container(
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             gradient: LinearGradient(
               colors: [Color(0xFF1A237E), Color(0xFF00BCD4)],
               begin: Alignment.topLeft,
@@ -274,7 +287,7 @@ class _NavBarPageState extends State<NavBarPage> {
                       children: [
                         // 📅 Calendar Button (always visible)
                         Container(
-                          constraints: BoxConstraints(maxWidth: 150),
+                          constraints: const BoxConstraints(maxWidth: 150),
                           child: Material(
                             color: Colors.transparent,
                             child: InkWell(
@@ -287,8 +300,8 @@ class _NavBarPageState extends State<NavBarPage> {
                                   ),
                                 );
                               },
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
+                              child: const Padding(
+                                padding: EdgeInsets.symmetric(
                                   horizontal: 10,
                                   vertical: 6,
                                 ),
@@ -301,12 +314,12 @@ class _NavBarPageState extends State<NavBarPage> {
                             ),
                           ),
                         ),
-                        SizedBox(width: 8),
+                        const SizedBox(width: 8),
 
                         // 🎥 Camera Rental Button (only if Photographer AND enabled)
                         if (isPhotographer && _isRentalEnabled)
                           Container(
-                            constraints: BoxConstraints(maxWidth: 150),
+                            constraints: const BoxConstraints(maxWidth: 150),
                             child: Material(
                               color: Colors.transparent,
                               child: InkWell(
@@ -332,7 +345,7 @@ class _NavBarPageState extends State<NavBarPage> {
                                   child: Stack(
                                     alignment: Alignment.center,
                                     children: [
-                                      Icon(
+                                      const Icon(
                                         Icons.camera_alt,
                                         color: Colors.white,
                                         size: 28,
@@ -376,7 +389,7 @@ class _NavBarPageState extends State<NavBarPage> {
         child: Stack(
           children: [
             AnimatedSwitcher(
-              duration: Duration(milliseconds: 300),
+              duration: const Duration(milliseconds: 300),
               child: _pages[_currentIndex],
               transitionBuilder: (Widget child, Animation<double> animation) {
                 return FadeTransition(opacity: animation, child: child);
@@ -398,11 +411,11 @@ class _NavBarPageState extends State<NavBarPage> {
           horizontal: MediaQuery.of(context).size.width * 0.05,
           vertical: 8,
         ),
-        constraints: BoxConstraints(maxWidth: 500),
+        constraints: const BoxConstraints(maxWidth: 500),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
-          boxShadow: [
+          boxShadow: const [
             BoxShadow(
               color: Colors.black12,
               blurRadius: 8,
@@ -415,20 +428,25 @@ class _NavBarPageState extends State<NavBarPage> {
           child: BottomNavigationBar(
             currentIndex: _currentIndex,
             onTap: (int newIndex) async {
+              if (!mounted) return;
               setState(() {
                 _currentIndex = newIndex;
               });
+
+              // tiny delay for smoother UX when jumping to packages tab
               if (newIndex == 3) {
-                await Future.delayed(Duration(milliseconds: 100));
+                await Future.delayed(const Duration(milliseconds: 100));
+                if (!mounted) return;
                 setState(() {});
               }
-              // ✅ Reload rental status when switching tabs
-              _loadRentalStatus();
+
+              // Reload rental status when switching tabs
+              await _loadRentalStatus();
             },
             backgroundColor: Colors.transparent,
             type: BottomNavigationBarType.fixed,
             elevation: 0,
-            selectedItemColor: Color(0xFF1A237E),
+            selectedItemColor: const Color(0xFF1A237E),
             unselectedItemColor: Colors.grey,
             showSelectedLabels: false,
             showUnselectedLabels: false,

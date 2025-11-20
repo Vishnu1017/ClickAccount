@@ -27,7 +27,7 @@ import '../widgets/confirm_delete_dialog.dart';
 class SaleOptionsMenu extends StatelessWidget {
   final Sale sale;
   final int originalIndex;
-  final Box<Sale> box;
+  final Box box; // accepts any Hive box
   final bool isSmallScreen;
   final String invoiceNumber;
   final String currentUserName;
@@ -180,7 +180,7 @@ class SaleOptionsMenu extends StatelessWidget {
         box.deleteAt(originalIndex);
         AppSnackBar.showError(
           context,
-          message: "🗑️ Sale deleted successfully.",
+          message: "Sale deleted successfully.",
           duration: const Duration(seconds: 2),
         );
       },

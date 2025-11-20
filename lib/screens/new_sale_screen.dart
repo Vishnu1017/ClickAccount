@@ -97,22 +97,34 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
     fetchCustomerList();
   }
 
-  void fetchCustomerList() {
-    final box = Hive.box<Sale>('sales');
+  void fetchCustomerList() async {
+    // Load current logged-in user email
+    final sessionBox = await Hive.openBox('session');
+    final email = sessionBox.get('currentUserEmail');
+
+    if (email == null || email.toString().isEmpty) {
+      setState(() => customerList = []);
+      return;
+    }
+
+    // Open user-specific Hive box
+    final safeEmail = email.replaceAll('.', '_').replaceAll('@', '_');
+    final userBox = await Hive.openBox('userdata_$safeEmail');
+
+    // Load user-specific sales list
+    List<Sale> sales = List<Sale>.from(userBox.get("sales", defaultValue: []));
+
     final Set<String> seen = {};
     final List<Map<String, String>> uniqueCustomers = [];
 
-    for (var i = 0; i < box.length; i++) {
-      final sale = box.getAt(i);
-      if (sale != null) {
-        final key = "${sale.customerName}_${sale.phoneNumber}";
-        if (!seen.contains(key)) {
-          seen.add(key);
-          uniqueCustomers.add({
-            'name': sale.customerName,
-            'phone': sale.phoneNumber,
-          });
-        }
+    for (final sale in sales) {
+      final key = "${sale.customerName}_${sale.phoneNumber}";
+      if (!seen.contains(key)) {
+        seen.add(key);
+        uniqueCustomers.add({
+          'name': sale.customerName,
+          'phone': sale.phoneNumber,
+        });
       }
     }
 
@@ -458,16 +470,35 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
   void saveSale() async {
     setState(() => isLoading = true);
 
-    final saleBox = Hive.box<Sale>('sales');
+    // 🔥 Load current logged-in user email
+    final sessionBox = await Hive.openBox('session');
+    final currentEmail = sessionBox.get("currentUserEmail");
+
+    if (currentEmail == null || currentEmail.toString().isEmpty) {
+      setState(() => isLoading = false);
+      AppSnackBar.showError(
+        context,
+        message: "No logged-in user found!",
+        duration: Duration(seconds: 2),
+      );
+      return;
+    }
+
+    // 🔥 Open private user box
+    final safeEmail = currentEmail.replaceAll('.', '_').replaceAll('@', '_');
+    final userBox = await Hive.openBox('userdata_$safeEmail');
+
+    // 🔥 Create payment entry
     final newPayment = Payment(
       amount: double.tryParse(amountController.text) ?? 0,
       date: DateTime.now(),
       mode: _selectedMode,
     );
 
+    // 🔥 Create Sale model
     final sale = Sale(
       customerName: customerController.text,
-      item: productController.text, // ✅ fixed field name
+      item: productController.text,
       phoneNumber: phoneController.text,
       amount: newPayment.amount,
       totalAmount: double.tryParse(totalAmountController.text) ?? 0,
@@ -478,7 +509,13 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
       productName: productController.text,
     );
 
-    await saleBox.add(sale);
+    // 🔥 Save to user-specific sales list
+    List<Sale> userSales = List<Sale>.from(
+      userBox.get("sales", defaultValue: []),
+    );
+    userSales.add(sale);
+
+    await userBox.put("sales", userSales);
 
     setState(() => isLoading = false);
 

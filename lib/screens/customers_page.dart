@@ -62,22 +62,35 @@ class _CustomersPageState extends State<CustomersPage> {
     }
   }
 
-  void fetchUniqueCustomers() {
-    final box = Hive.box<Sale>('sales');
+  void fetchUniqueCustomers() async {
+    // Load logged-in user's email
+    final sessionBox = await Hive.openBox('session');
+    final email = sessionBox.get('currentUserEmail');
+
+    if (email == null) {
+      setState(() {
+        customers = [];
+        filteredCustomers = [];
+      });
+      return;
+    }
+
+    // Open user-specific box
+    final safeEmail = email.replaceAll('.', '_').replaceAll('@', '_');
+    final userBox = await Hive.openBox('userdata_$safeEmail');
+
+    // Read user-specific sales
+    List<Sale> sales = List<Sale>.from(userBox.get("sales", defaultValue: []));
+
     final Set<String> seen = {};
     final List<Map<String, String>> uniqueList = [];
 
-    for (var i = 0; i < box.length; i++) {
-      final sale = box.getAt(i);
-      if (sale != null) {
-        final key = "${sale.customerName}_${sale.phoneNumber}";
-        if (!seen.contains(key)) {
-          seen.add(key);
-          uniqueList.add({
-            'name': sale.customerName,
-            'phone': sale.phoneNumber,
-          });
-        }
+    for (var sale in sales) {
+      final key = "${sale.customerName}_${sale.phoneNumber}";
+
+      if (!seen.contains(key)) {
+        seen.add(key);
+        uniqueList.add({'name': sale.customerName, 'phone': sale.phoneNumber});
       }
     }
 
@@ -243,24 +256,29 @@ class _CustomersPageState extends State<CustomersPage> {
   }
 
   void _deleteCustomer(int index) async {
-    final box = Hive.box<Sale>('sales');
+    final sessionBox = await Hive.openBox('session');
+    final email = sessionBox.get('currentUserEmail');
+
+    final safeEmail = email.replaceAll('.', '_').replaceAll('@', '_');
+    final userBox = await Hive.openBox('userdata_$safeEmail');
+
+    // Load all sales
+    List<Sale> sales = List<Sale>.from(userBox.get("sales", defaultValue: []));
+
     final customerToDelete = filteredCustomers[index];
-    final toRemove = <int>[];
 
-    for (var i = 0; i < box.length; i++) {
-      final sale = box.getAt(i);
-      if (sale != null &&
+    // Keep only sales that DO NOT match the deleted customer
+    sales.removeWhere(
+      (sale) =>
           sale.customerName == customerToDelete['name'] &&
-          sale.phoneNumber == customerToDelete['phone']) {
-        toRemove.add(i);
-      }
-    }
+          sale.phoneNumber == customerToDelete['phone'],
+    );
 
-    for (int i = toRemove.length - 1; i >= 0; i--) {
-      await box.deleteAt(toRemove[i]);
-    }
+    // Save updated list
+    await userBox.put("sales", sales);
 
-    fetchUniqueCustomers(); // Refresh
+    // Refresh UI
+    fetchUniqueCustomers();
   }
 
   void _makePhoneCall(String phone) async {

@@ -28,18 +28,36 @@ class _HomePageState extends State<HomePage>
   String _currentUserEmail = '';
   String _currentUserPhone = '';
   bool _isUserDataLoaded = false;
+  Box? userBox; // User-specific box reference
 
   Future<void> _loadCurrentUserData() async {
     final user = await _getCurrentUserName();
 
-    setState(() {
-      if (user != null) {
-        _currentUserName = user.name;
-        _currentUserEmail = user.email;
-        _currentUserPhone = user.phone;
-      }
-      _isUserDataLoaded = true;
-    });
+    if (!Hive.isBoxOpen('session')) {
+      await Hive.openBox('session');
+    }
+
+    final sessionBox = Hive.box('session');
+    final email = sessionBox.get("currentUserEmail");
+
+    if (email != null) {
+      final safeEmail = email
+          .toString()
+          .replaceAll('.', '_')
+          .replaceAll('@', '_');
+
+      // OPEN USER-SPECIFIC BOX
+      userBox = await Hive.openBox("userdata_$safeEmail");
+
+      setState(() {
+        if (user != null) {
+          _currentUserName = user.name;
+          _currentUserEmail = user.email;
+          _currentUserPhone = user.phone;
+        }
+        _isUserDataLoaded = true;
+      });
+    }
   }
 
   Future<User?> _getCurrentUserName() async {
@@ -81,23 +99,64 @@ class _HomePageState extends State<HomePage>
     }
   }
 
-  void fetchWelcomeMessage() {
-    final userBox = Hive.box<User>('users');
+  Future<void> fetchWelcomeMessage() async {
+    // Open session box
+    if (!Hive.isBoxOpen('session')) {
+      await Hive.openBox('session');
+    }
+    final sessionBox = Hive.box('session');
 
-    // Assuming only one user is logged in or stored at a time
-    final user = userBox.values.isNotEmpty ? userBox.values.first : null;
+    final email = sessionBox.get('currentUserEmail');
 
-    setState(() {
-      welcomeMessage =
-          user != null ? "🏠 Welcome back, \n ${user.name}!" : "🏠 Welcome!";
-    });
+    if (email == null || email.toString().isEmpty) {
+      setState(() {
+        welcomeMessage = "🏠 Welcome!";
+      });
+      return;
+    }
+
+    // Load users box
+    final usersBox = Hive.box<User>('users');
+
+    User? user;
+    try {
+      user = usersBox.values.firstWhere(
+        (u) =>
+            u.email.trim().toLowerCase() ==
+            email.toString().trim().toLowerCase(),
+      );
+    } catch (e) {
+      user = null;
+    }
+
+    if (user == null) {
+      setState(() {
+        welcomeMessage = "🏠 Welcome!";
+      });
+      return;
+    }
+
+    // First login flag
+    final firstLoginKey = "firstLogin_$email";
+    bool isFirstLogin = sessionBox.get(firstLoginKey, defaultValue: true);
+
+    // Always show name with welcome
+    if (isFirstLogin) {
+      welcomeMessage = "Welcome, \n${user.name}!";
+      sessionBox.put(firstLoginKey, false); // Mark as visited
+    } else {
+      welcomeMessage = "Welcome back, \n${user.name}!";
+    }
+
+    setState(() {});
   }
 
   @override
   void initState() {
     super.initState();
-    fetchWelcomeMessage();
-    _loadCurrentUserData();
+    _loadCurrentUserData().then((_) {
+      fetchWelcomeMessage();
+    });
 
     _controller = AnimationController(
       vsync: this,
@@ -126,14 +185,22 @@ class _HomePageState extends State<HomePage>
   }
 
   Widget buildSalesList() {
-    final saleBox = Hive.box<Sale>('sales');
+    if (userBox == null) {
+      return Center(child: CircularProgressIndicator());
+    }
+
     return ValueListenableBuilder(
-      valueListenable: saleBox.listenable(),
-      builder: (context, Box<Sale> box, _) {
-        // Get all sales and sort them by date in descending order (newest first)
-        List<Sale> sales =
-            box.values.toList()
-              ..sort((a, b) => b.dateTime.compareTo(a.dateTime));
+      valueListenable: userBox!.listenable(),
+      builder: (context, Box box, _) {
+        // Get all sales from user-specific box and sort them by date in descending order (newest first)
+        List<Sale> sales = [];
+        try {
+          sales = List<Sale>.from(box.get("sales", defaultValue: []));
+        } catch (_) {
+          sales = [];
+        }
+
+        sales.sort((a, b) => b.dateTime.compareTo(a.dateTime));
 
         // Filter sales based on search query
         if (_searchQuery.isNotEmpty) {
@@ -187,7 +254,7 @@ class _HomePageState extends State<HomePage>
                   showDateFilter: true,
                 ),
 
-                if (box.isEmpty &&
+                if (sales.isEmpty &&
                     _searchQuery.isEmpty &&
                     selectedRange == null)
                   Padding(
@@ -232,7 +299,7 @@ class _HomePageState extends State<HomePage>
                       ),
                     ),
                   ),
-                if (box.isNotEmpty &&
+                if (sales.isNotEmpty &&
                     _searchQuery.isEmpty &&
                     selectedRange == null)
                   SizedBox(height: 10),
@@ -259,7 +326,7 @@ class _HomePageState extends State<HomePage>
                       if (sale == null) return SizedBox.shrink();
 
                       // Get the original index from the box to maintain invoice numbering
-                      final originalIndex = box.values.toList().indexOf(sale);
+                      final originalIndex = sales.indexOf(sale);
                       final invoiceNumber = originalIndex + 1;
                       final formattedDate = DateFormat(
                         'dd MMM yyyy',
@@ -610,8 +677,7 @@ class _HomePageState extends State<HomePage>
                                                   boxShadow: [
                                                     BoxShadow(
                                                       color: badgeColor
-                                                      // ignore: deprecated_member_use
-                                                      .withOpacity(0.3),
+                                                          .withOpacity(0.3),
                                                       blurRadius: 4,
                                                       offset: Offset(0, 2),
                                                     ),

@@ -1,9 +1,11 @@
+// lib/screens/products_page.dart
+// FULL FIXED – USER SPECIFIC PRODUCTS + SEARCH + DELETE + NO BUILD ERRORS
+
 import 'package:bizmate/widgets/confirm_delete_dialog.dart'
     show showConfirmDialog;
 import 'package:bizmate/widgets/advanced_search_bar.dart'
     show AdvancedSearchBar;
 import 'package:flutter/material.dart';
-import 'package:bizmate/models/product_store.dart';
 import 'package:bizmate/models/product.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
@@ -16,61 +18,140 @@ class ProductsPage extends StatefulWidget {
 
 class _ProductsPageState extends State<ProductsPage> {
   String _searchQuery = "";
-  List<String> filteredProducts = [];
+  List<Product> _allProducts = [];
+  List<Product> _filteredProducts = [];
+
+  Box<dynamic>? userBox;
 
   @override
   void initState() {
     super.initState();
+    _loadUserProducts();
+  }
+
+  // ---------------- LOAD USER-SPECIFIC PRODUCTS ----------------
+  Future<void> _loadUserProducts() async {
+    // Load logged-in user's email
+    if (!Hive.isBoxOpen('session')) await Hive.openBox('session');
+    final sessionBox = Hive.box('session');
+    final email = sessionBox.get('currentUserEmail');
+
+    if (email == null) {
+      setState(() {
+        _allProducts = [];
+        _filteredProducts = [];
+      });
+      return;
+    }
+
+    final safeEmail = email.replaceAll('.', '_').replaceAll('@', '_');
+    final boxName = 'userdata_$safeEmail';
+
+    userBox =
+        Hive.isBoxOpen(boxName)
+            ? Hive.box(boxName)
+            : await Hive.openBox(boxName);
+
+    // Ensure products key exists
+    if (!userBox!.containsKey('products')) {
+      await userBox!.put('products', <Product>[]);
+    }
+
+    final List<Product> loaded = List<Product>.from(
+      userBox!.get("products", defaultValue: <Product>[]),
+    );
+
+    setState(() {
+      _allProducts = loaded;
+      _filteredProducts = List.from(_allProducts);
+    });
+  }
+
+  // ---------------- SEARCH ----------------
+  void _filterProducts() {
+    if (_searchQuery.isEmpty) {
+      _filteredProducts = List.from(_allProducts);
+      setState(() {});
+      return;
+    }
+
+    final q = _searchQuery.toLowerCase();
+
+    _filteredProducts =
+        _allProducts.where((p) => p.name.toLowerCase().contains(q)).toList();
+
+    setState(() {});
   }
 
   void _handleSearchChanged(String query) {
-    setState(() {
-      _searchQuery = query;
-      _filterProducts();
-    });
+    _searchQuery = query;
+    _filterProducts();
   }
 
   void _handleDateRangeChanged(DateTimeRange? range) {
-    setState(() {
-      _filterProducts();
-    });
+    // Not needed for products
   }
 
-  void _filterProducts() {
-    if (_searchQuery.isEmpty) {
-      filteredProducts.clear();
-    } else {
-      final query = _searchQuery.toLowerCase();
-      filteredProducts =
-          ProductStore().all.where((product) {
-            return product.toLowerCase().contains(query);
-          }).toList();
+  // ---------------- DELETE PRODUCT ----------------
+  Future<bool> _confirmDelete(int realIndex) async {
+    bool confirmed = false;
+
+    await showConfirmDialog(
+      context: context,
+      title: "Confirm Deletion",
+      message: "Are you sure you want to delete this package?",
+      icon: Icons.warning_amber_rounded,
+      iconColor: Colors.redAccent,
+      onConfirm: () {
+        confirmed = true;
+      },
+    );
+
+    if (confirmed && realIndex >= 0) {
+      _allProducts.removeAt(realIndex);
+      await userBox!.put("products", _allProducts);
+
+      // Refresh filtered list
+      _filterProducts();
+      setState(() {});
     }
+
+    return confirmed;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF4F6FA),
+      backgroundColor: const Color(0xFFF4F6FA),
       body: Column(
         children: [
           AdvancedSearchBar(
             hintText: 'Search packages...',
             onSearchChanged: _handleSearchChanged,
             onDateRangeChanged: _handleDateRangeChanged,
-            showDateFilter: false, // No date filter needed for products page
+            showDateFilter: false,
           ),
+
+          // -------- PRODUCTS LIST --------
           Expanded(
             child: ValueListenableBuilder(
-              valueListenable: ProductStore().box.listenable(),
-              builder: (context, Box<Product> box, _) {
-                final allProducts = box.values.toList();
-                final products =
-                    _searchQuery.isEmpty
-                        ? ProductStore().all
-                        : filteredProducts;
+              valueListenable: userBox!.listenable(),
+              builder: (context, box, _) {
+                // Reload list when Hive updates (no setState!)
+                final List<Product> newList = List<Product>.from(
+                  userBox!.get("products", defaultValue: <Product>[]),
+                );
 
-                if (products.isEmpty) {
+                _allProducts = newList;
+
+                // Re-apply filter
+                if (_searchQuery.isEmpty) {
+                  _filteredProducts = List.from(_allProducts);
+                } else {
+                  _filterProducts();
+                }
+
+                if (_filteredProducts.isEmpty) {
                   return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -82,7 +163,7 @@ class _ProductsPageState extends State<ProductsPage> {
                           size: 80,
                           color: Colors.grey[400],
                         ),
-                        SizedBox(height: 16),
+                        const SizedBox(height: 16),
                         Text(
                           _searchQuery.isEmpty
                               ? "No Packages Yet"
@@ -99,47 +180,44 @@ class _ProductsPageState extends State<ProductsPage> {
                 }
 
                 return ListView.builder(
-                  padding: EdgeInsets.only(left: 16, right: 16, bottom: 16),
-                  itemCount: products.length,
+                  padding: const EdgeInsets.only(
+                    left: 16,
+                    right: 16,
+                    bottom: 16,
+                  ),
+                  itemCount: _filteredProducts.length,
                   itemBuilder: (context, index) {
-                    final productName = products[index];
-                    final productIndex = ProductStore().all.indexOf(
-                      productName,
-                    );
-                    final productRate =
-                        productIndex < allProducts.length
-                            ? allProducts[productIndex].rate
-                            : 0.0;
+                    final product = _filteredProducts[index];
+                    final realIndex = _allProducts.indexOf(product);
 
                     return Dismissible(
-                      key: Key(productName + index.toString()),
+                      key: Key(product.name + index.toString()),
                       direction: DismissDirection.endToStart,
-                      confirmDismiss:
-                          (direction) => _confirmDelete(productIndex),
+                      confirmDismiss: (_) => _confirmDelete(realIndex),
                       background: Container(
                         alignment: Alignment.centerRight,
-                        padding: EdgeInsets.symmetric(horizontal: 20),
-                        margin: EdgeInsets.only(bottom: 14),
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        margin: const EdgeInsets.only(bottom: 14),
                         decoration: BoxDecoration(
                           color: Colors.red,
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: Icon(
+                        child: const Icon(
                           Icons.delete,
                           color: Colors.white,
                           size: 30,
                         ),
                       ),
                       child: Container(
-                        margin: EdgeInsets.only(bottom: 14),
+                        margin: const EdgeInsets.only(bottom: 14),
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
+                          gradient: const LinearGradient(
                             colors: [Color(0xFF00BCD4), Color(0xFF1A237E)],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
                           borderRadius: BorderRadius.circular(10),
-                          boxShadow: [
+                          boxShadow: const [
                             BoxShadow(
                               color: Colors.black12,
                               blurRadius: 10,
@@ -148,11 +226,11 @@ class _ProductsPageState extends State<ProductsPage> {
                           ],
                         ),
                         child: ListTile(
-                          contentPadding: EdgeInsets.symmetric(
+                          contentPadding: const EdgeInsets.symmetric(
                             horizontal: 20,
                             vertical: 12,
                           ),
-                          leading: CircleAvatar(
+                          leading: const CircleAvatar(
                             backgroundColor: Colors.white,
                             child: Icon(
                               Icons.shopping_bag,
@@ -160,18 +238,18 @@ class _ProductsPageState extends State<ProductsPage> {
                             ),
                           ),
                           title: Text(
-                            productName,
-                            style: TextStyle(
+                            product.name,
+                            style: const TextStyle(
                               fontSize: 18,
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           subtitle: Text(
-                            "Rate: ₹${productRate.toStringAsFixed(2)}",
-                            style: TextStyle(color: Colors.white70),
+                            "Rate: ₹${product.rate.toStringAsFixed(2)}",
+                            style: const TextStyle(color: Colors.white70),
                           ),
-                          trailing: Icon(
+                          trailing: const Icon(
                             Icons.drag_handle,
                             color: Colors.white70,
                           ),
@@ -186,23 +264,5 @@ class _ProductsPageState extends State<ProductsPage> {
         ],
       ),
     );
-  }
-
-  Future<bool> _confirmDelete(int index) async {
-    bool confirmed = false;
-
-    await showConfirmDialog(
-      context: context,
-      title: "Confirm Deletion",
-      message: "Are you sure you want to delete this package?",
-      icon: Icons.warning_amber_rounded,
-      iconColor: Colors.redAccent,
-      onConfirm: () {
-        ProductStore().remove(index);
-        confirmed = true;
-      },
-    );
-
-    return confirmed;
   }
 }

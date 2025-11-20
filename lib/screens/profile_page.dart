@@ -3,6 +3,8 @@ import 'package:bizmate/widgets/app_snackbar.dart' show AppSnackBar;
 import 'package:bizmate/widgets/confirm_delete_dialog.dart'
     show showConfirmDialog;
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart'
+    show FlutterSecureStorage, AndroidOptions;
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:hive/hive.dart';
 import 'package:image_picker/image_picker.dart';
@@ -362,9 +364,24 @@ class _ProfilePageState extends State<ProfilePage> {
         await userBox.delete(userKey);
         print("User deleted from Hive");
       } else {
-        print("User not found");
+        print("User not found in Hive");
       }
 
+      // ------------------------------------------
+      // 🔥 DELETE PASSCODE FROM SECURE STORAGE
+      // ------------------------------------------
+      final storage = FlutterSecureStorage(
+        aOptions: const AndroidOptions(encryptedSharedPreferences: true),
+      );
+
+      await storage.delete(key: "passcode_$email");
+      await storage.delete(key: "passcode_type_$email");
+
+      print("Passcode + Type deleted");
+
+      // ------------------------------------------
+      // 🔥 DELETE PROFILE IMAGE & PREFS
+      // ------------------------------------------
       final prefs = await SharedPreferences.getInstance();
       final imgPath = prefs.getString('${email}_profileImagePath');
 
@@ -381,6 +398,9 @@ class _ProfilePageState extends State<ProfilePage> {
 
       print("SharedPrefs cleared");
 
+      // ------------------------------------------
+      // 🔥 CLEAR SESSION BOX
+      // ------------------------------------------
       if (Hive.isBoxOpen('session')) {
         await Hive.box('session').clear();
       } else {
@@ -390,6 +410,9 @@ class _ProfilePageState extends State<ProfilePage> {
 
       print("Session cleared");
 
+      // ------------------------------------------
+      // 🔥 NAVIGATE TO LOGIN SCREEN
+      // ------------------------------------------
       if (!mounted) return;
 
       AppSnackBar.showSuccess(
@@ -404,6 +427,7 @@ class _ProfilePageState extends State<ProfilePage> {
       );
     } catch (e) {
       print("Delete error: $e");
+
       if (!mounted) return;
 
       AppSnackBar.showError(
