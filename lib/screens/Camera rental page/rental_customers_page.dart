@@ -8,7 +8,8 @@ import 'package:intl/intl.dart';
 import '../../../models/customer_model.dart';
 
 class RentalCustomersPage extends StatefulWidget {
-  const RentalCustomersPage({Key? key, required String userEmail}) : super(key: key);
+  const RentalCustomersPage({Key? key, required String userEmail})
+    : super(key: key);
 
   @override
   State<RentalCustomersPage> createState() => _RentalCustomersPageState();
@@ -466,7 +467,7 @@ class _RentalCustomersPageState extends State<RentalCustomersPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: Colors.transparent,
       body:
           _isLoading
               ? _buildLoadingState()

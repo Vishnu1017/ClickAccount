@@ -127,7 +127,7 @@ class _RentalOrdersPageState extends State<RentalOrdersPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: Colors.transparent,
       body: Column(
         children: [
           const SizedBox(height: 16),
