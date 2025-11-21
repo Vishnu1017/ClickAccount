@@ -44,10 +44,10 @@ class _CameraRentalNavBarState extends State<CameraRentalNavBar> {
         userPhone: widget.userPhone,
         userEmail: widget.userEmail,
       ),
-      const RentalOrdersPage(),
-      RentalItems(),
-      const RentalCustomersPage(),
-      const RentalSettingsPage(),
+      RentalOrdersPage(userEmail: widget.userEmail),
+      RentalItems(userEmail: widget.userEmail),
+      RentalCustomersPage(userEmail: widget.userEmail),
+      RentalSettingsPage(userEmail: widget.userEmail),
     ];
   }
 

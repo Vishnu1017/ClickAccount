@@ -8,16 +8,22 @@ import '../../models/rental_item.dart';
 import 'edit_rental_item_page.dart';
 
 class RentalItems extends StatefulWidget {
-  const RentalItems({super.key});
+  final String userEmail;
+
+  const RentalItems({super.key, required this.userEmail});
 
   @override
   State<RentalItems> createState() => _RentalItemsState();
 }
 
 class _RentalItemsState extends State<RentalItems> {
-  late Box<RentalItem> _rentalBox;
-  String _searchQuery = "";
+  late Box userBox; // USER-SPECIFIC BOX (userdata_<safeEmail>)
+
+  List<RentalItem> rentalItems = [];
   List<RentalItem> filteredItems = [];
+
+  String _searchQuery = "";
+  String _selectedCategory = "All";
 
   final List<String> _categories = [
     'All',
@@ -30,47 +36,88 @@ class _RentalItemsState extends State<RentalItems> {
     'Microphone',
   ];
 
-  String _selectedCategory = 'All';
-
   @override
   void initState() {
     super.initState();
-    _rentalBox = Hive.box<RentalItem>('rental_items');
+    _loadUserSpecificBox();
+  }
+
+  Future<void> _loadUserSpecificBox() async {
+    final sessionBox = Hive.box('session');
+    final email = sessionBox.get("currentUserEmail");
+
+    final safeEmail = email
+        .toString()
+        .replaceAll('.', '_')
+        .replaceAll('@', '_');
+
+    final boxName = "userdata_$safeEmail";
+
+    if (!Hive.isBoxOpen(boxName)) {
+      await Hive.openBox(boxName);
+    }
+
+    userBox = Hive.box(boxName);
+
+    // Load rental_items list
+    _loadItems();
+
+    // Listen for changes
+    userBox.listenable(keys: ['rental_items']).addListener(() => _loadItems());
+  }
+
+  void _loadItems() {
+    try {
+      final raw = userBox.get('rental_items', defaultValue: []);
+      rentalItems = List<RentalItem>.from(raw);
+      filteredItems = rentalItems;
+
+      _filterItems();
+      setState(() {});
+    } catch (e) {
+      print("Error loading rental_items: $e");
+      rentalItems = [];
+      filteredItems = [];
+      setState(() {});
+    }
+  }
+
+  void _saveItems() {
+    userBox.put('rental_items', rentalItems);
   }
 
   void _handleSearchChanged(String query) {
-    setState(() {
-      _searchQuery = query;
-      _filterItems();
-    });
+    _searchQuery = query;
+    _filterItems();
   }
 
   void _handleDateRangeChanged(DateTimeRange? range) {
-    setState(() {
-      _filterItems();
-    });
+    _filterItems();
   }
 
   void _filterItems() {
-    final allItems = _rentalBox.values.toList().cast<RentalItem>();
-    List<RentalItem> temp = allItems;
+    List<RentalItem> temp = List.from(rentalItems);
 
     if (_selectedCategory != "All") {
-      temp = temp.where((item) => item.category == _selectedCategory).toList();
+      temp = temp.where((i) => i.category == _selectedCategory).toList();
     }
 
     if (_searchQuery.isNotEmpty) {
-      final query = _searchQuery.toLowerCase();
+      final q = _searchQuery.toLowerCase();
       temp =
-          temp.where((item) {
-            return item.name.toLowerCase().contains(query) ||
-                item.brand.toLowerCase().contains(query) ||
-                item.availability.toLowerCase().contains(query) ||
-                item.price.toString().contains(query);
-          }).toList();
+          temp
+              .where(
+                (i) =>
+                    i.name.toLowerCase().contains(q) ||
+                    i.brand.toLowerCase().contains(q) ||
+                    i.availability.toLowerCase().contains(q) ||
+                    i.price.toString().contains(q),
+              )
+              .toList();
     }
 
     filteredItems = temp;
+    setState(() {});
   }
 
   void _deleteItem(int index) {
@@ -81,7 +128,8 @@ class _RentalItemsState extends State<RentalItems> {
       icon: Icons.delete_forever_rounded,
       iconColor: Colors.redAccent,
       onConfirm: () {
-        _rentalBox.deleteAt(index);
+        rentalItems.removeAt(index);
+        _saveItems();
       },
     );
   }
@@ -102,23 +150,21 @@ class _RentalItemsState extends State<RentalItems> {
 
           // CATEGORY CHIPS
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
             child: SizedBox(
               height: 40,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: _categories.length,
                 separatorBuilder: (_, __) => const SizedBox(width: 10),
-                itemBuilder: (context, index) {
-                  final category = _categories[index];
-                  final bool isSelected = _selectedCategory == category;
+                itemBuilder: (context, i) {
+                  final category = _categories[i];
+                  bool selected = _selectedCategory == category;
 
                   return GestureDetector(
                     onTap: () {
-                      setState(() {
-                        _selectedCategory = category;
-                        _filterItems();
-                      });
+                      _selectedCategory = category;
+                      _filterItems();
                     },
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 250),
@@ -129,7 +175,7 @@ class _RentalItemsState extends State<RentalItems> {
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(30),
                         gradient:
-                            isSelected
+                            selected
                                 ? LinearGradient(
                                   colors: [
                                     Colors.blue.shade700,
@@ -143,7 +189,7 @@ class _RentalItemsState extends State<RentalItems> {
                                   ],
                                 ),
                         boxShadow:
-                            isSelected
+                            selected
                                 ? [
                                   BoxShadow(
                                     color: Colors.blue.withOpacity(0.3),
@@ -158,20 +204,15 @@ class _RentalItemsState extends State<RentalItems> {
                             Icons.circle,
                             size: 14,
                             color:
-                                isSelected
-                                    ? Colors.white
-                                    : Colors.grey.shade700,
+                                selected ? Colors.white : Colors.grey.shade700,
                           ),
                           const SizedBox(width: 6),
                           Text(
                             category,
                             style: TextStyle(
-                              color:
-                                  isSelected ? Colors.white : Colors.grey[900],
+                              color: selected ? Colors.white : Colors.grey[900],
                               fontWeight:
-                                  isSelected
-                                      ? FontWeight.bold
-                                      : FontWeight.w500,
+                                  selected ? FontWeight.bold : FontWeight.w500,
                               fontSize: 13,
                             ),
                           ),
@@ -184,100 +225,90 @@ class _RentalItemsState extends State<RentalItems> {
             ),
           ),
 
-          // RENTAL GRID
+          // RENTAL ITEMS GRID
           Expanded(
-            child: ValueListenableBuilder(
-              valueListenable: _rentalBox.listenable(),
-              builder: (context, Box<RentalItem> box, _) {
-                if (box.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      'No items added yet!',
-                      style: TextStyle(color: Colors.white70, fontSize: 18),
-                    ),
-                  );
-                }
-
-                final items =
-                    (_searchQuery.isEmpty && _selectedCategory == "All")
-                        ? box.values.toList().cast<RentalItem>()
-                        : filteredItems;
-
-                if (items.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      "No items match your filters",
-                      style: TextStyle(color: Colors.white70, fontSize: 18),
-                    ),
-                  );
-                }
-
-                return LayoutBuilder(
-                  builder: (context, constraints) {
-                    double width = constraints.maxWidth;
-
-                    int crossAxisCount =
-                        width < 360
-                            ? 1
-                            : width < 600
-                            ? 2
-                            : width < 900
-                            ? 3
-                            : width < 1200
-                            ? 4
-                            : 5;
-
-                    double cardRatio =
-                        width < 360
-                            ? 0.85
-                            : width < 600
-                            ? 0.70
-                            : 0.65;
-
-                    return GridView.builder(
-                      padding: const EdgeInsets.all(14),
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: crossAxisCount,
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                        childAspectRatio: cardRatio,
+            child:
+                rentalItems.isEmpty
+                    ? const Center(
+                      child: Text(
+                        'No items added yet!',
+                        style: TextStyle(color: Colors.white70, fontSize: 18),
                       ),
-                      itemCount: items.length,
-                      itemBuilder: (context, index) {
-                        final item = items[index];
-                        final originalIndex = _rentalBox.values
-                            .toList()
-                            .indexOf(item);
-
-                        return GestureDetector(
-                          onLongPress: () => _deleteItem(originalIndex),
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder:
-                                    (_) => EditRentalItemPage(
-                                      item: item,
-                                      index: originalIndex,
-                                    ),
-                              ),
-                            );
-                          },
-                          child: _buildCard(item, originalIndex),
-                        );
-                      },
-                    );
-                  },
-                );
-              },
-            ),
+                    )
+                    : filteredItems.isEmpty
+                    ? const Center(
+                      child: Text(
+                        "No items match your filters",
+                        style: TextStyle(color: Colors.white70, fontSize: 18),
+                      ),
+                    )
+                    : _buildGrid(),
           ),
         ],
       ),
     );
   }
 
-  // ⭐⭐⭐ FULL CARD WITH YOUR MISSING POSITIONED ICON ROW
+  Widget _buildGrid() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        double width = constraints.maxWidth;
+
+        int count =
+            width < 360
+                ? 1
+                : width < 600
+                ? 2
+                : width < 900
+                ? 3
+                : width < 1200
+                ? 4
+                : 5;
+
+        double ratio =
+            width < 360
+                ? 0.85
+                : width < 600
+                ? 0.70
+                : 0.65;
+
+        return GridView.builder(
+          padding: const EdgeInsets.all(14),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: count,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: ratio,
+          ),
+          itemCount: filteredItems.length,
+          itemBuilder: (context, index) {
+            final item = filteredItems[index];
+            final originalIndex = rentalItems.indexOf(item);
+
+            return GestureDetector(
+              onLongPress: () => _deleteItem(originalIndex),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder:
+                        (_) => EditRentalItemPage(
+                          item: item,
+                          index: originalIndex,
+                          userEmail: widget.userEmail,
+                        ),
+                  ),
+                );
+              },
+              child: _buildCard(item, originalIndex),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // ⭐⭐⭐ ORIGINAL CARD UI (NO CHANGES)
   Widget _buildCard(RentalItem item, int index) {
     return LayoutBuilder(
       builder: (context, c) {
@@ -331,6 +362,7 @@ class _RentalItemsState extends State<RentalItems> {
                             ),
                           ),
                           const SizedBox(height: 3),
+
                           Row(
                             children: [
                               const Icon(Icons.camera, size: 14),
@@ -345,41 +377,41 @@ class _RentalItemsState extends State<RentalItems> {
                               ),
                             ],
                           ),
+
                           const Spacer(),
+
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(14),
                             ),
-                            child: Column(
+                            child: Row(
                               children: [
-                                Row(
-                                  children: [
-                                    Text(
-                                      '₹${item.price.toStringAsFixed(0)}/day',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.teal,
-                                      ),
-                                    ),
-                                    const Spacer(),
-                                    Icon(
+                                Text(
+                                  '₹${item.price.toStringAsFixed(0)}/day',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.teal,
+                                  ),
+                                ),
+                                const Spacer(),
+                                Icon(
+                                  item.availability == 'Available'
+                                      ? Icons.check_circle
+                                      : Icons.cancel,
+                                  color:
                                       item.availability == 'Available'
-                                          ? Icons.check_circle
-                                          : Icons.cancel,
-                                      color:
-                                          item.availability == 'Available'
-                                              ? Colors.green
-                                              : Colors.red,
-                                      size: 18,
-                                    ),
-                                  ],
+                                          ? Colors.green
+                                          : Colors.red,
+                                  size: 18,
                                 ),
                               ],
                             ),
                           ),
+
                           const SizedBox(height: 6),
+
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
@@ -424,7 +456,7 @@ class _RentalItemsState extends State<RentalItems> {
                 ],
               ),
 
-              // ⭐⭐⭐ YOUR MISSING POSITIONED DESIGN RESTORED ⭐⭐⭐
+              // ⭐⭐⭐ Positioned badge + delete (RESTORED)
               Positioned(
                 top: 8,
                 right: 8,

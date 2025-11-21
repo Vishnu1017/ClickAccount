@@ -8,10 +8,14 @@ class EditRentalItemPage extends StatefulWidget {
   final RentalItem item;
   final int index;
 
+  /// ✅ USER-SPECIFIC SUPPORT
+  final String userEmail;
+
   const EditRentalItemPage({
     super.key,
     required this.item,
     required this.index,
+    required this.userEmail,
   });
 
   @override
@@ -22,37 +26,64 @@ class _EditRentalItemPageState extends State<EditRentalItemPage> {
   late TextEditingController nameController;
   late TextEditingController brandController;
   late TextEditingController priceController;
+
   String availability = 'Available';
+
   late Box<RentalItem> rentalBox;
+
+  /// USER BOX
+  Box? userBox;
+  List<RentalItem> userItems = [];
 
   @override
   void initState() {
     super.initState();
+
     rentalBox = Hive.box<RentalItem>('rental_items');
+
     nameController = TextEditingController(text: widget.item.name);
     brandController = TextEditingController(text: widget.item.brand);
     priceController = TextEditingController(text: widget.item.price.toString());
     availability = widget.item.availability;
+
+    _initUserBox();
   }
 
-  void _saveChanges() {
+  Future<void> _initUserBox() async {
+    final safeEmail = widget.userEmail
+        .replaceAll('.', '_')
+        .replaceAll('@', '_');
+
+    userBox = await Hive.openBox("userdata_$safeEmail");
+
+    final stored = userBox!.get("rental_items", defaultValue: []);
+    userItems = List<RentalItem>.from(stored);
+  }
+
+  void _saveChanges() async {
     final updatedItem = RentalItem(
       name: nameController.text,
       brand: brandController.text,
       price: double.tryParse(priceController.text) ?? 0,
       imagePath: widget.item.imagePath,
       availability: availability,
-      category: '',
+      category: widget.item.category,
     );
 
+    // Save to global box
     rentalBox.putAt(widget.index, updatedItem);
 
-    // ✅ Show success snackbar message
+    // Save to user-specific box
+    if (userItems.length > widget.index) {
+      userItems[widget.index] = updatedItem;
+    }
+
+    await userBox!.put("rental_items", userItems);
+
     AppSnackBar.showSuccess(context, message: 'Changes saved successfully!');
 
-    // Delay the navigation pop slightly so snackbar is visible briefly
     Future.delayed(const Duration(milliseconds: 500), () {
-      Navigator.pop(context);
+      Navigator.pop(context, updatedItem);
     });
   }
 
@@ -101,7 +132,6 @@ class _EditRentalItemPageState extends State<EditRentalItemPage> {
             ),
             const SizedBox(height: 24),
 
-            // Input fields
             _buildTextField(nameController, 'Item Name', Icons.camera_alt),
             _buildTextField(brandController, 'Brand', Icons.business),
             _buildTextField(
@@ -111,7 +141,7 @@ class _EditRentalItemPageState extends State<EditRentalItemPage> {
               isNumber: true,
             ),
 
-            // Modern dropdown
+            // Availability dropdown
             Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
@@ -176,9 +206,10 @@ class _EditRentalItemPageState extends State<EditRentalItemPage> {
                 onChanged: (value) => setState(() => availability = value!),
               ),
             ),
+
             const SizedBox(height: 30),
 
-            // Gradient save button
+            // Save Button
             GestureDetector(
               onTap: _saveChanges,
               child: Container(

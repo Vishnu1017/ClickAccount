@@ -18,7 +18,7 @@ import '../models/sale.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class CustomersPage extends StatefulWidget {
-  const CustomersPage({super.key});
+  const CustomersPage({super.key, required String userEmail});
 
   @override
   State<CustomersPage> createState() => _CustomersPageState();

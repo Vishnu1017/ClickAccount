@@ -20,7 +20,7 @@ class ProfilePage extends StatefulWidget {
   const ProfilePage({
     super.key,
     required this.user,
-    this.onRentalStatusChanged,
+    this.onRentalStatusChanged, required String userEmail,
   });
 
   @override

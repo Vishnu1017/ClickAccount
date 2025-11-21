@@ -8,7 +8,7 @@ import '../models/sale.dart';
 import '../models/rental_sale_model.dart';
 
 class DashboardPage extends StatefulWidget {
-  const DashboardPage({super.key});
+  const DashboardPage({super.key, required String userEmail});
 
   @override
   State<DashboardPage> createState() => _DashboardPageState();

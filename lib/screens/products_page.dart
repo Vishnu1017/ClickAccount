@@ -10,7 +10,7 @@ import 'package:bizmate/models/product.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 class ProductsPage extends StatefulWidget {
-  const ProductsPage({super.key});
+  const ProductsPage({super.key, required String userEmail});
 
   @override
   State<ProductsPage> createState() => _ProductsPageState();

@@ -67,19 +67,21 @@ class _NavBarPageState extends State<NavBarPage> {
   }
 
   List<Widget> get _pages => [
-    HomePage(),
-    DashboardPage(),
-    CustomersPage(),
-    ProductsPage(),
-    // Pass callback to ProfilePage so profile can signal changes
+    HomePage(
+      userEmail: widget.userEmail,
+      userName: widget.user.name,
+      userPhone: widget.userPhone,
+    ),
+    DashboardPage(userEmail: widget.userEmail),
+    CustomersPage(userEmail: widget.userEmail),
+    ProductsPage(userEmail: widget.userEmail),
     ProfilePage(
       user: widget.user,
+      userEmail: widget.userEmail,
       onRentalStatusChanged: () async {
         await _reloadRentalStatus();
         if (!mounted) return;
-        setState(() {
-          // No-op here except to rebuild; kept intentionally minimal
-        });
+        setState(() {});
       },
     ),
   ];

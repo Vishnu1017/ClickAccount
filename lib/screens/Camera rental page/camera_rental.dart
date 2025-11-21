@@ -1,7 +1,6 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'dart:io';
-
 import 'package:bizmate/screens/Camera%20rental%20page/rental_sale_detail_screen.dart'
     show RentalSaleDetailScreen;
 import 'package:bizmate/screens/rental_pdf_preview_screen.dart'
@@ -39,7 +38,7 @@ class CameraRentalPage extends StatefulWidget {
 }
 
 class _CameraRentalPageState extends State<CameraRentalPage> {
-  late Box<RentalSaleModel> salesBox;
+  late Box userBox; // user-specific box (userdata_<safeEmail>)
   bool _isLoading = true;
   List<RentalSaleModel> rentalSales = [];
   File? _profileImage;
@@ -51,9 +50,55 @@ class _CameraRentalPageState extends State<CameraRentalPage> {
   @override
   void initState() {
     super.initState();
-    _initHiveListener();
-    _loadSales();
+    _initUserBoxAndListener();
     _loadProfileImage();
+  }
+
+  Future<void> _initUserBoxAndListener() async {
+    // Build safe email -> userdata_<safeEmail>
+    final safeEmail = widget.userEmail
+        .toString()
+        .replaceAll('.', '_')
+        .replaceAll('@', '_');
+    final boxName = "userdata_$safeEmail";
+
+    // Open the user box
+    if (!Hive.isBoxOpen(boxName)) {
+      await Hive.openBox(boxName);
+    }
+    userBox = Hive.box(boxName);
+
+    // Initial load of rental_sales from userBox
+    _loadSalesFromUserBox();
+
+    // Listen for changes specifically for 'rental_sales' key
+    userBox.listenable(keys: ['rental_sales']).addListener(() {
+      // When the box (key) updates, refresh the in-memory list
+      _loadSalesFromUserBox();
+    });
+  }
+
+  void _loadSalesFromUserBox() {
+    try {
+      final raw = userBox.get('rental_sales', defaultValue: []);
+      // Convert to List<RentalSaleModel>
+      final List<RentalSaleModel> items =
+          (raw as List)
+              .map((e) => e as RentalSaleModel)
+              .toList()
+              .reversed
+              .toList();
+      setState(() {
+        rentalSales = items;
+        _isLoading = false;
+      });
+    } catch (e) {
+      debugPrint('Error reading rental_sales from userBox: $e');
+      setState(() {
+        rentalSales = [];
+        _isLoading = false;
+      });
+    }
   }
 
   void _handleSearchChanged(String query) {
@@ -71,7 +116,8 @@ class _CameraRentalPageState extends State<CameraRentalPage> {
   Future<void> _loadProfileImage() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final path = prefs.getString('${widget.userEmail}_profileImagePath');
+      final key = '${widget.userEmail}_profileImagePath';
+      final path = prefs.getString(key);
 
       if (path != null && path.isNotEmpty) {
         final file = File(path);
@@ -81,7 +127,7 @@ class _CameraRentalPageState extends State<CameraRentalPage> {
             _profileImage = file;
           });
         } else {
-          await prefs.remove('${widget.userEmail}_profileImagePath');
+          await prefs.remove(key);
         }
       }
     } catch (e) {
@@ -131,70 +177,71 @@ class _CameraRentalPageState extends State<CameraRentalPage> {
     return filteredSales;
   }
 
-  Future<void> _initHiveListener() async {
-    if (!Hive.isBoxOpen('rental_sales')) {
-      await Hive.openBox<RentalSaleModel>('rental_sales');
-    }
-    salesBox = Hive.box<RentalSaleModel>('rental_sales');
-
-    // Initial load
-    setState(() {
-      rentalSales = salesBox.values.toList().reversed.toList();
-      _isLoading = false;
-    });
-
-    // Listen for any changes in the box (add, update, delete)
-    salesBox.listenable().addListener(() {
-      setState(() {
-        rentalSales = salesBox.values.toList().reversed.toList();
-      });
-    });
-  }
-
-  void _notifyDashboardUpdate() {
-    if (Navigator.canPop(context)) {
-      Navigator.pop(context, totalSalesAmount);
-    }
-  }
-
-  Future<void> _loadSales() async {
-    try {
-      if (!Hive.isBoxOpen('rental_sales')) {
-        await Hive.openBox<RentalSaleModel>('rental_sales');
-      }
-      salesBox = Hive.box<RentalSaleModel>('rental_sales');
-
-      setState(() {
-        rentalSales = salesBox.values.toList().reversed.toList();
-        _isLoading = false;
-      });
-    } catch (e) {
-      debugPrint('Error loading sales: $e');
-      setState(() => _isLoading = false);
-      AppSnackBar.showError(
-        context,
-        message: 'Error loading sales: $e',
-        duration: const Duration(seconds: 2),
-      );
-    }
-  }
-
   String _formatDateTime(DateTime dateTime) {
     return "${dateTime.day}/${dateTime.month}/${dateTime.year} "
         "${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}";
   }
 
   Future<void> _deleteSale(int index) async {
-    final sale = rentalSales[index];
-    await sale.delete();
-    setState(() {
-      rentalSales.removeAt(index);
-    });
-    AppSnackBar.showSuccess(
-      context,
-      message: '${sale.customerName} deleted successfully',
-    );
-    _notifyDashboardUpdate();
+    try {
+      // We display filtered list — index corresponds to filtered list's position.
+      // The caller passes originalIndex (the index in rentalSales list). We'll expect that.
+      final sale = rentalSales[index];
+
+      // Remove from persistent storage (userBox -> rental_sales list)
+      final raw = userBox.get('rental_sales', defaultValue: []);
+      final List<RentalSaleModel> persisted =
+          (raw as List).map((e) => e as RentalSaleModel).toList();
+
+      // Find and remove the matching sale (by identity or unique property)
+      final int idx = persisted.indexWhere(
+        (s) => identical(s, sale) || _isSameSale(s, sale),
+      );
+
+      if (idx != -1) {
+        persisted.removeAt(idx);
+        await userBox.put('rental_sales', persisted);
+      } else {
+        // fallback: remove first matching by customer+fromDate+toDate+totalCost
+        final fallbackIdx = persisted.indexWhere(
+          (s) =>
+              s.customerName == sale.customerName &&
+              s.fromDateTime == sale.fromDateTime &&
+              s.toDateTime == sale.toDateTime &&
+              s.totalCost == sale.totalCost,
+        );
+        if (fallbackIdx != -1) {
+          persisted.removeAt(fallbackIdx);
+          await userBox.put('rental_sales', persisted);
+        }
+      }
+
+      // Update local list (listener will typically update, but do it now)
+      _loadSalesFromUserBox();
+
+      AppSnackBar.showSuccess(
+        context,
+        message: '${sale.customerName} deleted successfully',
+      );
+
+      _notifyDashboardUpdate();
+    } catch (e) {
+      debugPrint('Error deleting sale: $e');
+      AppSnackBar.showError(
+        context,
+        message: 'Failed to delete: $e',
+        duration: Duration(seconds: 2),
+      );
+    }
+  }
+
+  bool _isSameSale(RentalSaleModel a, RentalSaleModel b) {
+    // Best-effort comparison: compare key fields
+    return a.customerName == b.customerName &&
+        a.itemName == b.itemName &&
+        a.fromDateTime == b.fromDateTime &&
+        a.toDateTime == b.toDateTime &&
+        a.totalCost == b.totalCost;
   }
 
   Future<void> _confirmDelete(int index) async {
@@ -269,7 +316,6 @@ class _CameraRentalPageState extends State<CameraRentalPage> {
       final file = File(imageUrl);
       final exists = await file.exists();
       if (exists) {
-        // Additional check to ensure the file is readable
         final length = await file.length();
         return length > 0;
       }
@@ -412,7 +458,6 @@ class _CameraRentalPageState extends State<CameraRentalPage> {
           ],
         ),
         const SizedBox(height: 6),
-
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -530,7 +575,6 @@ class _CameraRentalPageState extends State<CameraRentalPage> {
             ),
           ],
         ),
-
         const SizedBox(height: 6),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -605,7 +649,6 @@ class _CameraRentalPageState extends State<CameraRentalPage> {
                     // Profile Image
                     if (profileImageWidget != null) profileImageWidget,
                     if (profileImageWidget != null) pw.SizedBox(width: 16),
-
                     pw.Expanded(
                       child: pw.Column(
                         crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -759,8 +802,35 @@ class _CameraRentalPageState extends State<CameraRentalPage> {
       final file = File('${dir.path}/${customerName}_rental.pdf');
       await file.writeAsBytes(await pdf.save());
 
-      sale.pdfFilePath = file.path;
-      await sale.save();
+      // Persist pdfFilePath into the stored list inside userBox
+      try {
+        // update in-memory object
+        sale.pdfFilePath = file.path;
+
+        // Persist change: find in stored list and replace
+        final raw = userBox.get('rental_sales', defaultValue: []);
+        final List<RentalSaleModel> persisted =
+            (raw as List).map((e) => e as RentalSaleModel).toList();
+
+        final int idx = persisted.indexWhere((s) => _isSameSale(s, sale));
+        if (idx != -1) {
+          persisted[idx] = sale;
+        } else {
+          // best-effort: fallback replace by matching properties
+          final fallbackIdx = persisted.indexWhere(
+            (s) =>
+                s.customerName == sale.customerName &&
+                s.fromDateTime == sale.fromDateTime &&
+                s.toDateTime == sale.toDateTime &&
+                s.totalCost == sale.totalCost,
+          );
+          if (fallbackIdx != -1) persisted[fallbackIdx] = sale;
+        }
+
+        await userBox.put('rental_sales', persisted);
+      } catch (e) {
+        debugPrint('Failed to persist pdfFilePath to userBox: $e');
+      }
 
       final result = await Navigator.push(
         context,
@@ -774,6 +844,7 @@ class _CameraRentalPageState extends State<CameraRentalPage> {
               ),
         ),
       );
+
       if (result == true) _notifyDashboardUpdate();
     } catch (e) {
       debugPrint('PDF generation error: $e');
@@ -803,6 +874,12 @@ class _CameraRentalPageState extends State<CameraRentalPage> {
         ),
       ],
     );
+  }
+
+  void _notifyDashboardUpdate() {
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context, totalSalesAmount);
+    }
   }
 
   @override
@@ -905,17 +982,13 @@ class _CameraRentalPageState extends State<CameraRentalPage> {
                                             (_) => RentalSaleDetailScreen(
                                               sale: filteredRentalSales[index],
                                               index: originalIndex,
+                                              userEmail: widget.userEmail,
                                             ),
                                       ),
                                     );
                                     if (result == true) {
-                                      setState(() {
-                                        rentalSales =
-                                            salesBox.values
-                                                .toList()
-                                                .reversed
-                                                .toList();
-                                      });
+                                      // reload from userBox
+                                      _loadSalesFromUserBox();
                                       _notifyDashboardUpdate();
                                     }
                                   },

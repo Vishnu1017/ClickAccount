@@ -69,18 +69,48 @@ class _AddRentalItemPageState extends State<AddRentalItemPage> {
         return;
       }
 
-      final box = Hive.box<RentalItem>('rental_items');
+      // 🔥 Load logged-in user email
+      if (!Hive.isBoxOpen('session')) {
+        await Hive.openBox('session');
+      }
+      final sessionBox = Hive.box('session');
+      final currentEmail = sessionBox.get("currentUserEmail");
 
+      if (currentEmail == null || currentEmail.toString().isEmpty) {
+        AppSnackBar.showError(
+          context,
+          message: "No logged-in user found!",
+          duration: Duration(seconds: 2),
+        );
+        return;
+      }
+
+      // 🔥 Convert email → safe box name
+      final safeEmail = currentEmail.replaceAll('.', '_').replaceAll('@', '_');
+
+      // 🔥 Open user-specific box
+      final userBox = await Hive.openBox("userdata_$safeEmail");
+
+      // 🔥 Prepare rental item
       final item = RentalItem(
         name: _nameController.text.trim(),
         brand: _brandController.text.trim(),
         category: _selectedCategory,
         price: double.parse(_priceController.text.trim()),
         availability: _availability,
-        imagePath: _selectedImage!.path, // <-- NOW PERMANENT PATH
+        imagePath: _selectedImage!.path,
       );
 
-      await box.add(item);
+      // 🔥 Read existing rental list
+      List<RentalItem> rentalList = List<RentalItem>.from(
+        userBox.get("rental_items", defaultValue: []),
+      );
+
+      // 🔥 Add item to user's private list
+      rentalList.add(item);
+
+      // 🔥 Save back to box
+      await userBox.put("rental_items", rentalList);
 
       AppSnackBar.showSuccess(context, message: 'Item added successfully!');
       _clearForm();

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class RentalOrdersPage extends StatelessWidget {
-  const RentalOrdersPage({super.key});
+  const RentalOrdersPage({super.key, required String userEmail});
 
   @override
   Widget build(BuildContext context) {

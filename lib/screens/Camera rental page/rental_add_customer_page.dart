@@ -40,6 +40,7 @@ class _RentalAddCustomerPageState extends State<RentalAddCustomerPage> {
 
   late Box<CustomerModel> customerBox;
   late Box<RentalSaleModel> salesBox;
+  Box? userBox; // User-specific box reference
 
   bool _isLoading = true;
   bool _isSaving = false;
@@ -157,6 +158,23 @@ class _RentalAddCustomerPageState extends State<RentalAddCustomerPage> {
 
   Future<void> _initBoxes() async {
     try {
+      // Initialize user-specific box
+      if (!Hive.isBoxOpen('session')) {
+        await Hive.openBox('session');
+      }
+
+      final sessionBox = Hive.box('session');
+      final email = sessionBox.get("currentUserEmail");
+
+      if (email != null) {
+        final safeEmail = email
+            .toString()
+            .replaceAll('.', '_')
+            .replaceAll('@', '_');
+        userBox = await Hive.openBox("userdata_$safeEmail");
+      }
+
+      // Initialize other boxes
       if (!Hive.isBoxOpen('customers')) {
         await Hive.openBox<CustomerModel>('customers');
       }
@@ -255,13 +273,29 @@ class _RentalAddCustomerPageState extends State<RentalAddCustomerPage> {
     try {
       final summary = calculateSummary();
 
-      // Save customer
+      // Save customer to user-specific box if available
       final newCustomer = CustomerModel(
         name: nameController.text.trim(),
         phone: phoneController.text.trim(),
         createdAt: DateTime.now(),
       );
+
+      // Save to both boxes for compatibility
       await customerBox.add(newCustomer);
+
+      // Also save to user-specific box if available
+      if (userBox != null) {
+        List<CustomerModel> userCustomers = [];
+        try {
+          userCustomers = List<CustomerModel>.from(
+            userBox!.get("customers", defaultValue: []),
+          );
+        } catch (_) {
+          userCustomers = [];
+        }
+        userCustomers.add(newCustomer);
+        await userBox!.put("customers", userCustomers);
+      }
 
       // Save rental sale - using only existing parameters
       final newRental = RentalSaleModel(
@@ -277,7 +311,22 @@ class _RentalAddCustomerPageState extends State<RentalAddCustomerPage> {
         imageUrl: widget.rentalItem.imagePath,
       );
 
+      // Save to both boxes for compatibility
       await salesBox.add(newRental);
+
+      // Also save to user-specific box if available
+      if (userBox != null) {
+        List<RentalSaleModel> userRentalSales = [];
+        try {
+          userRentalSales = List<RentalSaleModel>.from(
+            userBox!.get("rental_sales", defaultValue: []),
+          );
+        } catch (_) {
+          userRentalSales = [];
+        }
+        userRentalSales.add(newRental);
+        await userBox!.put("rental_sales", userRentalSales);
+      }
 
       AppSnackBar.showSuccess(
         context,
@@ -307,7 +356,6 @@ class _RentalAddCustomerPageState extends State<RentalAddCustomerPage> {
     required IconData icon,
     required TextEditingController controller,
     String? Function(String?)? validator,
-
     TextInputType? keyboardType,
     VoidCallback? onTap,
     String? suffixText,
@@ -396,7 +444,7 @@ class _RentalAddCustomerPageState extends State<RentalAddCustomerPage> {
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(horizontal: 20),
         ),
-        dropdownColor: const Color(0xFF667eea),
+        dropdownColor: const Color(0xFF1A237E),
         style: const TextStyle(color: Colors.white),
         icon: Icon(Icons.arrow_drop_down, color: Colors.white.withOpacity(0.8)),
         items:
@@ -767,7 +815,11 @@ class _RentalAddCustomerPageState extends State<RentalAddCustomerPage> {
             height: double.infinity,
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+                colors: [
+                  Color(0xFF1A237E), // Deep blue
+                  Color(0xFF00BCD4), // Light aqua blue
+                ],
+
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -874,7 +926,7 @@ class _RentalAddCustomerPageState extends State<RentalAddCustomerPage> {
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(20),
                           gradient: const LinearGradient(
-                            colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+                            colors: [Color(0xFF1A237E), Color(0xFF00BCD4)],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
@@ -1183,7 +1235,7 @@ class _RentalAddCustomerPageState extends State<RentalAddCustomerPage> {
                                     else
                                       const Icon(
                                         Icons.save_alt,
-                                        color: Color(0xFF667eea),
+                                        color: Color(0xFF1A237E),
                                         size: 22,
                                       ),
                                     const SizedBox(width: 12),
@@ -1197,7 +1249,7 @@ class _RentalAddCustomerPageState extends State<RentalAddCustomerPage> {
                                         color:
                                             _isSaving
                                                 ? Colors.grey.shade700
-                                                : const Color(0xFF667eea),
+                                                : const Color(0xFF1A237E),
                                       ),
                                     ),
                                   ],

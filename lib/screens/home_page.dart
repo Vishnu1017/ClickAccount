@@ -12,7 +12,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  const HomePage({super.key, required String userEmail, required String userName, required String userPhone});
 
   @override
   State<HomePage> createState() => _HomePageState();
