@@ -256,52 +256,66 @@ class _CameraRentalPageState extends State<CameraRentalPage> {
   }
 
   Widget _buildImage(RentalSaleModel sale, double size) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: FutureBuilder<bool>(
-        future: _checkImageExists(sale.imageUrl),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Container(
-              height: size,
-              width: size,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Icon(
-                Icons.camera_alt,
-                color: Colors.white,
-                size: 30,
-              ),
-            );
-          }
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: FutureBuilder<bool>(
+          future: _checkImageExists(sale.imageUrl),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.blue.shade100, Colors.blue.shade300],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: const Icon(
+                  Icons.camera_alt,
+                  color: Colors.white,
+                  size: 30,
+                ),
+              );
+            }
 
-          if (snapshot.hasData && snapshot.data == true) {
-            return Image.file(
-              File(sale.imageUrl!),
-              height: size,
-              width: size,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return _buildPlaceholderImage(size);
-              },
-            );
-          } else {
-            return _buildPlaceholderImage(size);
-          }
-        },
+            if (snapshot.hasData && snapshot.data == true) {
+              return Image.file(
+                File(sale.imageUrl!),
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return _buildPlaceholderImage();
+                },
+              );
+            } else {
+              return _buildPlaceholderImage();
+            }
+          },
+        ),
       ),
     );
   }
 
-  Widget _buildPlaceholderImage(double size) {
+  Widget _buildPlaceholderImage() {
     return Container(
-      height: size,
-      width: size,
       decoration: BoxDecoration(
-        color: Colors.blue.shade200,
-        borderRadius: BorderRadius.circular(20),
+        gradient: LinearGradient(
+          colors: [Colors.blue.shade100, Colors.blue.shade300],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
       ),
       child: const Icon(Icons.camera_alt, color: Colors.white, size: 40),
     );
@@ -357,33 +371,41 @@ class _CameraRentalPageState extends State<CameraRentalPage> {
     final balanceDue = sale.totalCost - sale.amountPaid;
 
     return Column(
-      crossAxisAlignment:
-          isWide ? CrossAxisAlignment.start : CrossAxisAlignment.stretch,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Header Row
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Flexible(
+            Expanded(
               child: Text(
                 sale.customerName,
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  letterSpacing: 0.5,
+                  color: Colors.white,
                 ),
                 overflow: TextOverflow.ellipsis,
+                maxLines: 1,
               ),
             ),
             Row(
               children: [
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
+                    horizontal: 12,
+                    vertical: 6,
                   ),
                   decoration: BoxDecoration(
                     color: getSaleStatusColor(sale),
                     borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: getSaleStatusColor(sale).withOpacity(0.3),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: Text(
                     getSaleStatus(sale),
@@ -391,31 +413,6 @@ class _CameraRentalPageState extends State<CameraRentalPage> {
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade700,
-                    borderRadius: BorderRadius.circular(14),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.blue.shade300.withOpacity(0.6),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: Text(
-                    '₹ ${sale.ratePerDay.toStringAsFixed(0)}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
@@ -434,8 +431,12 @@ class _CameraRentalPageState extends State<CameraRentalPage> {
                           value: 'share_pdf',
                           child: Row(
                             children: [
-                              Icon(Icons.picture_as_pdf, color: Colors.blue),
-                              SizedBox(width: 10),
+                              Icon(
+                                Icons.picture_as_pdf,
+                                color: Colors.blue,
+                                size: 20,
+                              ),
+                              SizedBox(width: 8),
                               Text('Share PDF'),
                             ],
                           ),
@@ -444,150 +445,186 @@ class _CameraRentalPageState extends State<CameraRentalPage> {
                           value: 'delete',
                           child: Row(
                             children: [
-                              Icon(Icons.delete, color: Colors.red),
-                              SizedBox(width: 10),
+                              Icon(Icons.delete, color: Colors.red, size: 20),
+                              SizedBox(width: 8),
                               Text('Delete'),
                             ],
                           ),
                         ),
                       ],
-                  icon: const Icon(Icons.more_vert, color: Colors.blueGrey),
-                ),
-              ],
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            // Left column: Item, Rate/day, Days
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                RichText(
-                  text: TextSpan(
-                    style: const TextStyle(fontSize: 15, color: Colors.black87),
-                    children: [
-                      const TextSpan(
-                        text: 'Item: ',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      TextSpan(
-                        text: sale.itemName,
-                        style: const TextStyle(fontWeight: FontWeight.normal),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 2),
-                RichText(
-                  text: TextSpan(
-                    style: const TextStyle(fontSize: 15, color: Colors.black87),
-                    children: [
-                      const TextSpan(
-                        text: 'Rate/day: ',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      TextSpan(
-                        text: '₹ ${sale.ratePerDay.toStringAsFixed(2)}',
-                        style: const TextStyle(fontWeight: FontWeight.normal),
-                      ),
-                    ],
-                  ),
-                ),
-                RichText(
-                  text: TextSpan(
-                    style: const TextStyle(fontSize: 15, color: Colors.black87),
-                    children: [
-                      const TextSpan(
-                        text: 'Days: ',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      TextSpan(
-                        text: '${sale.numberOfDays}',
-                        style: const TextStyle(fontWeight: FontWeight.normal),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 6),
-              ],
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                RichText(
-                  text: TextSpan(
-                    style: const TextStyle(fontSize: 15, color: Colors.black87),
-                    children: [
-                      const TextSpan(
-                        text: 'Total: ',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      TextSpan(
-                        text: '₹ ${sale.totalCost.toStringAsFixed(2)}',
-                        style: const TextStyle(fontWeight: FontWeight.normal),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 2),
-                RichText(
-                  text: TextSpan(
-                    style: const TextStyle(fontSize: 15, color: Colors.black87),
-                    children: [
-                      const TextSpan(
-                        text: 'Paid: ',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      TextSpan(
-                        text: '₹ ${sale.amountPaid.toStringAsFixed(2)}',
-                        style: const TextStyle(fontWeight: FontWeight.normal),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 2),
-                RichText(
-                  text: TextSpan(
-                    style: const TextStyle(fontSize: 15),
-                    children: [
-                      const TextSpan(
-                        text: 'Balance: ',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
-                        ),
-                      ),
-                      TextSpan(
-                        text: '₹ ${balanceDue.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.normal,
-                          color: Colors.red,
-                        ),
-                      ),
-                    ],
+                  icon: const Icon(
+                    Icons.more_vert,
+                    color: Colors.white,
+                    size: 20,
                   ),
                 ),
               ],
             ),
           ],
         ),
-        const SizedBox(height: 6),
+
+        const SizedBox(height: 8),
+
+        // Item Details
+        Text(
+          sale.itemName,
+          style: const TextStyle(
+            fontSize: 16,
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+
+        const SizedBox(height: 12),
+
+        // Pricing and Duration Row
+        Row(
+          children: [
+            _buildDetailChip(
+              icon: Icons.calendar_today,
+              value: '${sale.numberOfDays} days',
+            ),
+            const SizedBox(width: 8),
+            _buildDetailChip(
+              icon: Icons.attach_money,
+              value: '₹${sale.ratePerDay.toStringAsFixed(0)}/day',
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 12),
+
+        // Amount Details
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              "From: ${_formatDateTime(sale.fromDateTime)}",
-              style: const TextStyle(fontSize: 13, color: Colors.black87),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildAmountRow(
+                  'Total',
+                  '₹${sale.totalCost.toStringAsFixed(0)}',
+                ),
+                const SizedBox(height: 4),
+                _buildAmountRow(
+                  'Paid',
+                  '₹${sale.amountPaid.toStringAsFixed(0)}',
+                  isPaid: true,
+                ),
+              ],
             ),
-            Text(
-              "To: ${_formatDateTime(sale.toDateTime)}",
-              style: const TextStyle(fontSize: 13, color: Colors.black87),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color:
+                    balanceDue > 0
+                        ? Colors.red.shade400
+                        : Colors.green.shade400,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: (balanceDue > 0 ? Colors.red : Colors.green)
+                        .withOpacity(0.3),
+                    blurRadius: 6,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Text(
+                '₹${balanceDue.toStringAsFixed(0)}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
             ),
           ],
+        ),
+
+        const SizedBox(height: 12),
+
+        // Date Range
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _buildDateInfo('From', _formatDateTime(sale.fromDateTime)),
+            _buildDateInfo('To', _formatDateTime(sale.toDateTime)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDetailChip({required IconData icon, required String value}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white, size: 14),
+          const SizedBox(width: 4),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAmountRow(String label, String value, {bool isPaid = false}) {
+    return Row(
+      children: [
+        Text(
+          '$label: ',
+          style: TextStyle(
+            color: Colors.white.withOpacity(0.8),
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            color: isPaid ? Colors.green.shade200 : Colors.white,
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDateInfo(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.white.withOpacity(0.7),
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ],
     );
@@ -896,6 +933,7 @@ class _CameraRentalPageState extends State<CameraRentalPage> {
             onDateRangeChanged: _handleDateRangeChanged,
             showDateFilter: true,
           ),
+          const SizedBox(height: 16),
           Expanded(
             child:
                 _isLoading
@@ -934,10 +972,7 @@ class _CameraRentalPageState extends State<CameraRentalPage> {
                       ),
                     )
                     : ListView.builder(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 0,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
                       itemCount: filteredRentalSales.length,
                       itemBuilder: (context, index) {
                         final sale = filteredRentalSales[index];
@@ -946,15 +981,15 @@ class _CameraRentalPageState extends State<CameraRentalPage> {
                         return LayoutBuilder(
                           builder: (context, constraints) {
                             bool isWide = constraints.maxWidth > 600;
-                            double imageSize = isWide ? 120 : 100;
+                            double imageSize = isWide ? 140 : 120;
 
                             return Container(
-                              margin: const EdgeInsets.symmetric(vertical: 10),
+                              margin: const EdgeInsets.only(bottom: 16),
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
                                   colors: [
-                                    Colors.blue.shade100,
-                                    Colors.blue.shade300,
+                                    Colors.blue.shade600,
+                                    Colors.blue.shade800,
                                   ],
                                   begin: Alignment.topLeft,
                                   end: Alignment.bottomRight,
@@ -962,11 +997,11 @@ class _CameraRentalPageState extends State<CameraRentalPage> {
                                 borderRadius: BorderRadius.circular(20),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.blue.shade300.withOpacity(
-                                      0.4,
+                                    color: Colors.blue.shade800.withOpacity(
+                                      0.3,
                                     ),
-                                    blurRadius: 12,
-                                    offset: const Offset(0, 6),
+                                    blurRadius: 15,
+                                    offset: const Offset(0, 8),
                                   ),
                                 ],
                               ),
@@ -975,25 +1010,23 @@ class _CameraRentalPageState extends State<CameraRentalPage> {
                                 child: InkWell(
                                   borderRadius: BorderRadius.circular(20),
                                   onTap: () async {
-                                    final result = await Navigator.push(
+                                    await Navigator.push(
                                       context,
                                       MaterialPageRoute(
                                         builder:
                                             (_) => RentalSaleDetailScreen(
-                                              sale: filteredRentalSales[index],
+                                              sale:
+                                                  rentalSales[originalIndex], // ✅ REAL OBJECT
                                               index: originalIndex,
                                               userEmail: widget.userEmail,
                                             ),
                                       ),
                                     );
-                                    if (result == true) {
-                                      // reload from userBox
-                                      _loadSalesFromUserBox();
-                                      _notifyDashboardUpdate();
-                                    }
+
+                                    // not even required as listener refreshes automatically
                                   },
                                   child: Padding(
-                                    padding: const EdgeInsets.all(16),
+                                    padding: const EdgeInsets.all(20),
                                     child:
                                         isWide
                                             ? Row(
@@ -1013,14 +1046,25 @@ class _CameraRentalPageState extends State<CameraRentalPage> {
                                             )
                                             : Column(
                                               crossAxisAlignment:
-                                                  CrossAxisAlignment.stretch,
+                                                  CrossAxisAlignment.start,
                                               children: [
-                                                _buildImage(sale, imageSize),
-                                                const SizedBox(height: 12),
-                                                _buildTextDetails(
-                                                  sale,
-                                                  isWide,
-                                                  originalIndex,
+                                                Row(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    _buildImage(
+                                                      sale,
+                                                      imageSize,
+                                                    ),
+                                                    const SizedBox(width: 16),
+                                                    Expanded(
+                                                      child: _buildTextDetails(
+                                                        sale,
+                                                        isWide,
+                                                        originalIndex,
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
                                               ],
                                             ),
