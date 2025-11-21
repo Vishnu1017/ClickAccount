@@ -158,11 +158,14 @@ class _SelectItemsScreenState extends State<SelectItemsScreen> {
 
   Map<String, double> calculateSummary() {
     final qty = double.tryParse(quantityController.text) ?? 1.0;
-    final rawRate = double.tryParse(rateController.text) ?? 0.0;
+    final rate = double.tryParse(rateController.text) ?? 0.0;
+    final subtotal = rate * qty;
+
     final discountPercent =
         isEditingPercent
             ? (double.tryParse(discountPercentController.text) ?? 0.0)
             : 0.0;
+
     final discountAmount =
         !isEditingPercent
             ? (double.tryParse(discountAmountController.text) ?? 0.0)
@@ -171,57 +174,61 @@ class _SelectItemsScreenState extends State<SelectItemsScreen> {
     final taxPercent = parseTaxRate();
     final taxType = selectedTaxType;
 
-    double rate = rawRate;
-    double subtotal = 0.0;
     double taxAmount = 0.0;
-    double discountAmt = 0.0;
-    double total = 0.0;
+    double calculatedDiscountAmount = 0.0;
+    double totalAmount = 0.0;
 
-    if (taxType == "With Tax" && taxPercent > 0) {
-      rate = rawRate / (1 + taxPercent / 100);
-      subtotal = rate * qty;
+    if (taxType == 'With Tax' && taxPercent > 0) {
+      // Tax inclusive logic (same as RentalAddCustomer)
+      final taxableBeforeDiscount = subtotal;
 
-      discountAmt =
-          isEditingPercent ? subtotal * discountPercent / 100 : discountAmount;
-
-      final taxable = subtotal - discountAmt;
-      taxAmount = discountAmt >= subtotal ? 0 : taxable * taxPercent / 100;
-
-      total = taxable + taxAmount;
-    } else {
-      rate = rawRate;
-      subtotal = rate * qty;
-
-      discountAmt =
+      calculatedDiscountAmount =
           isEditingPercent
-              ? subtotal * discountPercent / 100
+              ? taxableBeforeDiscount * discountPercent / 100
+              : discountAmount;
+
+      final taxable = taxableBeforeDiscount - calculatedDiscountAmount;
+
+      taxAmount =
+          calculatedDiscountAmount >= taxableBeforeDiscount
+              ? 0.0
+              : taxable * taxPercent / 100;
+
+      totalAmount = taxable + taxAmount;
+    } else {
+      // Tax exclusive or Without Tax
+      calculatedDiscountAmount =
+          isEditingPercent
+              ? (subtotal * discountPercent / 100)
               : (discountAmount > subtotal ? subtotal : discountAmount);
 
-      final taxable = subtotal - discountAmt;
-      taxAmount = taxPercent > 0 ? taxable * taxPercent / 100 : 0;
+      final taxable = subtotal - calculatedDiscountAmount;
 
-      total = taxable + taxAmount;
+      taxAmount = taxPercent > 0 ? taxable * taxPercent / 100 : 0.0;
+
+      totalAmount = taxable + taxAmount;
     }
 
-    // Update controllers safely after frame
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      if (isEditingPercent) {
-        discountAmountController.text = discountAmt.toStringAsFixed(2);
-      } else {
-        discountPercentController.text =
-            subtotal == 0
-                ? "0.00"
-                : ((discountAmt / subtotal) * 100).toStringAsFixed(2);
-      }
-    });
+    // ★ Sync discount % ↔ amount
+    if (isEditingPercent) {
+      discountAmountController.text = calculatedDiscountAmount.toStringAsFixed(
+        2,
+      );
+    } else {
+      discountPercentController.text =
+          subtotal == 0
+              ? "0.00"
+              : ((calculatedDiscountAmount / subtotal) * 100).toStringAsFixed(
+                2,
+              );
+    }
 
     return {
       'rate': rate,
       'subtotal': subtotal,
-      'discountAmount': discountAmt,
+      'discountAmount': calculatedDiscountAmount,
       'taxAmount': taxAmount,
-      'total': total,
+      'total': totalAmount,
     };
   }
 
